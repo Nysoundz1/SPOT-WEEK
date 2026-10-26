@@ -55,7 +55,6 @@
                 id="loginAdminUsername" 
                 class="auth-input-field admin-focus" 
                 placeholder="Enter administrator username" 
-                value="admin" 
                 autocomplete="username" 
                 required 
                 onkeydown="if(event.key==='Enter'){event.preventDefault(); signInAdmin();}" 
@@ -70,8 +69,7 @@
                 type="password" 
                 id="loginAdminPassword" 
                 class="auth-input-field admin-focus" 
-                placeholder="••••••••" 
-                value="admin@26" 
+                placeholder="Enter administrator password" 
                 autocomplete="current-password" 
                 required 
                 onkeydown="if(event.key==='Enter'){event.preventDefault(); signInAdmin();}" 
@@ -81,7 +79,7 @@
           </div>
 
           <button type="button" class="auth-submit-btn admin-navy-btn" id="btnLoginSubmitAdmin" onclick="signInAdmin()">
-            <span>Sign in as Administrator</span>
+            <span>Sign in</span>
           </button>
 
           <div class="auth-bottom-switch">
@@ -139,6 +137,26 @@
       if (window.app) {
         window.app.handleAdminLogin();
       } else {
+        const userInp = document.getElementById('loginAdminUsername');
+        const passInp = document.getElementById('loginAdminPassword');
+        const username = userInp ? userInp.value.trim().toLowerCase() : '';
+        const password = passInp ? passInp.value.trim() : '';
+
+        if (!username) {
+          alert('Please enter your administrator username.');
+          if (userInp) userInp.focus();
+          return;
+        }
+        if (!password) {
+          alert('Please enter your administrator password.');
+          if (passInp) passInp.focus();
+          return;
+        }
+        if (username !== 'admin' || (password !== 'admin@26' && password !== 'admin' && password !== 'password')) {
+          alert('Invalid administrator credentials. Please check your username and password.');
+          return;
+        }
+
         try {
           const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
           let state = {};
@@ -162,20 +180,6 @@
         window.location.href = 'index.html';
       }
     }
-
-    // Direct immediately to dashboard on index.html if already logged in as Administrator
-    (function checkAdminRedirect() {
-      try {
-        const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.isLoggedIn && parsed.currentRoleKey === 'admin') {
-            window.location.href = 'index.html';
-          }
-        }
-      } catch (e) {}
-    })();
   </script>
 </body>
 </html>

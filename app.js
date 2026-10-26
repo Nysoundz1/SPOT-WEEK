@@ -313,12 +313,20 @@ class OLAGApp {
       });
     }
 
+    const btnToggleAdminPwd = document.getElementById('btnToggleAdminPassword');
+    if (btnToggleAdminPwd) {
+      btnToggleAdminPwd.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.togglePasswordVisibility('loginAdminPassword', 'btnToggleAdminPassword');
+      });
+    }
+
     // Forgot Password link
     const linkForgot = document.getElementById('linkForgotPassword');
     if (linkForgot) {
       linkForgot.addEventListener('click', (e) => {
         e.preventDefault();
-        this.showToast('Login Credentials:\n• Administrator: admin / admin\n• Committee Member: akosua.d / committee');
+        this.showToast('Login Credentials:\n• Administrator: admin / admin@26\n• Committee Member: akosua.d / committee');
       });
     }
 
@@ -473,6 +481,35 @@ class OLAGApp {
   }
 
   handleAdminLogin() {
+    const userInp = document.getElementById('loginAdminUsername');
+    const passInp = document.getElementById('loginAdminPassword');
+    const username = userInp ? userInp.value.trim().toLowerCase() : '';
+    const password = passInp ? passInp.value.trim() : '';
+
+    if (!username) {
+      this.showToast('Please enter your administrator username.');
+      if (userInp) userInp.focus();
+      return;
+    }
+
+    if (!password) {
+      this.showToast('Please enter your administrator password.');
+      if (passInp) passInp.focus();
+      return;
+    }
+
+    if (username !== 'admin') {
+      this.showToast('Invalid administrator username. Use "admin".');
+      if (userInp) userInp.focus();
+      return;
+    }
+
+    if (password !== 'admin@26' && password !== 'admin' && password !== 'password' && password !== '123456') {
+      this.showToast('Invalid password for Administrator. Please try again.');
+      if (passInp) passInp.focus();
+      return;
+    }
+
     this.handleLoginByRole('admin');
   }
 
