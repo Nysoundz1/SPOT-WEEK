@@ -1,0 +1,6 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/committee-login", "destination": "/committee-login.html" }
+  ]
+}
