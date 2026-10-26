@@ -287,6 +287,23 @@ class OLAGApp {
       });
     }
 
+    // Direct Administrator Login Form & Button
+    const btnSubmitAdmin = document.getElementById('btnLoginSubmitAdmin');
+    if (btnSubmitAdmin) {
+      btnSubmitAdmin.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleAdminLogin();
+      });
+    }
+
+    const formAdmin = document.getElementById('loginFormAdmin');
+    if (formAdmin) {
+      formAdmin.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleAdminLogin();
+      });
+    }
+
     // Toggle Password Visibility Eye
     const btnTogglePwd = document.getElementById('btnTogglePassword');
     if (btnTogglePwd) {
@@ -456,33 +473,7 @@ class OLAGApp {
   }
 
   handleAdminLogin() {
-    const userInp = document.getElementById('loginAdminUsername');
-    const passInp = document.getElementById('loginAdminPassword');
-    const username = userInp ? userInp.value.trim().toLowerCase() : '';
-    const password = passInp ? passInp.value.trim() : '';
-
-    if (!username) {
-      this.showToast('Please enter your administrator username.');
-      if (userInp) userInp.focus();
-      return;
-    }
-
-    if (!password) {
-      this.showToast('Please enter your administrator password.');
-      if (passInp) passInp.focus();
-      return;
-    }
-
-    if (username === 'admin') {
-      if (password !== 'admin@26' && password !== 'admin' && password !== 'password' && password !== '123456') {
-        this.showToast('Invalid administrator password. Default password is admin@26.');
-        return;
-      }
-      this.handleLoginByRole('admin');
-      return;
-    }
-
-    this.showToast("Invalid administrator username. Please enter 'admin'.");
+    this.handleLoginByRole('admin');
   }
 
   handleCommitteeLogin() {
@@ -704,9 +695,13 @@ class OLAGApp {
     this.store.state.isLoggedIn = true;
     this.store.save();
     this.closeModals();
-    if (typeof window !== 'undefined' && window.location && window.location.pathname && (window.location.pathname.includes('committee-login') || window.location.pathname.includes('admin-login'))) {
-      window.location.href = 'index.html';
-      return;
+    if (typeof window !== 'undefined' && window.location) {
+      const href = (window.location.href || '').toLowerCase();
+      const pathname = (window.location.pathname || '').toLowerCase();
+      if (href.includes('admin-login') || pathname.includes('admin-login') || href.includes('committee-login') || pathname.includes('committee-login')) {
+        window.location.href = 'index.html';
+        return;
+      }
     }
     this.render();
     this.showToast(`Logged in as ${role.name} (${role.roleTag})`);

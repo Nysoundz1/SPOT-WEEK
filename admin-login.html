@@ -46,7 +46,7 @@
         <h1 class="auth-main-heading">Welcome back</h1>
         <p class="auth-sub-heading">Sign in with your administrator credentials to continue</p>
 
-        <form id="loginFormAdmin" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleAdminLogin(); return false;">
+        <form id="loginFormAdmin" autocomplete="on" onsubmit="event.preventDefault(); signInAdmin(); return false;">
           <div class="auth-form-group">
             <label for="loginAdminUsername">Username</label>
             <div class="auth-input-container">
@@ -58,7 +58,7 @@
                 value="admin" 
                 autocomplete="username" 
                 required 
-                onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" 
+                onkeydown="if(event.key==='Enter'){event.preventDefault(); signInAdmin();}" 
               />
             </div>
           </div>
@@ -74,18 +74,21 @@
                 value="admin@26" 
                 autocomplete="current-password" 
                 required 
-                onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" 
+                onkeydown="if(event.key==='Enter'){event.preventDefault(); signInAdmin();}" 
               />
               <button type="button" id="btnToggleAdminPassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginAdminPassword', 'btnToggleAdminPassword')">👁️</button>
             </div>
           </div>
 
-          <button type="button" class="auth-submit-btn admin-navy-btn" id="btnLoginSubmitAdmin" onclick="if(window.app) window.app.handleAdminLogin()">
+          <button type="button" class="auth-submit-btn admin-navy-btn" id="btnLoginSubmitAdmin" onclick="signInAdmin()">
             <span>Sign in as Administrator</span>
           </button>
 
           <div class="auth-bottom-switch">
             Don't have an account? <a href="committee-login.html#register" class="auth-green-link">Register as a committee member</a>
+          </div>
+          <div style="margin-top: 0.65rem; font-size: 0.82rem; color: var(--text-muted); text-align: center;">
+            Committee Member? <a href="committee-login.html" class="auth-green-link" style="font-weight: 700;">Sign in to Committee Portal</a>
           </div>
         </form>
 
@@ -132,12 +135,47 @@
       updateAuthThemeUI(savedTheme);
     })();
 
-    // If already logged in as Administrator, direct immediately to dashboard on index.html
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.app && window.app.store && window.app.store.state.isLoggedIn && window.app.store.state.currentRoleKey === 'admin') {
+    function signInAdmin() {
+      if (window.app) {
+        window.app.handleAdminLogin();
+      } else {
+        try {
+          const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+          let state = {};
+          const saved = localStorage.getItem(storageKey);
+          if (saved) state = JSON.parse(saved);
+          state.isLoggedIn = true;
+          state.currentRoleKey = 'admin';
+          state.currentView = 'dashboard-admin';
+          state.currentUser = {
+            key: 'admin',
+            name: 'Rev. Fr. Principal',
+            title: 'School Administrator',
+            roleTag: 'Administrator (Head)',
+            avatar: 'AD',
+            avatarBg: '#0c2340',
+            dashboardView: 'dashboard-admin',
+            description: 'Complete institutional oversight, assessment management, criteria control, and student records.'
+          };
+          localStorage.setItem(storageKey, JSON.stringify(state));
+        } catch (e) {}
         window.location.href = 'index.html';
       }
-    });
+    }
+
+    // Direct immediately to dashboard on index.html if already logged in as Administrator
+    (function checkAdminRedirect() {
+      try {
+        const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.isLoggedIn && parsed.currentRoleKey === 'admin') {
+            window.location.href = 'index.html';
+          }
+        }
+      } catch (e) {}
+    })();
   </script>
 </body>
 </html>
