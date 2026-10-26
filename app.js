@@ -59,7 +59,151 @@ const INITIAL_SCORES = {};
 class OLAGStore {
   constructor() {
     this.storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+    this.dbConfigKey = 'OLAG_SUPABASE_CONFIG';
+    this.supabase = null;
+    this.realtimeChannel = null;
+    this.realtimeSubscribed = false;
+    this.syncTimeout = null;
+    this.onStateUpdatedCallback = null;
     this.state = this.loadState();
+  }
+
+  getDbConfig() {
+    try {
+      const saved = localStorage.getItem(this.dbConfigKey);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return { url: '', anonKey: '', connected: false, lastSyncedAt: null };
+  }
+
+  saveDbConfig(config) {
+    try {
+      localStorage.setItem(this.dbConfigKey, JSON.stringify(config));
+    } catch (e) {}
+  }
+
+  initSupabase(onStateUpdatedCallback) {
+    if (onStateUpdatedCallback) this.onStateUpdatedCallback = onStateUpdatedCallback;
+    const config = this.getDbConfig();
+    if (typeof window === 'undefined' || !window.supabase || !config.url || !config.anonKey) {
+      return;
+    }
+
+    try {
+      this.supabase = window.supabase.createClient(config.url, config.anonKey);
+      this.fetchFromSupabase();
+      this.subscribeToRealtime();
+    } catch (e) {
+      console.warn('Supabase initialization warning:', e);
+    }
+  }
+
+  async fetchFromSupabase() {
+    if (!this.supabase) return;
+    try {
+      const { data, error } = await this.supabase
+        .from('spot_app_state')
+        .select('state, updated_at')
+        .eq('id', 'current')
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Table exists but row 'current' not found -> upload local state
+          await this.syncToSupabase(true);
+        }
+        return;
+      }
+
+      if (data && data.state) {
+        this.applyRemoteState(data.state);
+        const config = this.getDbConfig();
+        config.connected = true;
+        config.lastSyncedAt = data.updated_at || new Date().toISOString();
+        this.saveDbConfig(config);
+        if (this.onStateUpdatedCallback) this.onStateUpdatedCallback();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch from Supabase:', e);
+    }
+  }
+
+  applyRemoteState(remoteState) {
+    if (!remoteState || typeof remoteState !== 'object') return;
+    if (Array.isArray(remoteState.students)) this.state.students = remoteState.students;
+    if (Array.isArray(remoteState.weeks)) this.state.weeks = remoteState.weeks;
+    if (remoteState.scores && typeof remoteState.scores === 'object') this.state.scores = remoteState.scores;
+    if (Array.isArray(remoteState.members)) this.state.members = remoteState.members;
+    if (Array.isArray(remoteState.classes)) this.state.classes = remoteState.classes;
+    if (Array.isArray(remoteState.houses)) this.state.houses = remoteState.houses;
+    if (remoteState.selectedWeekId) this.state.selectedWeekId = remoteState.selectedWeekId;
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+    } catch (e) {}
+  }
+
+  subscribeToRealtime() {
+    if (!this.supabase || this.realtimeSubscribed) return;
+    try {
+      this.realtimeChannel = this.supabase
+        .channel('spot-live-sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'spot_app_state' },
+          (payload) => {
+            if (payload.new && payload.new.state) {
+              this.applyRemoteState(payload.new.state);
+              const config = this.getDbConfig();
+              config.lastSyncedAt = payload.new.updated_at || new Date().toISOString();
+              this.saveDbConfig(config);
+              if (this.onStateUpdatedCallback) this.onStateUpdatedCallback();
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            this.realtimeSubscribed = true;
+          }
+        });
+    } catch (e) {
+      console.warn('Realtime subscription error:', e);
+    }
+  }
+
+  scheduleSupabaseSync() {
+    if (!this.supabase) return;
+    if (this.syncTimeout) clearTimeout(this.syncTimeout);
+    this.syncTimeout = setTimeout(() => this.syncToSupabase(), 800);
+  }
+
+  async syncToSupabase(force = false) {
+    if (!this.supabase) return;
+    const snapshot = {
+      students: this.state.students || [],
+      weeks: this.state.weeks || [],
+      scores: this.state.scores || {},
+      members: this.state.members || [],
+      classes: this.state.classes || [],
+      houses: this.state.houses || [],
+      criteria: this.state.criteria || [],
+      selectedWeekId: this.state.selectedWeekId
+    };
+
+    try {
+      const nowIso = new Date().toISOString();
+      const { error } = await this.supabase
+        .from('spot_app_state')
+        .upsert({ id: 'current', state: snapshot, updated_at: nowIso });
+
+      if (!error) {
+        const config = this.getDbConfig();
+        config.connected = true;
+        config.lastSyncedAt = nowIso;
+        this.saveDbConfig(config);
+      }
+    } catch (e) {
+      console.warn('Supabase sync error:', e);
+    }
   }
 
   loadState() {
@@ -115,6 +259,7 @@ class OLAGStore {
     } catch (e) {
       console.error('Save failed:', e);
     }
+    this.scheduleSupabaseSync();
   }
 
   resetAll() {
@@ -142,6 +287,14 @@ class OLAGApp {
         this.render();
       }
     });
+
+    // Initialize Supabase Cloud Database if configured
+    this.store.initSupabase(() => {
+      this.updateDatabaseStatusUI();
+      this.render();
+    });
+
+    this.updateDatabaseStatusUI();
     this.render();
   }
 
@@ -883,6 +1036,8 @@ class OLAGApp {
       userAvatarEl.style.backgroundColor = user.avatarBg;
       userAvatarEl.style.color = '#ffffff';
     }
+
+    this.updateDatabaseStatusUI();
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const weekPillEl = document.querySelector('.header-week-pill');
 
@@ -2516,13 +2671,50 @@ class OLAGApp {
     const container = document.getElementById('view-settings');
     if (!container) return;
 
+    const dbConfig = this.store.getDbConfig();
+
     container.innerHTML = `
       <div class="view-header">
         <h2>System Settings</h2>
-        <p>Configure academic year, houses, classes, criteria, and system preferences.</p>
+        <p>Configure academic year, houses, classes, criteria, database synchronization, and system preferences.</p>
       </div>
 
-      <div class="stat-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-bottom: 2rem;">
+      <div class="stat-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-bottom: 2rem;">
+        <!-- Cloud Database Configuration Card -->
+        <div class="scoring-table-card" style="border: 1.5px solid ${dbConfig.connected ? '#86efac' : 'var(--card-border)'};">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.3rem;">⚡</span>
+              <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin: 0;">Cloud Database (Supabase)</h3>
+            </div>
+            <span class="status-badge-${dbConfig.connected ? 'active' : 'pending'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem;">
+              ${dbConfig.connected ? '🟢 Connected Live' : '🟡 Local Storage Mode'}
+            </span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.45;">
+            ${dbConfig.connected 
+              ? `Connected to <code>${escapeHtml(dbConfig.url)}</code>.<br><span style="font-size: 0.78rem;">Last synchronized: <strong>${dbConfig.lastSyncedAt ? new Date(dbConfig.lastSyncedAt).toLocaleTimeString() : 'Active'}</strong></span>` 
+              : 'Connect Supabase Cloud PostgreSQL to synchronize all students, week intervals, and scores in real-time across phones, tablets, and computers.'}
+          </p>
+
+          <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+            <button type="button" class="btn-navy-action" onclick="app.openDatabaseModal()">
+              ⚡ ${dbConfig.connected ? 'Database Settings' : 'Connect Database'}
+            </button>
+            <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" onclick="app.copySupabaseSchema()">
+              📋 Copy SQL Schema
+            </button>
+            ${dbConfig.connected ? `
+              <button type="button" class="btn-navy-action" style="background: #e0f2fe; color: #0369a1;" onclick="app.syncDatabaseNow()">
+                🔄 Sync Now
+              </button>
+              <button type="button" class="btn-navy-action" style="background: #fee2e2; color: #991b1b;" onclick="app.disconnectDatabase()">
+                Disconnect
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
         <div class="scoring-table-card">
           <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin-bottom: 0.75rem;">School Configuration</h3>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Academic Year: <strong>2024 / 2025</strong> • Term 2</p>
@@ -2558,6 +2750,281 @@ class OLAGApp {
         </div>
       </div>
     `;
+  }
+
+  // --- Supabase Cloud Database Management Methods ---
+  updateDatabaseStatusUI() {
+    const config = this.store.getDbConfig();
+    const isConn = !!config.connected && !!this.store.supabase;
+    const btn = document.getElementById('headerDbStatusBtn');
+    const dot = document.getElementById('headerDbStatusDot');
+    const text = document.getElementById('headerDbStatusText');
+
+    if (dot) dot.textContent = isConn ? '🟢' : '🟡';
+    if (text) text.textContent = isConn ? 'Cloud Synced' : 'Local Storage';
+    if (btn) {
+      if (isConn) {
+        btn.classList.add('connected');
+        btn.title = `Supabase Cloud Connected • Live Sync Active (${config.url})`;
+      } else {
+        btn.classList.remove('connected');
+        btn.title = 'Local Storage Mode • Click to Connect Supabase Cloud Database';
+      }
+    }
+  }
+
+  openDatabaseModal() {
+    const config = this.store.getDbConfig();
+    const modal = document.getElementById('modalDatabaseConfig');
+    if (!modal) return;
+
+    const inpUrl = document.getElementById('dbInputUrl');
+    const inpKey = document.getElementById('dbInputKey');
+    const btnDisconnect = document.getElementById('btnDbDisconnect');
+    const btnSyncNow = document.getElementById('btnDbModalSyncNow');
+    const banner = document.getElementById('dbModalStatusBanner');
+    const statusIcon = document.getElementById('dbModalStatusIcon');
+    const statusTitle = document.getElementById('dbModalStatusTitle');
+    const statusSub = document.getElementById('dbModalStatusSub');
+    const btnConnect = document.getElementById('btnDbSaveConnect');
+
+    if (inpUrl) inpUrl.value = config.url || '';
+    if (inpKey) inpKey.value = config.anonKey || '';
+
+    const isConn = !!config.connected && !!this.store.supabase;
+
+    if (banner) {
+      banner.style.background = isConn ? '#dcfce7' : '#fef3c7';
+      banner.style.borderColor = isConn ? '#86efac' : '#fde68a';
+    }
+    if (statusIcon) statusIcon.textContent = isConn ? '🟢' : '🟡';
+    if (statusTitle) {
+      statusTitle.textContent = isConn ? 'Cloud Database Connected (Supabase)' : 'Database Mode: Local Browser Storage';
+      statusTitle.style.color = isConn ? '#166534' : '#92400e';
+    }
+    if (statusSub) {
+      statusSub.textContent = isConn 
+        ? `Realtime synchronization active with ${config.url}. All devices receive instant updates.` 
+        : 'Connect Supabase to enable live synchronization across all phones, tablets, and computers.';
+      statusSub.style.color = isConn ? '#14532d' : '#78350f';
+    }
+
+    if (btnDisconnect) btnDisconnect.style.display = isConn ? 'inline-flex' : 'none';
+    if (btnSyncNow) btnSyncNow.style.display = isConn ? 'inline-flex' : 'none';
+    if (btnConnect) {
+      btnConnect.innerHTML = isConn ? '<span>⚡ Re-Verify &amp; Sync</span>' : '<span>⚡ Connect &amp; Sync</span>';
+    }
+
+    modal.classList.add('active');
+  }
+
+  async handleSaveDatabaseConfig() {
+    const inpUrl = document.getElementById('dbInputUrl');
+    const inpKey = document.getElementById('dbInputKey');
+    const url = inpUrl ? inpUrl.value.trim().replace(/\/$/, '') : '';
+    const key = inpKey ? inpKey.value.trim() : '';
+
+    if (!url || !key) {
+      this.showToast('Please enter both Supabase Project URL and Anon Key.');
+      return;
+    }
+
+    if (typeof window === 'undefined' || !window.supabase || !window.supabase.createClient) {
+      this.showToast('Supabase client library loading... please check internet connection.');
+      return;
+    }
+
+    const btnConnect = document.getElementById('btnDbSaveConnect');
+    const origText = btnConnect ? btnConnect.innerHTML : '';
+    if (btnConnect) {
+      btnConnect.disabled = true;
+      btnConnect.innerHTML = '<span>⏳ Testing Connection...</span>';
+    }
+
+    try {
+      const client = window.supabase.createClient(url, key);
+      const { data, error } = await client.from('spot_app_state').select('id, updated_at').limit(1);
+
+      if (error && error.code !== 'PGRST116') {
+        throw new Error(error.message || 'Could not query spot_app_state table');
+      }
+
+      this.store.supabase = client;
+      this.store.saveDbConfig({
+        url: url,
+        anonKey: key,
+        connected: true,
+        lastSyncedAt: new Date().toISOString()
+      });
+
+      this.store.subscribeToRealtime();
+      await this.store.syncToSupabase(true);
+      await this.store.fetchFromSupabase();
+
+      this.showToast('✓ Successfully connected to Supabase Cloud Database! Live sync active.');
+      this.closeModals();
+      this.updateDatabaseStatusUI();
+      this.render();
+    } catch (err) {
+      console.error('Supabase connection error:', err);
+      alert(`Supabase Connection Failed:\n${err.message || err}\n\nTroubleshooting:\n1. Verify you ran the SQL Schema in supabase_schema.sql.\n2. Ensure Project URL is format: https://xyz.supabase.co\n3. Ensure Anon Public Key is correct.`);
+    } finally {
+      if (btnConnect) {
+        btnConnect.disabled = false;
+        btnConnect.innerHTML = origText;
+      }
+    }
+  }
+
+  disconnectDatabase() {
+    if (confirm('Disconnect from Supabase? The application will continue working in Local Storage mode.')) {
+      this.store.saveDbConfig({ url: '', anonKey: '', connected: false, lastSyncedAt: null });
+      if (this.store.supabase && this.store.realtimeChannel) {
+        try {
+          this.store.supabase.removeChannel(this.store.realtimeChannel);
+        } catch (e) {}
+      }
+      this.store.supabase = null;
+      this.store.realtimeSubscribed = false;
+      this.showToast('Disconnected from cloud database. Reverted to Local Storage mode.');
+      this.closeModals();
+      this.updateDatabaseStatusUI();
+      this.render();
+    }
+  }
+
+  async syncDatabaseNow() {
+    if (!this.store.supabase) {
+      this.showToast('No database connected. Please connect Supabase first.');
+      return;
+    }
+    this.showToast('🔄 Synchronizing with Supabase Cloud...');
+    await this.store.syncToSupabase(true);
+    await this.store.fetchFromSupabase();
+    this.updateDatabaseStatusUI();
+    this.render();
+    this.showToast('✓ Cloud Database sync complete!');
+  }
+
+  copySupabaseSchema() {
+    const schemaSql = `-- OUR LADY OF GRACE SENIOR HIGH SCHOOL (OLAG SHS)
+-- Student Personality of the Week (SPOT WEEK) Assessment System
+-- Supabase Cloud Database Schema & Realtime Setup
+
+create table if not exists public.spot_app_state (
+  id text primary key default 'current',
+  state jsonb not null,
+  updated_at timestamptz default timezone('utc'::text, now()) not null
+);
+
+alter table public.spot_app_state enable row level security;
+drop policy if exists "Public Read State" on public.spot_app_state;
+drop policy if exists "Public Insert State" on public.spot_app_state;
+drop policy if exists "Public Update State" on public.spot_app_state;
+
+create policy "Public Read State" on public.spot_app_state for select using (true);
+create policy "Public Insert State" on public.spot_app_state for insert with check (true);
+create policy "Public Update State" on public.spot_app_state for update using (true);
+
+create table if not exists public.spot_weeks (
+  id text primary key,
+  no integer,
+  name text not null,
+  date_range text,
+  start_date date,
+  end_date date,
+  status text default 'Open',
+  is_current boolean default false,
+  top_student text,
+  total_score numeric,
+  max_score numeric default 80,
+  percentage numeric,
+  updated_at timestamptz default timezone('utc'::text, now())
+);
+alter table public.spot_weeks enable row level security;
+drop policy if exists "Public Weeks Access" on public.spot_weeks;
+create policy "Public Weeks Access" on public.spot_weeks for all using (true) with check (true);
+
+create table if not exists public.spot_students (
+  id text primary key,
+  name text not null,
+  class text not null,
+  house text not null,
+  created_at timestamptz default timezone('utc'::text, now())
+);
+alter table public.spot_students enable row level security;
+drop policy if exists "Public Students Access" on public.spot_students;
+create policy "Public Students Access" on public.spot_students for all using (true) with check (true);
+
+create table if not exists public.spot_members (
+  id text primary key,
+  name text not null,
+  role text not null,
+  username text not null,
+  password text,
+  created_at timestamptz default timezone('utc'::text, now())
+);
+alter table public.spot_members enable row level security;
+drop policy if exists "Public Members Access" on public.spot_members;
+create policy "Public Members Access" on public.spot_members for all using (true) with check (true);
+
+create table if not exists public.spot_scores (
+  id text primary key,
+  week_id text not null,
+  student_id text not null,
+  evaluator_id text,
+  scores jsonb not null,
+  total numeric not null,
+  pct numeric not null,
+  updated_at timestamptz default timezone('utc'::text, now())
+);
+alter table public.spot_scores enable row level security;
+drop policy if exists "Public Scores Access" on public.spot_scores;
+create policy "Public Scores Access" on public.spot_scores for all using (true) with check (true);
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'spot_app_state') then
+    alter publication supabase_realtime add table public.spot_app_state;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'spot_weeks') then
+    alter publication supabase_realtime add table public.spot_weeks;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'spot_students') then
+    alter publication supabase_realtime add table public.spot_students;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'spot_scores') then
+    alter publication supabase_realtime add table public.spot_scores;
+  end if;
+end $$;
+
+insert into public.spot_app_state (id, state, updated_at)
+values ('current', '{"initialized": true, "weeks": [], "students": [], "scores": {}, "members": []}'::jsonb, now())
+on conflict (id) do nothing;`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(schemaSql).then(() => {
+        this.showToast('✓ Supabase SQL Schema copied to clipboard! Paste into Supabase SQL Editor.');
+      }).catch(() => {
+        this.fallbackCopyText(schemaSql);
+      });
+    } else {
+      this.fallbackCopyText(schemaSql);
+    }
+  }
+
+  fallbackCopyText(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    try {
+      document.execCommand('copy');
+      this.showToast('✓ Supabase SQL Schema copied to clipboard!');
+    } catch (e) {
+      this.showToast('Please open supabase_schema.sql file in the project.');
+    }
+    document.body.removeChild(area);
   }
 
   resetDemoData() {

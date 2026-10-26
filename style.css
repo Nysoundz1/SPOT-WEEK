@@ -601,6 +601,66 @@ a {
   line-height: 1;
 }
 
+/* Cloud Database Connection Indicator Pill in Header */
+.header-db-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(12, 35, 64, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--navy-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.header-db-pill:hover {
+  background: rgba(12, 35, 64, 0.1);
+  border-color: var(--navy-primary);
+  transform: translateY(-1px);
+}
+
+.header-db-pill.connected {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+[data-theme="dark"] .header-db-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .header-db-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--accent-gold);
+}
+
+[data-theme="dark"] .header-db-pill.connected {
+  background: rgba(22, 101, 52, 0.35);
+  border-color: #22c55e;
+  color: #86efac;
+}
+
+.db-status-dot {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .header-db-pill .db-status-text {
+    display: none;
+  }
+  .header-db-pill {
+    padding: 0.35rem 0.55rem;
+  }
+}
+
 .evaluator-banner {
   background: #f8fafc;
   border: 1.5px solid var(--card-border);
