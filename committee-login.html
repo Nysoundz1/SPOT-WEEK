@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Student Personality of the Week (Committee Portal)</title>
+  <meta name="description" content="Official Student Personality of the Week Committee Member and Evaluator Login Portal for Our Lady of Grace Senior High School (OLAG SHS).">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Official School Favicon -->
+  <link rel="icon" type="image/png" href="olag_logo.png">
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=6">
+</head>
+<body>
+
+  <!-- =========================================================================
+       COMMITTEE MEMBER PORTAL: DEDICATED LOGIN & REGISTRATION PAGE
+       ========================================================================= -->
+  <div id="screenLoginWrapper" class="login-wrapper">
+    <!-- Left Hero Side: Centered Official School Branding & Committee Title -->
+    <div class="login-left-hero" style="background: linear-gradient(145deg, #064e3b 0%, #0c2340 100%);">
+      <div class="login-hero-centered-content">
+        <div class="login-brand-top">
+          <div class="login-crest-icon">
+            <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Official Logo" />
+          </div>
+          <div class="login-brand-text">
+            <div class="login-school-name">OUR LADY OF GRACE SENIOR HIGH SCHOOL</div>
+            <div class="login-school-motto">Knowledge • Morality • Service</div>
+          </div>
+        </div>
+
+        <div class="login-hero-divider"></div>
+
+        <div class="login-hero-headline-group">
+          <h1 class="login-hero-title">Student Personality of the Week<br>Committee Portal</h1>
+          <p class="login-hero-subtitle">Sign in or register to assess students and enter weekly character scores.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Login Area: Dedicated Committee Member Card -->
+    <div class="login-right-form">
+      <div class="login-cards-grid single-card-mode">
+        <!-- Committee Member Login & Registration Card -->
+        <div class="login-card login-card-committee" id="cardLoginCommittee">
+          <div class="login-card-header">
+            <span class="card-role-badge committee">👥 Committee Evaluator Portal</span>
+            <h2 id="committeeCardTitle">Committee Member Portal</h2>
+            <p id="committeeCardSubtitle">Sign in or register with your staff info to evaluate students</p>
+          </div>
+
+          <!-- Switcher between Login and Register for Committee -->
+          <div class="card-action-tabs" role="tablist">
+            <button type="button" class="card-action-tab active" id="tabCommitteeLogin" onclick="if(window.app) window.app.switchCommitteeForm('login')">
+              <span>🔑 Sign In</span>
+            </button>
+            <button type="button" class="card-action-tab" id="tabCommitteeRegister" onclick="if(window.app) window.app.switchCommitteeForm('register')">
+              <span>📝 Register New Member</span>
+            </button>
+          </div>
+
+          <!-- 2A. Committee Login Form -->
+          <form id="loginFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleCommitteeLogin(); return false;">
+            <div class="login-input-group">
+              <label for="loginCommitteeUsername">Username / Staff ID</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">👤</span>
+                <input type="text" id="loginCommitteeUsername" class="login-input-field" placeholder="Enter username (e.g. akosua.d)" autocomplete="username" required 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleCommitteeLogin();}" />
+              </div>
+            </div>
+
+            <div class="login-input-group">
+              <label for="loginCommitteePassword">Password</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">🔒</span>
+                <input type="password" id="loginCommitteePassword" class="login-input-field" placeholder="Enter password" autocomplete="current-password" required 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleCommitteeLogin();}" />
+                <button type="button" id="btnToggleCommitteePassword" class="login-input-icon-right" title="Show Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginCommitteePassword', 'btnToggleCommitteePassword')">👁️</button>
+              </div>
+            </div>
+
+            <div class="login-remember-row">
+              <label class="remember-label">
+                <input type="checkbox" id="rememberMeCommittee" checked />
+                <span>Remember me</span>
+              </label>
+              <a href="javascript:void(0)" class="login-forgot-a" onclick="alert('Please contact the School IT Administrator to reset your credentials.')">Forgot password?</a>
+            </div>
+
+            <button type="button" class="btn-login-submit btn-committee-submit" id="btnLoginSubmitCommittee" onclick="if(window.app) window.app.handleCommitteeLogin()">
+              <span>Login as Committee Member</span>
+              <span class="btn-arrow">➔</span>
+            </button>
+
+            <div class="login-switch-hint">
+              New committee member? <a href="javascript:void(0)" onclick="if(window.app) window.app.switchCommitteeForm('register')">Register with your staff info ➔</a>
+            </div>
+
+            <!-- Link to Administrator Login Page -->
+            <div class="login-other-portal-box">
+              <span>School Administrator or Principal?</span>
+              <a href="index.html" class="btn-go-other-portal">🛡️ Go to Administrator Login ➔</a>
+            </div>
+          </form>
+
+          <!-- 2B. Committee Registration Form -->
+          <form id="registerFormCommittee" style="display: none;" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleCommitteeRegister(); return false;">
+            <div class="login-input-group">
+              <label for="regCommitteeName">Full Name *</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">📛</span>
+                <input type="text" id="regCommitteeName" class="login-input-field" placeholder="e.g. Mrs. Akosua Dankwa" required />
+              </div>
+            </div>
+
+            <div class="login-input-group">
+              <label for="regCommitteeRole">Role / Committee Designation *</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">🏷️</span>
+                <input type="text" id="regCommitteeRole" class="login-input-field" placeholder="Enter your role (e.g. Discipline Member, House Master)" list="committeeRoleList" autocomplete="off" required />
+                <datalist id="committeeRoleList">
+                  <option value="Discipline Committee Member"></option>
+                  <option value="Teacher Representative"></option>
+                  <option value="House Master / Mistress"></option>
+                  <option value="Head of Department"></option>
+                  <option value="Guidance Counselor"></option>
+                  <option value="Sports Coordinator"></option>
+                  <option value="Parent Representative (PTA)"></option>
+                  <option value="Chaplaincy Representative"></option>
+                  <option value="Committee Member / Evaluator"></option>
+                </datalist>
+              </div>
+            </div>
+
+            <div class="login-input-group">
+              <label for="regCommitteeUsername">Username / Staff ID *</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">👤</span>
+                <input type="text" id="regCommitteeUsername" class="login-input-field" placeholder="Choose username (e.g. akosua.d)" autocomplete="username" required />
+              </div>
+            </div>
+
+            <div class="login-input-group">
+              <label for="regCommitteePassword">Password *</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">🔒</span>
+                <input type="password" id="regCommitteePassword" class="login-input-field" placeholder="Create a password" autocomplete="new-password" required />
+                <button type="button" id="btnToggleRegPassword" class="login-input-icon-right" title="Show Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('regCommitteePassword', 'btnToggleRegPassword')">👁️</button>
+              </div>
+            </div>
+
+            <div class="login-input-group">
+              <label for="regCommitteeConfirmPassword">Confirm Password *</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">🔒</span>
+                <input type="password" id="regCommitteeConfirmPassword" class="login-input-field" placeholder="Re-enter password to confirm" autocomplete="new-password" required />
+              </div>
+            </div>
+
+            <button type="button" class="btn-login-submit btn-committee-submit" id="btnRegisterSubmitCommittee" onclick="if(window.app) window.app.handleCommitteeRegister()">
+              <span>Register & Sign In as Committee Member</span>
+              <span class="btn-arrow">➔</span>
+            </button>
+
+            <div class="login-switch-hint">
+              Already have an account? <a href="javascript:void(0)" onclick="if(window.app) window.app.switchCommitteeForm('login')">Sign In with your credentials ➔</a>
+            </div>
+
+            <!-- Link to Administrator Login Page -->
+            <div class="login-other-portal-box">
+              <span>School Administrator or Principal?</span>
+              <a href="index.html" class="btn-go-other-portal">🛡️ Go to Administrator Login ➔</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toastStack" class="toast-stack"></div>
+
+  <!-- JavaScript Application Bundle -->
+  <script src="app.js?v=6"></script>
+  <script>
+    // If already logged in as Committee Member, direct immediately to dashboard on index.html
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.app && window.app.store && window.app.store.state.isLoggedIn) {
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+</body>
+</html>

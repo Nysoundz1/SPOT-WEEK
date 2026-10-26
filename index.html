@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Student Personality of the Week Assessment System</title>
+  <meta name="description" content="Official Student Personality of the Week Multi-Role Assessment Portals for Our Lady of Grace Senior High School (OLAG SHS).">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Official School Favicon -->
+  <link rel="icon" type="image/png" href="olag_logo.png">
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=6">
+</head>
+<body>
+
+  <!-- =========================================================================
+       SCREEN 1: LOGIN PAGE (SPLIT HERO LAYOUT WITH MULTI-ROLE PORTAL TABS)
+       ========================================================================= -->
+  <div id="screenLoginWrapper" class="login-wrapper">
+    <!-- Left Hero Side: Centered Official School Branding & Assessment Title -->
+    <div class="login-left-hero">
+      <div class="login-hero-centered-content">
+        <div class="login-brand-top">
+          <div class="login-crest-icon">
+            <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Official Logo" />
+          </div>
+          <div class="login-brand-text">
+            <div class="login-school-name">OUR LADY OF GRACE SENIOR HIGH SCHOOL</div>
+            <div class="login-school-motto">Knowledge • Morality • Service</div>
+          </div>
+        </div>
+
+        <div class="login-hero-divider"></div>
+
+        <div class="login-hero-headline-group">
+          <h1 class="login-hero-title">Student Personality of the Week<br>Assessment System</h1>
+          <p class="login-hero-subtitle">Building character, Developing future leaders.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Login Area: Dedicated Administrator Login Page -->
+    <div class="login-right-form">
+      <div class="login-cards-grid single-card-mode">
+        <!-- 1. Administrator Login Card -->
+        <div class="login-card login-card-admin" id="cardLoginAdmin">
+          <div class="login-card-header">
+            <span class="card-role-badge admin">🛡️ Administrator Portal</span>
+            <h2>Administrator Login</h2>
+            <p>Sign in with your administrator info for full oversight</p>
+          </div>
+
+          <form id="loginFormAdmin" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleAdminLogin(); return false;">
+            <div class="login-input-group">
+              <label for="loginAdminUsername">Username</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">👤</span>
+                <input type="text" id="loginAdminUsername" class="login-input-field" placeholder="Enter administrator username" value="admin" autocomplete="username" required 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" />
+              </div>
+            </div>
+
+            <div class="login-input-group">
+              <label for="loginAdminPassword">Password</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">🔒</span>
+                <input type="password" id="loginAdminPassword" class="login-input-field" placeholder="Enter administrator password" value="admin" autocomplete="current-password" required 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" />
+                <button type="button" id="btnToggleAdminPassword" class="login-input-icon-right" title="Show Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginAdminPassword', 'btnToggleAdminPassword')">👁️</button>
+              </div>
+            </div>
+
+            <div class="login-remember-row">
+              <label class="remember-label">
+                <input type="checkbox" id="rememberMeAdmin" checked />
+                <span>Remember me</span>
+              </label>
+              <a href="javascript:void(0)" class="login-forgot-a" onclick="alert('Please contact the School IT Administrator to reset your credentials.')">Forgot password?</a>
+            </div>
+
+            <button type="button" class="btn-login-submit" id="btnLoginSubmitAdmin" onclick="if(window.app) window.app.handleAdminLogin()">
+              <span>Login as Administrator</span>
+              <span class="btn-arrow">➔</span>
+            </button>
+
+            <!-- Link to Dedicated Different Committee Member Login Page -->
+            <div class="login-other-portal-box">
+              <span>Evaluating students or entering weekly scores?</span>
+              <a href="committee-login.html" class="btn-go-other-portal">👥 Go to Committee Member Login & Register ➔</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SCREENS 2 – 9: APP SHELL (TOP BAR + DARK NAVY SIDEBAR + MAIN CONTENT)
+       ========================================================================= -->
+  <div id="screenAppShell" class="app-shell" style="display: none;">
+
+    <!-- Top App Header (Dark Navy) -->
+    <header class="olag-top-header">
+      <div class="header-left-brand" onclick="app.navigateTo('dashboard-' + app.store.state.currentRoleKey)">
+        <div class="header-crest">
+          <img src="olag_logo.png" alt="Our Lady of Grace SHS Official Logo" />
+        </div>
+        <div class="header-brand-text">
+          <h1>OLAG SHS</h1>
+          <span>Student Personality of the Week</span>
+        </div>
+      </div>
+
+      <!-- Middle: Current Week Interval Pill matching Screenshot -->
+      <div class="header-week-pill">
+        <span class="cal-icon">📅</span>
+        <div>
+          <span class="header-week-interval-title">Current Week Interval</span>
+          <span id="headerWeekIntervalText">Week 4 (21 – 27 Apr 2025)</span>
+        </div>
+      </div>
+
+      <!-- Right: User Profile Pill with Switch Dashboard Action -->
+      <div class="header-right-user">
+        <button type="button" class="btn-switch-dashboard" id="btnSwitchDashboard" title="Switch Dashboard Persona">
+          <span>🔄 Switch Dashboard</span>
+        </button>
+
+        <div class="header-user-profile" id="headerUserProfile" title="Click to Switch Role">
+          <div class="header-user-avatar" id="headerProfileAvatar">AD</div>
+          <div class="header-user-text">
+            <div class="header-user-name" id="headerProfileName">Admin</div>
+            <div class="header-user-role" id="headerProfileRole">Administrator</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Body Container -->
+    <div class="app-body-container">
+
+      <!-- Left Sidebar (Deep Navy) -->
+      <aside class="olag-sidebar">
+        <nav class="sidebar-nav-menu" id="sidebarNavMenu">
+          <!-- Dynamically populated based on active dashboard role -->
+        </nav>
+
+        <!-- Logout Button at bottom of sidebar -->
+        <button type="button" class="sidebar-logout-btn" id="btnSidebarLogout">
+          <span style="font-size: 1.1rem;">🚪</span>
+          <span>Logout</span>
+        </button>
+      </aside>
+
+      <!-- Main Content Area: Individual Views -->
+      <main class="olag-main-content">
+        <!-- Dashboard 1: Administrator -->
+        <section id="view-dashboard-admin" class="page-view"></section>
+
+        <!-- Dashboard 2: Committee Member -->
+        <section id="view-dashboard-committee" class="page-view"></section>
+
+        <!-- View: Weekly Assessment -->
+        <section id="view-assessment" class="page-view"></section>
+
+        <!-- View: Manage Students -->
+        <section id="view-students" class="page-view"></section>
+
+        <!-- View: Results & Rankings -->
+        <section id="view-rankings" class="page-view"></section>
+
+        <!-- View: Previous Weeks' Results -->
+        <section id="view-previous-weeks" class="page-view"></section>
+
+        <!-- View: Committee Members -->
+        <section id="view-committee" class="page-view"></section>
+
+        <!-- View: Student Profile -->
+        <section id="view-student-profile" class="page-view"></section>
+
+        <!-- View: Reports (Export & Print) -->
+        <section id="view-reports" class="page-view"></section>
+
+        <!-- View: Settings -->
+        <section id="view-settings" class="page-view"></section>
+      </main>
+
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODALS: Switch Dashboard Persona, Add Student, Add Member
+       ========================================================================= -->
+  <!-- Role Switcher Modal -->
+  <div class="modal-overlay" id="modalRoleSwitcher">
+    <div class="modal-container">
+      <div class="modal-header-row">
+        <h3>Switch Dashboard</h3>
+        <button type="button" class="btn-close-x" data-close-modal>&times;</button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+        Select either dashboard to switch between Administrator and Committee Member perspectives:
+      </p>
+      <div class="role-switcher-grid" id="roleSwitcherList">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Student Modal -->
+  <div class="modal-overlay" id="modalAddStudent">
+    <div class="modal-container">
+      <div class="modal-header-row">
+        <h3>+ Add Student</h3>
+        <button type="button" class="btn-close-x" data-close-modal>&times;</button>
+      </div>
+      <form id="formAddStudent">
+        <div class="filter-field" style="margin-bottom: 1rem;">
+          <label>Full Name *</label>
+          <input type="text" id="addStudentName" class="form-input" placeholder="e.g. John Mensah" required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="filter-field">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label style="margin-bottom: 0;">Class *</label>
+              <button type="button" class="btn-text-action" onclick="app.openAddClassModal('+ Add Student')">+ Add Class</button>
+            </div>
+            <select id="addStudentClass" class="form-select" onchange="if(this.value === '__add_new__') app.openAddClassModal('+ Add Student')">
+              <option value="SHS 1A">SHS 1A</option>
+              <option value="SHS 1B">SHS 1B</option>
+              <option value="SHS 2A" selected>SHS 2A</option>
+              <option value="SHS 2B">SHS 2B</option>
+              <option value="SHS 2C">SHS 2C</option>
+              <option value="SHS 3A">SHS 3A</option>
+              <option value="SHS 3B">SHS 3B</option>
+              <option value="SHS 3C">SHS 3C</option>
+              <option value="__add_new__">+ Add New Class...</option>
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label>House *</label>
+            <select id="addStudentHouse" class="form-select">
+              <option value="Accra">Accra House</option>
+              <option value="Kumasi">Kumasi House</option>
+              <option value="Takoradi">Takoradi House</option>
+              <option value="Cape Coast">Cape Coast House</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="filter-field">
+            <label>Gender *</label>
+            <select id="addStudentGender" class="form-select">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label>Phone / Guardian</label>
+            <input type="text" id="addStudentPhone" class="form-input" placeholder="024 123 4567" />
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Cancel</button>
+          <button type="submit" class="btn-navy-action">Save Student</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL: ADD & MANAGE CLASSES (Admin Only)
+       ========================================================================= -->
+  <div class="modal-overlay" id="modalAddClass">
+    <div class="modal-container" style="max-width: 520px;">
+      <div class="modal-header-row">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">🏫</span>
+          <h3 style="margin: 0;">Add &amp; Manage Classes</h3>
+        </div>
+        <button type="button" class="btn-close-x" data-close-modal>&times;</button>
+      </div>
+
+      <form id="formAddClass" style="margin-top: 0.75rem;">
+        <div class="filter-field" style="margin-bottom: 0.85rem;">
+          <label>New Class Name *</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="newClassNameInput" class="form-input" placeholder="e.g. SHS 1C, SHS 3D, Form 1 Science" required style="flex: 1;" />
+            <button type="submit" class="btn-navy-action" style="white-space: nowrap; padding: 0 1.25rem;">
+              + Save Class
+            </button>
+          </div>
+          <div class="field-hint" style="font-size: 0.74rem; color: #64748b; margin-top: 0.35rem;">
+            Quick Presets: 
+            <a href="javascript:void(0)" onclick="app.setNewClassPreset('SHS 1C')">SHS 1C</a> &bull; 
+            <a href="javascript:void(0)" onclick="app.setNewClassPreset('SHS 2D')">SHS 2D</a> &bull; 
+            <a href="javascript:void(0)" onclick="app.setNewClassPreset('SHS 3D')">SHS 3D</a> &bull; 
+            <a href="javascript:void(0)" onclick="app.setNewClassPreset('SHS 1 General Arts')">SHS 1 Arts</a> &bull; 
+            <a href="javascript:void(0)" onclick="app.setNewClassPreset('SHS 2 Science A')">SHS 2 Science</a>
+          </div>
+        </div>
+      </form>
+
+      <div style="margin-top: 1.25rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+          <span style="font-size: 0.82rem; font-weight: 700; color: var(--navy-primary);">
+            Existing Classes (<span id="existingClassesCount">8</span>)
+          </span>
+          <span style="font-size: 0.74rem; color: #64748b;">Click 🗑️ to remove empty classes</span>
+        </div>
+        <div id="existingClassesPills" class="class-pills-container">
+          <!-- Dynamically populated class badges with student count and delete icon -->
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem; gap: 0.5rem;">
+        <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL: SET WEEK INTERVAL (Admin Only)
+       ========================================================================= -->
+  <div class="modal-overlay" id="modalSetWeekInterval">
+    <div class="modal-container" style="max-width: 580px;">
+      <div class="modal-header-row">
+        <div>
+          <h3>📅 Set Week Interval & Scoring Period</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Configure week assessment intervals, dates, and scoring lifecycle.
+          </p>
+        </div>
+        <button type="button" class="btn-close-x" data-close-modal>&times;</button>
+      </div>
+
+      <form id="formSetWeekInterval">
+        <div style="margin-bottom: 1.15rem;">
+          <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark); display: block; margin-bottom: 0.4rem;">
+            Target Week *
+          </label>
+          <select id="setWeekTargetSelect" class="form-select" style="font-weight: 600;">
+            <!-- Populated via JavaScript -->
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="filter-field">
+            <label>Week Name / Number *</label>
+            <input type="text" id="weekNameInput" class="form-input" placeholder="e.g. Week 4" required />
+          </div>
+
+          <div class="filter-field">
+            <label>Scoring Lifecycle Status *</label>
+            <select id="weekStatusSelect" class="form-select">
+              <option value="Open">🟢 Open (Active for Scoring)</option>
+              <option value="Closed">🔒 Closed (Results Sealed)</option>
+              <option value="Upcoming">⏳ Upcoming (Scheduled)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Quick Presets -->
+        <div style="margin-bottom: 1rem;">
+          <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            ⚡ Quick Date Presets
+          </label>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn-demo-pill" onclick="app.applyWeekDatePreset('this-week')">📅 Current 7-Day Cycle</button>
+            <button type="button" class="btn-demo-pill" onclick="app.applyWeekDatePreset('next-week')">⏩ Next Week</button>
+            <button type="button" class="btn-demo-pill" onclick="app.applyWeekDatePreset('bi-week')">📆 14-Day Cycle</button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.15rem;">
+          <div class="filter-field">
+            <label>Start Date *</label>
+            <input type="date" id="weekStartDate" class="form-input" required />
+          </div>
+
+          <div class="filter-field">
+            <label>End Date *</label>
+            <input type="date" id="weekEndDate" class="form-input" required />
+          </div>
+        </div>
+
+        <!-- Formatted Interval Live Preview -->
+        <div style="margin-bottom: 1.25rem; padding: 0.85rem 1rem; background: #eff6ff; border: 1.5px dashed #93c5fd; border-radius: 10px;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Generated Interval Display</div>
+          <div id="weekIntervalPreviewText" style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin-top: 0.2rem;">
+            Week 4 (21 – 27 Apr 2025)
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-size: 0.86rem; font-weight: 600; color: var(--text-dark);">
+            <input type="checkbox" id="weekIsCurrentCheckbox" style="width: 18px; height: 18px; accent-color: var(--navy-primary);" />
+            <span>Set as the active <strong>Current Week Interval</strong> for the entire school</span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Cancel</button>
+          <button type="submit" class="btn-navy-action" id="btnSaveWeekInterval">Save Week Interval</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL: ADD / EDIT COMMITTEE MEMBER (Interactive)
+       ========================================================================= -->
+  <div class="modal-overlay" id="modalAddMember">
+    <div class="modal-container" style="max-width: 580px;">
+      <div class="modal-header-row">
+        <div>
+          <h3 id="modalAddMemberTitle">👥 + Add Committee Member</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Assign faculty, house masters, or reps with dedicated evaluation scope.
+          </p>
+        </div>
+        <button type="button" class="btn-close-x" data-close-modal>&times;</button>
+      </div>
+
+      <form id="formAddMember">
+        <input type="hidden" id="editMemberId" value="" />
+
+        <div class="filter-field" style="margin-bottom: 1rem;">
+          <label>Full Name & Title *</label>
+          <input type="text" id="addMemberName" class="form-input" placeholder="e.g. Mrs. Grace Mensah" required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="filter-field">
+            <label>Committee Role *</label>
+            <select id="addMemberRole" class="form-select">
+              <option value="Head of Discipline">🛡️ Head of Discipline</option>
+              <option value="Vice Principal">🏛️ Vice Principal</option>
+              <option value="Senior House Master">🏠 Senior House Master</option>
+              <option value="House Master (Accra)">🏠 House Master (Accra)</option>
+              <option value="House Master (Kumasi)">🏠 House Master (Kumasi)</option>
+              <option value="House Master (Takoradi)">🏠 House Master (Takoradi)</option>
+              <option value="House Master (Cape Coast)">🏠 House Master (Cape Coast)</option>
+              <option value="Teacher Rep (SHS 1)">👨‍🏫 Teacher Rep (SHS 1)</option>
+              <option value="Teacher Rep (SHS 2)">👨‍🏫 Teacher Rep (SHS 2)</option>
+              <option value="Teacher Rep (SHS 3)">👨‍🏫 Teacher Rep (SHS 3)</option>
+              <option value="Guidance Counselor">🤝 Guidance Counselor</option>
+              <option value="Sports Coordinator">⚽ Sports Coordinator</option>
+              <option value="Parent Rep">👥 Parent Rep (PTA)</option>
+              <option value="Chaplaincy Coordinator">✝️ Chaplaincy Coordinator</option>
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label>Assigned Evaluation Scope *</label>
+            <select id="addMemberScope" class="form-select">
+              <option value="All Houses & Classes">🌐 All Houses & Classes</option>
+              <option value="Accra House Focus">🏠 Accra House Focus</option>
+              <option value="Kumasi House Focus">🏠 Kumasi House Focus</option>
+              <option value="Takoradi House Focus">🏠 Takoradi House Focus</option>
+              <option value="Cape Coast House Focus">🏠 Cape Coast House Focus</option>
+              <option value="SHS 1 Classes Focus">🎓 SHS 1 Classes Focus</option>
+              <option value="SHS 2 Classes Focus">🎓 SHS 2 Classes Focus</option>
+              <option value="SHS 3 Classes Focus">🎓 SHS 3 Classes Focus</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+          <div class="filter-field">
+            <label>Login Username *</label>
+            <input type="text" id="addMemberUsername" class="form-input" placeholder="e.g. grace.m" required />
+          </div>
+
+          <div class="filter-field">
+            <label>Active Status *</label>
+            <select id="addMemberStatus" class="form-select">
+              <option value="Active">🟢 Active (Authorized to Score)</option>
+              <option value="Observer">🟡 Observer (Read-Only)</option>
+              <option value="On Leave">⚪ On Leave</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Live Interactive Badge Preview -->
+        <div style="margin-bottom: 1.5rem; padding: 0.85rem 1.15rem; background: #f8fafc; border: 1px solid var(--card-border); border-radius: 10px; display: flex; align-items: center; gap: 1rem;">
+          <div id="memberPreviewAvatar" class="header-user-avatar" style="width: 44px; height: 44px; font-size: 1rem; background: #0c2340; color: #fff;">
+            GM
+          </div>
+          <div style="flex: 1;">
+            <div id="memberPreviewName" style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">Mrs. Grace Mensah</div>
+            <div id="memberPreviewMeta" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
+              🛡️ Head of Discipline • <code>grace.m</code> • <span style="color: var(--stat-green); font-weight: 700;">Active</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Cancel</button>
+          <button type="submit" class="btn-navy-action" id="btnSaveMember">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toastStack" class="toast-stack"></div>
+
+  <!-- JavaScript Application Bundle -->
+  <script src="app.js?v=6"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "spot-personality-of-the-week",
+  "version": "1.0.0",
+  "description": "Student Personality of the Week - Committee Scoring & Results Web App",
+  "scripts": {
+    "start": "npx -y serve . -l 3000",
+    "dev": "npx -y serve . -l 3000"
+  },
+  "keywords": ["committee", "scoring", "education", "awards", "voting"],
+  "author": "Antigravity",
+  "license": "MIT"
+}
