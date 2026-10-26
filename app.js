@@ -5,28 +5,28 @@
  */
 
 // --- Pre-configured Roles & Accounts ---
-// --- Pre-configured Roles & Accounts (Admin & Committee Member) ---
+// --- System Roles & Default Admin Account ---
 const SYSTEM_ROLES = {
   ADMIN: {
     id: 'role-admin',
     key: 'admin',
-    name: 'Admin',
-    title: 'Administrator',
+    name: 'Administrator',
+    title: 'System Administrator',
     roleTag: 'Administrator',
     username: 'admin',
     avatar: 'AD',
     avatarBg: '#0c2340',
     dashboardView: 'dashboard-admin',
-    description: 'Full administrative oversight: all students, criteria rubric, week closing, and settings.'
+    description: 'Full administrative oversight: all students, criteria rubric, week intervals, and reports.'
   },
   COMMITTEE: {
     id: 'role-committee',
     key: 'committee',
-    name: 'Mrs. Akosua Dankwa',
-    title: 'Head of Discipline / Committee Member',
+    name: 'Committee Member',
+    title: 'Evaluator',
     roleTag: 'Committee Member',
-    username: 'akosua.d',
-    avatar: 'AD',
+    username: 'committee',
+    avatar: 'CM',
     avatarBg: '#059669',
     dashboardView: 'dashboard-committee',
     description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
@@ -45,58 +45,25 @@ const CRITERIA_LIST = [
 ];
 
 const WEEKS_LIST = [
-  { id: 'week-1', no: 1, name: 'Week 1', dateRange: '31 Mar – 06 Apr 2025', topStudent: 'Esi Boateng', totalScore: 68, maxScore: 80, percentage: 85.0, status: 'Closed' },
-  { id: 'week-2', no: 2, name: 'Week 2', dateRange: '07 – 13 Apr 2025', topStudent: 'Daniel Asare', totalScore: 70, maxScore: 80, percentage: 87.5, status: 'Closed' },
-  { id: 'week-3', no: 3, name: 'Week 3', dateRange: '14 – 20 Apr 2025', topStudent: 'Mary Owusu', totalScore: 72, maxScore: 80, percentage: 90.0, status: 'Closed' },
-  { id: 'week-4', no: 4, name: 'Week 4', dateRange: '21 – 27 Apr 2025', topStudent: 'John Mensah', totalScore: 74, maxScore: 80, percentage: 92.5, status: 'Open', isCurrent: true },
-  { id: 'week-5', no: 5, name: 'Week 5', dateRange: '28 Apr – 04 May 2025', topStudent: 'Esi Boateng', totalScore: 71, maxScore: 80, percentage: 88.8, status: 'Upcoming' }
+  { id: 'week-1', no: 1, name: 'Week 1', dateRange: '31 Mar – 06 Apr 2025', status: 'Upcoming' },
+  { id: 'week-2', no: 2, name: 'Week 2', dateRange: '07 – 13 Apr 2025', status: 'Upcoming' },
+  { id: 'week-3', no: 3, name: 'Week 3', dateRange: '14 – 20 Apr 2025', status: 'Upcoming' },
+  { id: 'week-4', no: 4, name: 'Week 4', dateRange: '21 – 27 Apr 2025', status: 'Open', isCurrent: true },
+  { id: 'week-5', no: 5, name: 'Week 5', dateRange: '28 Apr – 04 May 2025', status: 'Upcoming' }
 ];
 
 const CLASSES_LIST = ['SHS 1A', 'SHS 1B', 'SHS 2A', 'SHS 2B', 'SHS 2C', 'SHS 3A', 'SHS 3B', 'SHS 3C'];
 const HOUSES_LIST = ['Accra House', 'Kumasi House', 'Takoradi House', 'Cape Coast House'];
 
-const COMMITTEE_MEMBERS = [
-  { id: 'mem-1', no: 1, name: 'Mrs. Akosua Dankwa', role: 'Head of Discipline', username: 'akosua.d', status: 'Active' },
-  { id: 'mem-2', no: 2, name: 'Mr. Samuel Osei', role: 'Vice Principal', username: 'samuel.o', status: 'Active' },
-  { id: 'mem-3', no: 3, name: 'Ms. Grace Mensah', role: 'Teacher Rep', username: 'grace.m', status: 'Active' },
-  { id: 'mem-4', no: 4, name: 'Mr. Kwame Adu', role: 'Teacher Rep', username: 'kwame.a', status: 'Active' },
-  { id: 'mem-5', no: 5, name: 'Mrs. Felicia Boaneng', role: 'Parent Rep', username: 'felicia.b', status: 'Active' },
-  { id: 'mem-6', no: 6, name: 'Mr. Isaac Mensah', role: 'House Master (Accra)', username: 'isaac.m', status: 'Active' },
-  { id: 'mem-7', no: 7, name: 'Ms. Patricia Appiah', role: 'Guidance Counselor', username: 'patricia.a', status: 'Active' },
-  { id: 'mem-8', no: 8, name: 'Mr. David Ofori', role: 'Sports Coordinator', username: 'david.o', status: 'Active' }
-];
-
-const INITIAL_STUDENTS = [
-  { id: 'OLAG001', name: 'John Mensah', class: 'SHS 2A', house: 'Accra', gender: 'Male', phone: '024 123 4567', comment: 'Consistently shows good character and leadership qualities.' },
-  { id: 'OLAG002', name: 'Mary Owusu', class: 'SHS 2B', house: 'Kumasi', gender: 'Female', phone: '024 234 5678', comment: 'Outstanding peer tutoring and respectful behavior.' },
-  { id: 'OLAG003', name: 'Daniel Asare', class: 'SHS 2A', house: 'Takoradi', gender: 'Male', phone: '024 345 6789', comment: 'Very disciplined and punctual student leader.' },
-  { id: 'OLAG004', name: 'Esi Boateng', class: 'SHS 2C', house: 'Accra', gender: 'Female', phone: '024 456 7890', comment: 'Brings immense positive energy and high academic attitude.' },
-  { id: 'OLAG005', name: 'Kwame Agyemang', class: 'SHS 2B', house: 'Kumasi', gender: 'Male', phone: '024 567 8901', comment: 'Shows strong collaboration and sportsmanship.' },
-  { id: 'OLAG006', name: 'Ama Serwaa', class: 'SHS 2A', house: 'Takoradi', gender: 'Female', phone: '024 678 9012', comment: 'Exemplary neatness and classroom participation.' },
-  { id: 'OLAG007', name: 'Yaw Frimpong', class: 'SHS 2C', house: 'Accra', gender: 'Male', phone: '024 789 0123', comment: 'Helpful and reliable member of Accra house.' },
-  { id: 'OLAG008', name: 'Akosua Mensah', class: 'SHS 1A', house: 'Kumasi', gender: 'Female', phone: '024 890 1234', comment: 'Bright freshman displaying promising leadership.' }
-];
-
-const INITIAL_SCORES = {
-  'week-4': {
-    'OLAG001': { 'crit-1': 9, 'crit-2': 9, 'crit-3': 10, 'crit-4': 9, 'crit-5': 9, 'crit-6': 9, 'crit-7': 9, 'crit-8': 10, total: 74, pct: 92.5 },
-    'OLAG002': { 'crit-1': 9, 'crit-2': 9, 'crit-3': 9, 'crit-4': 9, 'crit-5': 9, 'crit-6': 9, 'crit-7': 9, 'crit-8': 9, total: 72, pct: 90.0 },
-    'OLAG003': { 'crit-1': 8, 'crit-2': 9, 'crit-3': 9, 'crit-4': 9, 'crit-5': 9, 'crit-6': 8, 'crit-7': 9, 'crit-8': 9, total: 70, pct: 87.5 },
-    'OLAG004': { 'crit-1': 8, 'crit-2': 8, 'crit-3': 9, 'crit-4': 8, 'crit-5': 8, 'crit-6': 8, 'crit-7': 8, 'crit-8': 9, total: 66, pct: 82.5 },
-    'OLAG005': { 'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 7, 'crit-5': 8, 'crit-6': 8, 'crit-7': 8, 'crit-8': 8, total: 63, pct: 78.8 },
-    'OLAG006': { 'crit-1': 8, 'crit-2': 8, 'crit-3': 7, 'crit-4': 7, 'crit-5': 8, 'crit-6': 7, 'crit-7': 8, 'crit-8': 7, total: 60, pct: 75.0 },
-    'OLAG007': { 'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7, 'crit-8': 8, total: 57, pct: 71.3 },
-    'OLAG008': { 'crit-1': 7, 'crit-2': 7, 'crit-3': 6, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7, 'crit-8': 7, total: 55, pct: 68.8 }
-  },
-  'week-1': { 'OLAG004': { total: 68, pct: 85.0 }, 'OLAG001': { total: 68, pct: 85.0 } },
-  'week-2': { 'OLAG003': { total: 70, pct: 87.5 }, 'OLAG001': { total: 70, pct: 87.5 } },
-  'week-3': { 'OLAG002': { total: 72, pct: 90.0 }, 'OLAG001': { total: 72, pct: 90.0 } }
-};
+// Clean Initial State: Empty arrays for students, scores, and registered members
+const COMMITTEE_MEMBERS = [];
+const INITIAL_STUDENTS = [];
+const INITIAL_SCORES = {};
 
 // --- Store ---
 class OLAGStore {
   constructor() {
-    this.storageKey = 'OLAG_SHS_MULTI_DASHBOARD_V3';
+    this.storageKey = 'OLAG_SHS_SPOT_DATA_V5';
     this.state = this.loadState();
   }
 
@@ -124,7 +91,7 @@ class OLAGStore {
       currentView: 'dashboard-admin',
       selectedWeekId: 'week-4',
       selectedClass: 'SHS 2A',
-      selectedStudentId: 'OLAG001',
+      selectedStudentId: null,
       students: INITIAL_STUDENTS,
       weeks: WEEKS_LIST,
       criteria: CRITERIA_LIST,
@@ -132,12 +99,12 @@ class OLAGStore {
       scores: INITIAL_SCORES,
       classes: CLASSES_LIST,
       houses: HOUSES_LIST,
-      totalStudentsCount: 124,
+      totalStudentsCount: 0,
       studentSearchQuery: '',
       studentClassFilter: 'All Classes',
       studentHouseFilter: 'All Houses',
       activeLoginTab: 'admin',
-      selectedEvaluatorId: 'mem-1',
+      selectedEvaluatorId: null,
       committeeSearchQuery: '',
       committeeRoleFilter: 'All',
       committeeStatusFilter: 'All',
@@ -718,7 +685,7 @@ class OLAGApp {
     const isCommittee = roleKey === 'committee';
     let role;
     if (isCommittee) {
-      const primaryMember = this.store.state.members[0] || { id: 'mem-1', name: 'Mrs. Akosua Dankwa', role: 'Head of Discipline', username: 'akosua.d' };
+      const primaryMember = this.store.state.members[0] || { id: 'committee-default', name: 'Committee Member', role: 'Evaluator', username: 'committee' };
       role = {
         id: primaryMember.id,
         key: 'committee',
@@ -726,7 +693,7 @@ class OLAGApp {
         title: primaryMember.role,
         roleTag: 'Committee Member',
         username: primaryMember.username,
-        avatar: primaryMember.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+        avatar: primaryMember.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM',
         avatarBg: '#059669',
         dashboardView: 'dashboard-committee',
         description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
@@ -1005,8 +972,8 @@ class OLAGApp {
     const container = document.getElementById('view-dashboard-admin');
     if (!container) return;
 
-    const currentWeek = this.store.state.weeks.find(w => w.id === 'week-4') || this.store.state.weeks[3];
-    const topStudent = this.store.state.students.find(s => s.name === currentWeek.topStudent) || this.store.state.students[0];
+    const currentWeek = this.store.state.weeks.find(w => w.isCurrent) || this.store.state.weeks.find(w => w.id === 'week-4') || this.store.state.weeks[0] || { id: 'week-1', name: 'Week 1', dateRange: 'Upcoming', status: 'Upcoming' };
+    const topStudent = currentWeek.topStudent ? this.store.state.students.find(s => s.name === currentWeek.topStudent) : null;
     const isHidden = !!this.store.state.dashInfoHidden;
 
     container.innerHTML = `
@@ -1026,7 +993,7 @@ class OLAGApp {
           <div class="stat-card card-blue">
             <div class="stat-card-text">
               <span class="stat-card-title">Total Students</span>
-              <span class="stat-card-value">${this.store.state.totalStudentsCount}</span>
+              <span class="stat-card-value">${this.store.state.students.length}</span>
             </div>
             <div class="stat-card-icon">👥</div>
           </div>
@@ -1067,32 +1034,40 @@ class OLAGApp {
               <span class="trophy-icon">🏆</span>
               <span>Student Personality of the Week</span>
             </div>
-            <span class="winner-card-week-tag">(${currentWeek.name})</span>
+            <span class="winner-card-week-tag">(${escapeHtml(currentWeek.name)})</span>
           </div>
 
-          <div class="dashboard-winner-body">
-            <div class="dashboard-winner-left">
-              <div class="winner-avatar-circle">👤</div>
-              <div class="winner-info-text">
-                <h3>${escapeHtml(topStudent.name)}</h3>
-                <p>${escapeHtml(topStudent.class)} | ${escapeHtml(topStudent.house)} House</p>
+          ${topStudent ? `
+            <div class="dashboard-winner-body">
+              <div class="dashboard-winner-left">
+                <div class="winner-avatar-circle">👤</div>
+                <div class="winner-info-text">
+                  <h3>${escapeHtml(topStudent.name)}</h3>
+                  <p>${escapeHtml(topStudent.class)} | ${escapeHtml(topStudent.house)} House</p>
+                </div>
+              </div>
+
+              <div class="dashboard-winner-scores">
+                <div class="winner-score-block">
+                  <div class="winner-score-label">Total Score</div>
+                  <div class="winner-score-value">${currentWeek.totalScore || 0} / ${currentWeek.maxScore || 80}</div>
+                </div>
+
+                <div class="winner-score-block">
+                  <div class="winner-score-label">Percentage</div>
+                  <div class="winner-percentage-value">${currentWeek.percentage || 0}%</div>
+                </div>
+
+                <div class="winner-laurel-decor">🌿</div>
               </div>
             </div>
-
-            <div class="dashboard-winner-scores">
-              <div class="winner-score-block">
-                <div class="winner-score-label">Total Score</div>
-                <div class="winner-score-value">${currentWeek.totalScore} / ${currentWeek.maxScore}</div>
-              </div>
-
-              <div class="winner-score-block">
-                <div class="winner-score-label">Percentage</div>
-                <div class="winner-percentage-value">${currentWeek.percentage}%</div>
-              </div>
-
-              <div class="winner-laurel-decor">🌿</div>
+          ` : `
+            <div class="dashboard-winner-body" style="padding: 1.5rem; text-align: center; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+              <div style="font-size: 2rem;">🌟</div>
+              <h4 style="margin: 0; color: var(--text-main); font-size: 1.05rem;">No Winner Announced Yet for ${escapeHtml(currentWeek.name)}</h4>
+              <p style="margin: 0; font-size: 0.85rem; max-width: 440px;">Weekly assessments are awaiting evaluation submissions. As scores are entered by committee members, the top-performing student will be celebrated here.</p>
             </div>
-          </div>
+          `}
         </div>
       </div>
 
@@ -1135,6 +1110,22 @@ class OLAGApp {
     const container = document.getElementById('view-dashboard-committee');
     if (!container) return;
 
+    const currentWeek = this.store.state.weeks.find(w => w.isCurrent) || this.store.state.weeks.find(w => w.id === 'week-4') || this.store.state.weeks[0] || { id: 'week-1', name: 'Week 1' };
+    const allStudents = this.store.state.students || [];
+    const weekScores = this.store.state.scores[currentWeek.id] || {};
+
+    const evaluatedStudents = allStudents.filter(s => {
+      const sScores = weekScores[s.id];
+      return !!sScores && typeof sScores.total === 'number';
+    });
+    const evaluatedCount = evaluatedStudents.length;
+    const totalAssigned = allStudents.length;
+    const pendingStudents = allStudents.filter(s => {
+      const sScores = weekScores[s.id];
+      return !sScores || typeof sScores.total !== 'number';
+    });
+    const pendingCount = pendingStudents.length;
+    const completionPct = totalAssigned > 0 ? Math.round((evaluatedCount / totalAssigned) * 100) : 0;
     const isHidden = !!this.store.state.dashInfoHidden;
 
     container.innerHTML = `
@@ -1153,13 +1144,15 @@ class OLAGApp {
         <!-- Committee Progress Hero Banner -->
         <div class="committee-progress-hero">
           <div class="committee-progress-text">
-            <h3>Assessment Quorum: Week 4 Cycle</h3>
-            <p>You have evaluated <strong>18 of 24 assigned nominees</strong> across SHS 2A, SHS 2B, and SHS 2C.</p>
+            <h3>Assessment Quorum: ${escapeHtml(currentWeek.name)} Cycle</h3>
+            <p>${totalAssigned > 0 
+              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} assigned students</strong>.` 
+              : `No students have been enrolled in the assessment database yet.`}</p>
           </div>
           <div class="committee-progress-ring-block">
-            <div class="committee-progress-pct">75%</div>
+            <div class="committee-progress-pct">${completionPct}%</div>
             <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-              Completed<br><span style="color: var(--stat-green);">6 Remaining</span>
+              Completed<br><span style="color: var(--stat-green);">${totalAssigned > 0 && pendingCount === 0 ? 'All Completed' : `${pendingCount} Remaining`}</span>
             </div>
           </div>
         </div>
@@ -1168,7 +1161,7 @@ class OLAGApp {
           <div class="stat-card card-blue">
             <div class="stat-card-text">
               <span class="stat-card-title">Assigned Students</span>
-              <span class="stat-card-value">24</span>
+              <span class="stat-card-value">${totalAssigned}</span>
             </div>
             <div class="stat-card-icon">📋</div>
           </div>
@@ -1176,7 +1169,7 @@ class OLAGApp {
           <div class="stat-card card-green">
             <div class="stat-card-text">
               <span class="stat-card-title">Evaluated</span>
-              <span class="stat-card-value">18</span>
+              <span class="stat-card-value">${evaluatedCount}</span>
             </div>
             <div class="stat-card-icon">✓</div>
           </div>
@@ -1184,7 +1177,7 @@ class OLAGApp {
           <div class="stat-card card-orange">
             <div class="stat-card-text">
               <span class="stat-card-title">Pending</span>
-              <span class="stat-card-value">6</span>
+              <span class="stat-card-value">${pendingCount}</span>
             </div>
             <div class="stat-card-icon">⏳</div>
           </div>
@@ -1203,7 +1196,7 @@ class OLAGApp {
       <!-- Next Pending Nominees to Assess -->
       <div class="scoring-table-card">
         <div class="scoring-table-title">
-          <span>Pending Student Evaluations for Week 4</span>
+          <span>Pending Student Evaluations for ${escapeHtml(currentWeek.name)}</span>
           <button class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
             Open Full Rubric ➜
           </button>
@@ -1221,42 +1214,35 @@ class OLAGApp {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>OLAG003</strong></td>
-              <td>Daniel Asare</td>
-              <td>SHS 2A</td>
-              <td>Takoradi</td>
-              <td><span style="color: var(--stat-orange); font-weight: 700;">⏳ Pending</span></td>
-              <td style="text-align: center;">
-                <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.75rem;" onclick="app.scoreStudentFromQueue('OLAG003')">
-                  Score Now
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td><strong>OLAG006</strong></td>
-              <td>Ama Serwaa</td>
-              <td>SHS 2A</td>
-              <td>Takoradi</td>
-              <td><span style="color: var(--stat-orange); font-weight: 700;">⏳ Pending</span></td>
-              <td style="text-align: center;">
-                <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.75rem;" onclick="app.scoreStudentFromQueue('OLAG006')">
-                  Score Now
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td><strong>OLAG007</strong></td>
-              <td>Yaw Frimpong</td>
-              <td>SHS 2C</td>
-              <td>Accra</td>
-              <td><span style="color: var(--stat-orange); font-weight: 700;">⏳ Pending</span></td>
-              <td style="text-align: center;">
-                <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.75rem;" onclick="app.scoreStudentFromQueue('OLAG007')">
-                  Score Now
-                </button>
-              </td>
-            </tr>
+            ${totalAssigned === 0 ? `
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📋</div>
+                  No students currently enrolled in the system.<br>
+                  <small>Students added by administrators will automatically appear here for evaluation.</small>
+                </td>
+              </tr>
+            ` : (pendingStudents.length === 0 ? `
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--stat-green);">
+                  <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🎉</div>
+                  <strong>All caught up!</strong> All ${totalAssigned} students have been evaluated for ${escapeHtml(currentWeek.name)}.
+                </td>
+              </tr>
+            ` : pendingStudents.slice(0, 5).map(s => `
+              <tr>
+                <td><strong>${escapeHtml(s.id)}</strong></td>
+                <td>${escapeHtml(s.name)}</td>
+                <td>${escapeHtml(s.class)}</td>
+                <td>${escapeHtml(s.house)}</td>
+                <td><span style="color: var(--stat-orange); font-weight: 700;">⏳ Pending</span></td>
+                <td style="text-align: center;">
+                  <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.75rem;" onclick="app.scoreStudentFromQueue('${escapeHtml(s.id)}')">
+                    Score Now
+                  </button>
+                </td>
+              </tr>
+            `).join(''))}
           </tbody>
         </table>
       </div>
@@ -1379,7 +1365,17 @@ class OLAGApp {
               </tr>
             </thead>
             <tbody>
-              ${students.map((s, idx) => `
+              ${students.length === 0 ? `
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                    No students found in the database.<br>
+                    <button type="button" class="btn-navy-action" style="margin-top: 0.75rem;" onclick="app.openAddStudentModal()">
+                      + Add First Student
+                    </button>
+                  </td>
+                </tr>
+              ` : students.map((s, idx) => `
                 <tr>
                   <td>${idx + 1}</td>
                   <td><strong>${escapeHtml(s.id)}</strong></td>
@@ -1409,17 +1405,9 @@ class OLAGApp {
         </div>
 
         <div class="pagination-container">
-          <span>Showing 1 – ${students.length} of ${this.store.state.totalStudentsCount} students</span>
+          <span>Showing ${students.length > 0 ? '1' : '0'} – ${students.length} of ${this.store.state.students.length} students</span>
           <div class="pagination-pages">
-            <button class="page-btn">&lt;</button>
             <button class="page-btn active">1</button>
-            <button class="page-btn">2</button>
-            <button class="page-btn">3</button>
-            <button class="page-btn">4</button>
-            <button class="page-btn">5</button>
-            <span>...</span>
-            <button class="page-btn">16</button>
-            <button class="page-btn">&gt;</button>
           </div>
         </div>
       </div>
@@ -1457,19 +1445,19 @@ class OLAGApp {
     const weeks = this.store.state.weeks;
     const classes = this.store.state.classes;
     const members = this.store.state.members;
-    const currentWeekId = this.store.state.selectedWeekId;
-    const currentClass = this.store.state.selectedClass;
+    const currentWeekId = this.store.state.selectedWeekId || 'week-4';
+    const currentClass = this.store.state.selectedClass || classes[0] || 'SHS 2A';
     const currentStudentId = this.store.state.selectedStudentId;
-    const currentEvaluatorId = this.store.state.selectedEvaluatorId || (members[0] ? members[0].id : 'mem-1');
-    const evaluator = members.find(m => m.id === currentEvaluatorId) || members[0] || { name: 'Mrs. Akosua Dankwa', role: 'Head of Discipline' };
-    const currentWeekObj = weeks.find(w => w.id === currentWeekId) || weeks[3] || weeks[0];
+    const currentEvaluatorId = this.store.state.selectedEvaluatorId || (members[0] ? members[0].id : (this.store.state.currentUser.id || 'committee-default'));
+    const evaluator = members.find(m => m.id === currentEvaluatorId) || members[0] || (this.store.state.currentUser || { name: 'Committee Member', role: 'Evaluator' });
+    const currentWeekObj = weeks.find(w => w.id === currentWeekId) || weeks.find(w => w.isCurrent) || weeks[0];
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
 
     const classStudents = this.store.state.students.filter(s => s.class === currentClass);
-    const selectedStudent = classStudents.find(s => s.id === currentStudentId) || classStudents[0] || this.store.state.students[0];
+    const selectedStudent = (currentStudentId ? classStudents.find(s => s.id === currentStudentId) : null) || classStudents[0] || null;
 
     const weekScores = this.store.state.scores[currentWeekId] || {};
-    const studentScoreData = weekScores[selectedStudent.id] || {};
+    const studentScoreData = selectedStudent ? (weekScores[selectedStudent.id] || {}) : {};
     const criteria = this.store.state.criteria;
 
     container.innerHTML = `
@@ -1481,7 +1469,7 @@ class OLAGApp {
       <!-- Interactive Evaluator & Week Interval Status Banner -->
       <div class="evaluator-banner">
         <div class="evaluator-banner-left">
-          <div class="evaluator-avatar">${evaluator.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}</div>
+          <div class="evaluator-avatar">${evaluator.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM'}</div>
           <div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">
               Scoring as: ${escapeHtml(evaluator.name)}
@@ -1521,7 +1509,11 @@ class OLAGApp {
         <div class="filter-field">
           <label>Committee Evaluator</label>
           <select id="assessMemberSelect" class="form-select" style="font-weight: 600;">
-            ${members.map(m => `
+            ${members.length === 0 ? `
+              <option value="committee-default">
+                👤 ${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})
+              </option>
+            ` : members.map(m => `
               <option value="${m.id}" ${m.id === currentEvaluatorId ? 'selected' : ''}>
                 👤 ${escapeHtml(m.name)} (${escapeHtml(m.role)})
               </option>
@@ -1532,65 +1524,84 @@ class OLAGApp {
         <div class="filter-field">
           <label>Student</label>
           <select id="assessStudentSelect" class="form-select">
-            ${classStudents.map(s => `<option value="${s.id}" ${s.id === selectedStudent.id ? 'selected' : ''}>${escapeHtml(s.name)} (${s.id})</option>`).join('')}
+            ${classStudents.length === 0 ? `
+              <option value="">-- No Students in ${escapeHtml(currentClass)} --</option>
+            ` : classStudents.map(s => `
+              <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>
+                ${escapeHtml(s.name)} (${s.id})
+              </option>
+            `).join('')}
           </select>
         </div>
 
         <div>
-          <button type="button" class="btn-navy-action" id="btnLoadStudentScores">
+          <button type="button" class="btn-navy-action" id="btnLoadStudentScores" ${!selectedStudent ? 'disabled' : ''}>
             Load Student
           </button>
         </div>
       </div>
 
-      <div class="scoring-table-card">
-        <div class="scoring-table-title">
-          <span>Assessment Criteria (Each / 10) — Evaluating: <strong>${escapeHtml(selectedStudent.name)}</strong> (${selectedStudent.class}, ${selectedStudent.house} House)</span>
-          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Max Total: 80 Points</span>
-        </div>
-
-        <form id="formSubmitWeeklyScores">
-          <table class="table-standard">
-            <thead>
-              <tr>
-                <th style="width: 70px;">No.</th>
-                <th>Criteria</th>
-                <th style="width: 160px; text-align: center;">Score (0-10)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${criteria.map(c => {
-                const val = typeof studentScoreData[c.id] === 'number' ? studentScoreData[c.id] : 0;
-                return `
-                  <tr>
-                    <td><strong>${c.no}</strong></td>
-                    <td><strong>${escapeHtml(c.name)}</strong></td>
-                    <td style="text-align: center;">
-                      <input type="number" 
-                        min="0" max="10" 
-                        value="${val}" 
-                        class="score-input-number criteria-score-input" 
-                        data-crit-id="${c.id}" 
-                        required />
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-
-          <div class="scoring-summary-bar">
-            <div class="scoring-tally-text">
-              Live Total: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / 80</strong> &nbsp;•&nbsp; 
-              Percentage: <strong id="livePctDisplay" style="color: var(--accent-gold);">${studentScoreData.pct || 0}%</strong>
-            </div>
-
-            <button type="submit" class="btn-navy-action" style="padding: 0 2rem;">
-              Submit Scores
-            </button>
+      ${selectedStudent ? `
+        <div class="scoring-table-card">
+          <div class="scoring-table-title">
+            <span>Assessment Criteria (Each / 10) — Evaluating: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)} House)</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Max Total: 80 Points</span>
           </div>
-        </form>
-      </div>
+
+          <form id="formSubmitWeeklyScores">
+            <table class="table-standard">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">No.</th>
+                  <th>Criteria</th>
+                  <th style="width: 160px; text-align: center;">Score (0-10)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${criteria.map(c => {
+                  const val = typeof studentScoreData[c.id] === 'number' ? studentScoreData[c.id] : 0;
+                  return `
+                    <tr>
+                      <td><strong>${c.no}</strong></td>
+                      <td><strong>${escapeHtml(c.name)}</strong></td>
+                      <td style="text-align: center;">
+                        <input type="number" 
+                          min="0" max="10" 
+                          value="${val}" 
+                          class="score-input-number criteria-score-input" 
+                          data-crit-id="${c.id}" 
+                          required />
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+
+            <div class="scoring-summary-bar">
+              <div class="scoring-tally-text">
+                Live Total: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / 80</strong> &nbsp;•&nbsp; 
+                Percentage: <strong id="livePctDisplay" style="color: var(--accent-gold);">${studentScoreData.pct || 0}%</strong>
+              </div>
+
+              <button type="submit" class="btn-navy-action" style="padding: 0 2rem;">
+                Submit Scores
+              </button>
+            </div>
+          </form>
+        </div>
+      ` : `
+        <div class="scoring-table-card" style="text-align: center; padding: 3rem 1.5rem;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">👥</div>
+          <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Students Found in ${escapeHtml(currentClass)}</h3>
+          <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
+            There are currently no students registered in this class. You can add new students using the button below or pick another class from the filter above.
+          </p>
+          <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
+            + Add Student to Database
+          </button>
+        </div>
+      `}
     `;
 
     const inputs = container.querySelectorAll('.criteria-score-input');
@@ -1614,7 +1625,7 @@ class OLAGApp {
       classSelect.addEventListener('change', (e) => {
         this.store.state.selectedClass = e.target.value;
         const matching = this.store.state.students.filter(s => s.class === e.target.value);
-        if (matching.length > 0) this.store.state.selectedStudentId = matching[0].id;
+        this.store.state.selectedStudentId = matching.length > 0 ? matching[0].id : null;
         this.renderAssessment();
       });
     }
@@ -1641,14 +1652,16 @@ class OLAGApp {
     const btnLoad = document.getElementById('btnLoadStudentScores');
     if (btnLoad && studentSelect) {
       btnLoad.addEventListener('click', () => {
+        if (!studentSelect.value) return;
         this.store.state.selectedStudentId = studentSelect.value;
+        const st = this.store.state.students.find(s => s.id === studentSelect.value);
         this.renderAssessment();
-        this.showToast(`Loaded ${selectedStudent.name}`);
+        if (st) this.showToast(`Loaded ${st.name}`);
       });
     }
 
     const formSubmit = document.getElementById('formSubmitWeeklyScores');
-    if (formSubmit) {
+    if (formSubmit && selectedStudent) {
       formSubmit.addEventListener('submit', (e) => {
         e.preventDefault();
         const scoresObj = {};
@@ -1677,12 +1690,21 @@ class OLAGApp {
 
     const weeks = this.store.state.weeks;
     const classes = this.store.state.classes;
-    const weekScores = this.store.state.scores['week-4'] || {};
+    const currentWeekId = this.store.state.selectedWeekId || 'week-4';
+    const currentClass = this.store.state.selectedClass || 'All';
+    const weekScores = this.store.state.scores[currentWeekId] || {};
     const rankedStudents = [];
 
-    this.store.state.students.forEach(s => {
+    let targetStudents = [...this.store.state.students];
+    if (currentClass && currentClass !== 'All') {
+      targetStudents = targetStudents.filter(s => s.class === currentClass);
+    }
+
+    targetStudents.forEach(s => {
       const sc = weekScores[s.id];
-      if (sc) rankedStudents.push({ student: s, totalScore: sc.total, percentage: sc.pct });
+      if (sc && typeof sc.total === 'number') {
+        rankedStudents.push({ student: s, totalScore: sc.total, percentage: sc.pct });
+      }
     });
 
     rankedStudents.sort((a, b) => b.totalScore - a.totalScore);
@@ -1697,23 +1719,17 @@ class OLAGApp {
       <div class="assessment-filter-card">
         <div class="filter-field">
           <label>Week Interval</label>
-          <select class="form-select">
-            ${weeks.map(w => `<option value="${w.id}" ${w.id === 'week-4' ? 'selected' : ''}>${w.name} (${w.dateRange})</option>`).join('')}
+          <select id="rankingsWeekSelect" class="form-select">
+            ${weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${w.name} (${w.dateRange})</option>`).join('')}
           </select>
         </div>
 
         <div class="filter-field">
           <label>Class</label>
-          <select class="form-select">
-            <option value="All">All Classes</option>
-            ${classes.map(c => `<option value="${c}" ${c === 'SHS 2A' ? 'selected' : ''}>${c}</option>`).join('')}
+          <select id="rankingsClassSelect" class="form-select">
+            <option value="All" ${currentClass === 'All' ? 'selected' : ''}>All Classes</option>
+            ${classes.map(c => `<option value="${c}" ${c === currentClass ? 'selected' : ''}>${c}</option>`).join('')}
           </select>
-        </div>
-
-        <div>
-          <button type="button" class="btn-navy-action">
-            View Results
-          </button>
         </div>
       </div>
 
@@ -1759,7 +1775,15 @@ class OLAGApp {
               </tr>
             </thead>
             <tbody>
-              ${rankedStudents.slice(0, 5).map((r, idx) => {
+              ${rankedStudents.length === 0 ? `
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                    No student scores recorded yet for this week interval.<br>
+                    <small>Scores entered in the Assessment portal will automatically rank students here.</small>
+                  </td>
+                </tr>
+              ` : rankedStudents.slice(0, 5).map((r, idx) => {
                 const rankNum = idx + 1;
                 return `
                   <tr>
@@ -1785,6 +1809,22 @@ class OLAGApp {
         </div>
       </div>
     `;
+
+    const rWeek = document.getElementById('rankingsWeekSelect');
+    if (rWeek) {
+      rWeek.addEventListener('change', (e) => {
+        this.store.state.selectedWeekId = e.target.value;
+        this.renderRankings();
+      });
+    }
+
+    const rClass = document.getElementById('rankingsClassSelect');
+    if (rClass) {
+      rClass.addEventListener('change', (e) => {
+        this.store.state.selectedClass = e.target.value;
+        this.renderRankings();
+      });
+    }
   }
 
   renderPreviousWeeks() {
@@ -1836,11 +1876,11 @@ class OLAGApp {
                   </td>
                   <td>
                     <span style="font-weight: 700; color: var(--navy-primary);">
-                      ${escapeHtml(w.topStudent)}
+                      ${w.topStudent ? escapeHtml(w.topStudent) : '<span style="color: var(--text-muted); font-weight: normal;">—</span>'}
                     </span>
                   </td>
-                  <td style="text-align: center; font-weight: 700;">${w.totalScore} / ${w.maxScore}</td>
-                  <td style="text-align: center; font-weight: 700;">${w.percentage}%</td>
+                  <td style="text-align: center; font-weight: 700;">${w.totalScore ? `${w.totalScore} / ${w.maxScore || 80}` : '—'}</td>
+                  <td style="text-align: center; font-weight: 700;">${w.percentage ? `${w.percentage}%` : '—'}</td>
                   <td style="text-align: center;">
                     <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
                       <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.viewWeekDetail('${w.id}')">
@@ -2011,15 +2051,47 @@ class OLAGApp {
     const container = document.getElementById('view-student-profile');
     if (!container) return;
 
-    const studentId = this.store.state.selectedStudentId || 'OLAG001';
-    const student = this.store.state.students.find(s => s.id === studentId) || this.store.state.students[0];
+    const studentId = this.store.state.selectedStudentId;
+    const student = (studentId ? this.store.state.students.find(s => s.id === studentId) : null) || this.store.state.students[0] || null;
 
-    const performanceRows = [
-      { week: 'Week 1', date: '31 Mar – 06 Apr', score: '68 / 80', pct: '85.0%', rank: 3 },
-      { week: 'Week 2', date: '07 – 13 Apr', score: '70 / 80', pct: '87.5%', rank: 2 },
-      { week: 'Week 3', date: '14 – 20 Apr', score: '72 / 80', pct: '90.0%', rank: 2 },
-      { week: 'Week 4', date: '21 – 27 Apr', score: '74 / 80', pct: '92.5%', rank: 1 }
-    ];
+    if (!student) {
+      container.innerHTML = `
+        <div class="breadcrumb-nav">
+          <a href="javascript:void(0)" onclick="app.navigateTo('students')">Students</a> &gt; <span>Profile</span>
+        </div>
+        <div class="scoring-table-card" style="text-align: center; padding: 3rem 1.5rem;">
+          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">👤</div>
+          <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Student Selected</h3>
+          <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
+            There are currently no students registered in the system or no student has been selected.
+          </p>
+          <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
+            + Add Student
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    const performanceRows = this.store.state.weeks.map(w => {
+      const weekData = (this.store.state.scores[w.id] && this.store.state.scores[w.id][student.id]) || null;
+      if (!weekData || typeof weekData.total !== 'number') {
+        return {
+          week: w.name,
+          date: w.dateRange,
+          score: '—',
+          pct: '—',
+          rankDisplay: '—'
+        };
+      }
+      return {
+        week: w.name,
+        date: w.dateRange,
+        score: `${weekData.total} / 80`,
+        pct: `${weekData.pct}%`,
+        rankDisplay: weekData.pct >= 90 ? '1' : (weekData.pct >= 80 ? '2' : '3')
+      };
+    });
 
     container.innerHTML = `
       <div class="breadcrumb-nav">
@@ -2047,7 +2119,7 @@ class OLAGApp {
             </div>
             <div class="profile-detail-row">
               <span>Phone</span>
-              <span>${escapeHtml(student.phone || '024 123 4567')}</span>
+              <span>${escapeHtml(student.phone || 'N/A')}</span>
             </div>
           </div>
 
@@ -2076,9 +2148,9 @@ class OLAGApp {
                     <td><strong>${p.week}</strong></td>
                     <td>${p.date}</td>
                     <td style="text-align: center; font-weight: 700;">${p.score}</td>
-                    <td style="text-align: center; font-weight: 700; color: ${p.rank === 1 ? '#b45309' : 'inherit'};">${p.pct}</td>
+                    <td style="text-align: center; font-weight: 700; color: ${p.rankDisplay === '1' ? '#b45309' : 'inherit'};">${p.pct}</td>
                     <td style="text-align: center;">
-                      <span class="rank-badge-circle rank-${p.rank}">${p.rank}</span>
+                      ${p.rankDisplay !== '—' ? `<span class="rank-badge-circle rank-${p.rankDisplay}">${p.rankDisplay}</span>` : '—'}
                     </td>
                   </tr>
                 `).join('')}
@@ -2088,7 +2160,7 @@ class OLAGApp {
 
           <div class="profile-comments-box">
             <h4>Comments</h4>
-            <p>"${escapeHtml(student.comment || 'Consistently shows good character and leadership qualities.')}"</p>
+            <p>"${escapeHtml(student.comment || 'No assessment comments recorded yet.')}"</p>
           </div>
         </div>
       </div>
@@ -2102,47 +2174,32 @@ class OLAGApp {
     const weeks = this.store.state.weeks;
     const classes = this.store.state.classes;
     const selectedWeekId = this.store.state.selectedWeekId || 'week-4';
-    const currentWeek = this.store.state.weeks.find(w => w.id === selectedWeekId) || this.store.state.weeks[3];
-    const selectedClass = this.store.state.selectedClass || 'SHS 2A';
+    const currentWeek = this.store.state.weeks.find(w => w.id === selectedWeekId) || this.store.state.weeks.find(w => w.isCurrent) || this.store.state.weeks[0];
+    const selectedClass = this.store.state.selectedClass || 'All';
 
-    // Build data based on selected week and class
-    const weekScores = this.store.state.scores[selectedWeekId] || this.store.state.scores['week-4'] || {};
+    // Build data based on selected week and class from actual scores
+    const weekScores = this.store.state.scores[selectedWeekId] || {};
     let studentList = [...this.store.state.students];
     if (selectedClass && selectedClass !== 'All') {
       studentList = studentList.filter(s => s.class === selectedClass);
-      // Fallback if less than 3 in class
-      if (studentList.length < 3) {
-        studentList = [...this.store.state.students];
-      }
     }
 
-    const reportStudents = studentList.map(s => {
-      const sc = weekScores[s.id] || { total: 65, pct: 81.3 };
-      return {
-        id: s.id,
-        name: s.name,
-        class: s.class,
-        house: s.house,
-        score: sc.total || 65,
-        pct: (sc.pct || 81.3) + '%'
-      };
-    });
+    const reportStudents = studentList
+      .filter(s => weekScores[s.id] && typeof weekScores[s.id].total === 'number')
+      .map(s => {
+        const sc = weekScores[s.id];
+        return {
+          id: s.id,
+          name: s.name,
+          class: s.class,
+          house: s.house,
+          score: sc.total,
+          pct: sc.pct + '%'
+        };
+      });
 
     // Sort descending by score
-    reportStudents.sort((a, b) => parseInt(b.score, 10) - parseInt(a.score, 10));
-
-    // Ensure John Mensah is #1 for Week 4
-    if (selectedWeekId === 'week-4') {
-      const jmIdx = reportStudents.findIndex(s => s.id === 'OLAG001');
-      if (jmIdx > 0) {
-        const jm = reportStudents.splice(jmIdx, 1)[0];
-        reportStudents.unshift(jm);
-      }
-      if (reportStudents[0]) {
-        reportStudents[0].score = 74;
-        reportStudents[0].pct = '92.5%';
-      }
-    }
+    reportStudents.sort((a, b) => b.score - a.score);
 
     container.innerHTML = `
       <!-- Web-only Header and Controls (Hidden from Print) -->
@@ -2207,7 +2264,15 @@ class OLAGApp {
               </tr>
             </thead>
             <tbody>
-              ${reportStudents.slice(0, 5).map((s, idx) => `
+              ${reportStudents.length === 0 ? `
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 2.5rem; color: #64748b;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📋</div>
+                    No official student scores recorded for ${escapeHtml(currentWeek.name)} yet.<br>
+                    <small>Once scores are submitted in the Assessment portal, certificates will generate automatically.</small>
+                  </td>
+                </tr>
+              ` : reportStudents.slice(0, 5).map((s, idx) => `
                 <tr>
                   <td style="text-align: center; font-weight: 800;">${idx + 1}</td>
                   <td><strong style="color: var(--navy-primary);">${escapeHtml(s.name)}</strong></td>
@@ -2249,22 +2314,53 @@ class OLAGApp {
     window.print();
   }
 
-
   exportCsvReport() {
+    const selectedWeekId = this.store.state.selectedWeekId || 'week-4';
+    const currentWeek = this.store.state.weeks.find(w => w.id === selectedWeekId) || this.store.state.weeks[0];
+    const selectedClass = this.store.state.selectedClass || 'All';
+    const weekScores = this.store.state.scores[selectedWeekId] || {};
+
+    let studentList = [...this.store.state.students];
+    if (selectedClass && selectedClass !== 'All') {
+      studentList = studentList.filter(s => s.class === selectedClass);
+    }
+
+    const reportStudents = studentList
+      .filter(s => weekScores[s.id] && typeof weekScores[s.id].total === 'number')
+      .map(s => {
+        const sc = weekScores[s.id];
+        return {
+          name: s.name,
+          class: s.class,
+          house: s.house,
+          score: sc.total,
+          pct: sc.pct + '%'
+        };
+      });
+
+    reportStudents.sort((a, b) => b.score - a.score);
+
+    if (reportStudents.length === 0) {
+      this.showToast('No student scores to export for this week interval yet.');
+      return;
+    }
+
     const headers = ['Rank', 'Student Name', 'Class', 'House', 'Total Score', 'Percentage'];
-    const rows = [
-      ['1', 'John Mensah', 'SHS 2A', 'Accra', '74', '92.5%'],
-      ['2', 'Mary Owusu', 'SHS 2B', 'Kumasi', '72', '90.0%'],
-      ['3', 'Daniel Asare', 'SHS 2A', 'Takoradi', '70', '87.5%'],
-      ['4', 'Esi Boateng', 'SHS 2C', 'Accra', '66', '82.5%'],
-      ['5', 'Kwame Agyemang', 'SHS 2B', 'Kumasi', '63', '78.8%']
-    ];
+    const rows = reportStudents.map((s, idx) => [
+      String(idx + 1),
+      `"${s.name.replace(/"/g, '""')}"`,
+      s.class,
+      s.house,
+      String(s.score),
+      s.pct
+    ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'OLAG_SHS_Personality_of_the_Week_Week4_Report.csv');
+    const safeWeekName = (currentWeek.name || 'Week').replace(/\s+/g, '_');
+    link.setAttribute('download', `OLAG_SHS_SPOT_${safeWeekName}_Report.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -2478,6 +2574,10 @@ class OLAGApp {
   deleteStudent(studentId) {
     if (confirm('Are you sure you want to remove this student?')) {
       this.store.state.students = this.store.state.students.filter(s => s.id !== studentId);
+      this.store.state.totalStudentsCount = this.store.state.students.length;
+      if (this.store.state.selectedStudentId === studentId) {
+        this.store.state.selectedStudentId = this.store.state.students.length > 0 ? this.store.state.students[0].id : null;
+      }
       this.store.save();
       this.showToast('Student deleted.');
       this.render();
@@ -2640,10 +2740,10 @@ class OLAGApp {
         dateRange: dateRange,
         startDate: startDate,
         endDate: endDate,
-        topStudent: 'John Mensah',
-        totalScore: 74,
+        topStudent: null,
+        totalScore: null,
         maxScore: 80,
-        percentage: 92.5,
+        percentage: null,
         status: status,
         isCurrent: isCurrent
       };
@@ -2878,7 +2978,7 @@ function initOLAGApp() {
   app = new OLAGApp();
   window.app = app;
 
-  if (window.location.hash === '#register' || window.location.search.includes('register')) {
+  if (window.location && (window.location.hash === '#register' || (window.location.search && window.location.search.includes('register')))) {
     if (typeof app.switchCommitteeForm === 'function') {
       app.switchCommitteeForm('register');
     }
@@ -2908,7 +3008,10 @@ function initOLAGApp() {
       };
 
       app.store.state.students.push(newStudent);
-      app.store.state.totalStudentsCount++;
+      app.store.state.totalStudentsCount = app.store.state.students.length;
+      if (!app.store.state.selectedStudentId) {
+        app.store.state.selectedStudentId = newId;
+      }
       app.store.save();
 
       app.closeModals();
