@@ -2731,6 +2731,12 @@ function initOLAGApp() {
   app = new OLAGApp();
   window.app = app;
 
+  if (window.location.hash === '#register' || window.location.search.includes('register')) {
+    if (typeof app.switchCommitteeForm === 'function') {
+      app.switchCommitteeForm('register');
+    }
+  }
+
   const formAddStudent = document.getElementById('formAddStudent');
   if (formAddStudent) {
     formAddStudent.addEventListener('submit', (e) => {

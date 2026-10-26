@@ -163,12 +163,24 @@
   <!-- JavaScript Application Bundle -->
   <script src="app.js?v=8"></script>
   <script>
+    function checkRegisterHash() {
+      if (window.location.hash === '#register' || window.location.search.includes('register')) {
+        if (window.app && window.app.switchCommitteeForm) {
+          window.app.switchCommitteeForm('register');
+        }
+      }
+    }
+
     // If already logged in as Committee Member, direct immediately to dashboard on index.html
     window.addEventListener('DOMContentLoaded', () => {
       if (window.app && window.app.store && window.app.store.state.isLoggedIn) {
         window.location.href = 'index.html';
+        return;
       }
+      checkRegisterHash();
     });
+
+    window.addEventListener('hashchange', checkRegisterHash);
   </script>
 </body>
 </html>
