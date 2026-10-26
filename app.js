@@ -45,13 +45,7 @@ const CRITERIA_LIST = [
   { id: 'crit-8', no: 8, name: 'Teamwork', max: 10 }
 ];
 
-const WEEKS_LIST = [
-  { id: 'week-1', no: 1, name: 'Week 1', dateRange: '31 Mar – 06 Apr 2025', status: 'Upcoming' },
-  { id: 'week-2', no: 2, name: 'Week 2', dateRange: '07 – 13 Apr 2025', status: 'Upcoming' },
-  { id: 'week-3', no: 3, name: 'Week 3', dateRange: '14 – 20 Apr 2025', status: 'Upcoming' },
-  { id: 'week-4', no: 4, name: 'Week 4', dateRange: '21 – 27 Apr 2025', status: 'Open', isCurrent: true },
-  { id: 'week-5', no: 5, name: 'Week 5', dateRange: '28 Apr – 04 May 2025', status: 'Upcoming' }
-];
+const WEEKS_LIST = [];
 
 const CLASSES_LIST = [];
 const HOUSES_LIST = ['ST. THOMAS', 'ST. PAUL', 'ST. MARY', 'ST. JOSEPH'];
@@ -64,7 +58,7 @@ const INITIAL_SCORES = {};
 // --- Store ---
 class OLAGStore {
   constructor() {
-    this.storageKey = 'OLAG_SHS_SPOT_DATA_V6';
+    this.storageKey = 'OLAG_SHS_SPOT_DATA_V7';
     this.state = this.loadState();
   }
 
@@ -90,7 +84,7 @@ class OLAGStore {
       currentUser: SYSTEM_ROLES.ADMIN,
       isLoggedIn: false,
       currentView: 'dashboard-admin',
-      selectedWeekId: 'week-4',
+      selectedWeekId: null,
       selectedClass: '',
       selectedStudentId: null,
       students: INITIAL_STUDENTS,
@@ -832,7 +826,11 @@ class OLAGApp {
 
   renderTopHeader() {
     const user = this.store.state.currentUser;
-    const currentWeek = this.store.state.weeks.find(w => w.id === this.store.state.selectedWeekId) || this.store.state.weeks[3];
+    const weeks = this.store.state.weeks || [];
+    const currentWeek = weeks.find(w => w.id === this.store.state.selectedWeekId) 
+                     || weeks.find(w => w.isCurrent) 
+                     || weeks[0] 
+                     || null;
 
     const userNameEl = document.getElementById('headerProfileName');
     const userRoleEl = document.getElementById('headerProfileRole');
@@ -851,10 +849,18 @@ class OLAGApp {
     const weekPillEl = document.querySelector('.header-week-pill');
 
     if (weekIntervalEl) {
-      if (isCurrentlyAdmin) {
-        weekIntervalEl.innerHTML = `${escapeHtml(currentWeek.name)} (${escapeHtml(currentWeek.dateRange)}) <span class="header-week-edit-badge">✏️ Set</span>`;
+      if (currentWeek) {
+        if (isCurrentlyAdmin) {
+          weekIntervalEl.innerHTML = `${escapeHtml(currentWeek.name)} (${escapeHtml(currentWeek.dateRange)}) <span class="header-week-edit-badge">✏️ Set</span>`;
+        } else {
+          weekIntervalEl.textContent = `${currentWeek.name} (${currentWeek.dateRange})`;
+        }
       } else {
-        weekIntervalEl.textContent = `${currentWeek.name} (${currentWeek.dateRange})`;
+        if (isCurrentlyAdmin) {
+          weekIntervalEl.innerHTML = `No active week interval <span class="header-week-edit-badge">✏️ Set</span>`;
+        } else {
+          weekIntervalEl.textContent = `No active week interval`;
+        }
       }
     }
 
@@ -973,8 +979,12 @@ class OLAGApp {
     const container = document.getElementById('view-dashboard-admin');
     if (!container) return;
 
-    const currentWeek = this.store.state.weeks.find(w => w.isCurrent) || this.store.state.weeks.find(w => w.id === 'week-4') || this.store.state.weeks[0] || { id: 'week-1', name: 'Week 1', dateRange: 'Upcoming', status: 'Upcoming' };
-    const topStudent = currentWeek.topStudent ? this.store.state.students.find(s => s.name === currentWeek.topStudent) : null;
+    const weeks = this.store.state.weeks || [];
+    const currentWeek = weeks.find(w => w.isCurrent) 
+                     || (this.store.state.selectedWeekId ? weeks.find(w => w.id === this.store.state.selectedWeekId) : null) 
+                     || weeks[0] 
+                     || null;
+    const topStudent = (currentWeek && currentWeek.topStudent) ? this.store.state.students.find(s => s.name === currentWeek.topStudent) : null;
     const isHidden = !!this.store.state.dashInfoHidden;
 
     container.innerHTML = `
@@ -999,14 +1009,14 @@ class OLAGApp {
             <div class="stat-card-icon">👥</div>
           </div>
 
-          <div class="stat-card card-green" style="cursor: pointer;" onclick="app.openSetWeekIntervalModal('${currentWeek.id}')" title="Click to Set / Configure Week Interval">
+          <div class="stat-card card-green" style="cursor: pointer;" onclick="app.openSetWeekIntervalModal(${currentWeek ? `'${currentWeek.id}'` : ''})" title="Click to Set / Configure Week Interval">
             <div class="stat-card-text">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.15rem;">
                 <span class="stat-card-title">This Week</span>
                 <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,255,255,0.3); padding: 0.1rem 0.45rem; border-radius: 999px;">⚙️ Set</span>
               </div>
-              <span class="stat-card-value" style="font-size: 1.45rem;">${escapeHtml(currentWeek.name)}</span>
-              <span class="stat-card-sub">(${escapeHtml(currentWeek.dateRange)})</span>
+              <span class="stat-card-value" style="font-size: 1.45rem;">${currentWeek ? escapeHtml(currentWeek.name) : 'No Week Set'}</span>
+              <span class="stat-card-sub">${currentWeek ? `(${escapeHtml(currentWeek.dateRange)})` : '(Click to set interval)'}</span>
             </div>
             <div class="stat-card-icon">📅</div>
           </div>
@@ -1035,7 +1045,7 @@ class OLAGApp {
               <span class="trophy-icon">🏆</span>
               <span>Student Personality of the Week</span>
             </div>
-            <span class="winner-card-week-tag">(${escapeHtml(currentWeek.name)})</span>
+            ${currentWeek ? `<span class="winner-card-week-tag">(${escapeHtml(currentWeek.name)})</span>` : ''}
           </div>
 
           ${topStudent ? `
@@ -1065,7 +1075,7 @@ class OLAGApp {
           ` : `
             <div class="dashboard-winner-body" style="padding: 1.5rem; text-align: center; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
               <div style="font-size: 2rem;">🌟</div>
-              <h4 style="margin: 0; color: var(--text-main); font-size: 1.05rem;">No Winner Announced Yet for ${escapeHtml(currentWeek.name)}</h4>
+              <h4 style="margin: 0; color: var(--text-main); font-size: 1.05rem;">No Winner Announced Yet ${currentWeek ? `for ${escapeHtml(currentWeek.name)}` : ''}</h4>
               <p style="margin: 0; font-size: 0.85rem; max-width: 440px;">Weekly assessments are awaiting evaluation submissions. As scores are entered by committee members, the top-performing student will be celebrated here.</p>
             </div>
           `}
@@ -1075,14 +1085,14 @@ class OLAGApp {
       <div class="quick-actions-section">
         <div class="section-title">Quick Actions</div>
         <div class="quick-actions-grid">
-          <div class="quick-action-card" onclick="app.openSetWeekIntervalModal('${currentWeek.id}')">
+          <div class="quick-action-card" onclick="app.openSetWeekIntervalModal(${currentWeek ? `'${currentWeek.id}'` : ''})">
             <div class="quick-action-icon">📅</div>
             <div class="quick-action-label">Set Week Interval</div>
           </div>
 
           <div class="quick-action-card" onclick="app.navigateTo('assessment')">
             <div class="quick-action-icon">✏️</div>
-            <div class="quick-action-label">Enter Scores (${currentWeek.name})</div>
+            <div class="quick-action-label">Enter Scores ${currentWeek ? `(${escapeHtml(currentWeek.name)})` : ''}</div>
           </div>
 
           <div class="quick-action-card" onclick="app.navigateTo('rankings')">
@@ -1111,9 +1121,14 @@ class OLAGApp {
     const container = document.getElementById('view-dashboard-committee');
     if (!container) return;
 
-    const currentWeek = this.store.state.weeks.find(w => w.isCurrent) || this.store.state.weeks.find(w => w.id === 'week-4') || this.store.state.weeks[0] || { id: 'week-1', name: 'Week 1' };
+    const weeks = this.store.state.weeks || [];
+    const currentWeek = weeks.find(w => w.isCurrent) 
+                     || (this.store.state.selectedWeekId ? weeks.find(w => w.id === this.store.state.selectedWeekId) : null) 
+                     || weeks[0] 
+                     || null;
     const allStudents = this.store.state.students || [];
-    const weekScores = this.store.state.scores[currentWeek.id] || {};
+    const weekScores = (currentWeek && this.store.state.scores[currentWeek.id]) || {};
+    const weekLabel = currentWeek ? currentWeek.name : 'Current Cycle';
 
     const evaluatedStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
@@ -1145,7 +1160,7 @@ class OLAGApp {
         <!-- Committee Progress Hero Banner -->
         <div class="committee-progress-hero">
           <div class="committee-progress-text">
-            <h3>Assessment Quorum: ${escapeHtml(currentWeek.name)} Cycle</h3>
+            <h3>Assessment Quorum: ${escapeHtml(weekLabel)} Cycle</h3>
             <p>${totalAssigned > 0 
               ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} assigned students</strong>.` 
               : `No students have been enrolled in the assessment database yet.`}</p>
@@ -1197,7 +1212,7 @@ class OLAGApp {
       <!-- Next Pending Nominees to Assess -->
       <div class="scoring-table-card">
         <div class="scoring-table-title">
-          <span>Pending Student Evaluations for ${escapeHtml(currentWeek.name)}</span>
+          <span>Pending Student Evaluations for ${escapeHtml(weekLabel)}</span>
           <button class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
             Open Full Rubric ➜
           </button>
@@ -1227,7 +1242,7 @@ class OLAGApp {
               <tr>
                 <td colspan="6" style="text-align: center; padding: 2rem; color: var(--stat-green);">
                   <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🎉</div>
-                  <strong>All caught up!</strong> All ${totalAssigned} students have been evaluated for ${escapeHtml(currentWeek.name)}.
+                  <strong>All caught up!</strong> All ${totalAssigned} students have been evaluated for ${escapeHtml(weekLabel)}.
                 </td>
               </tr>
             ` : pendingStudents.slice(0, 5).map(s => `
@@ -1236,10 +1251,10 @@ class OLAGApp {
                 <td>${escapeHtml(s.name)}</td>
                 <td>${escapeHtml(s.class)}</td>
                 <td>${escapeHtml(s.house)}</td>
-                <td><span style="color: var(--stat-orange); font-weight: 700;">⏳ Pending</span></td>
+                <td><span class="status-badge-pending">Pending</span></td>
                 <td style="text-align: center;">
-                  <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.75rem;" onclick="app.scoreStudentFromQueue('${escapeHtml(s.id)}')">
-                    Score Now
+                  <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
+                    Assess ➜
                   </button>
                 </td>
               </tr>
@@ -1443,21 +1458,21 @@ class OLAGApp {
     const container = document.getElementById('view-assessment');
     if (!container) return;
 
-    const weeks = this.store.state.weeks;
-    const classes = this.store.state.classes;
-    const members = this.store.state.members;
-    const currentWeekId = this.store.state.selectedWeekId || 'week-4';
-    const currentClass = this.store.state.selectedClass || classes[0] || 'SHS 2A';
+    const weeks = this.store.state.weeks || [];
+    const classes = this.store.state.classes || [];
+    const members = this.store.state.members || [];
+    const currentWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
+    const currentClass = this.store.state.selectedClass || classes[0] || '';
     const currentStudentId = this.store.state.selectedStudentId;
     const currentEvaluatorId = this.store.state.selectedEvaluatorId || (members[0] ? members[0].id : (this.store.state.currentUser.id || 'committee-default'));
     const evaluator = members.find(m => m.id === currentEvaluatorId) || members[0] || (this.store.state.currentUser || { name: 'Committee Member', role: 'Evaluator' });
-    const currentWeekObj = weeks.find(w => w.id === currentWeekId) || weeks.find(w => w.isCurrent) || weeks[0];
+    const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
 
     const classStudents = this.store.state.students.filter(s => s.class === currentClass);
     const selectedStudent = (currentStudentId ? classStudents.find(s => s.id === currentStudentId) : null) || classStudents[0] || null;
 
-    const weekScores = this.store.state.scores[currentWeekId] || {};
+    const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
     const studentScoreData = selectedStudent ? (weekScores[selectedStudent.id] || {}) : {};
     const criteria = this.store.state.criteria;
 
@@ -1481,13 +1496,20 @@ class OLAGApp {
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-          <span style="font-size: 0.8rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
-            📅 ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
-          </span>
-          <span style="font-size: 0.8rem; font-weight: 700; background: #dcfce7; color: #15803d; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
-            ${currentWeekObj.status === 'Closed' ? '🔒 Closed' : '🟢 Open for Scoring'}
-          </span>
-          ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal('${currentWeekObj.id}')">⚙️ Set Interval</button>` : ''}
+          ${currentWeekObj ? `
+            <span style="font-size: 0.8rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
+              📅 ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
+            </span>
+            <span style="font-size: 0.8rem; font-weight: 700; background: #dcfce7; color: #15803d; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
+              ${currentWeekObj.status === 'Closed' ? '🔒 Closed' : '🟢 Open for Scoring'}
+            </span>
+            ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal('${currentWeekObj.id}')">⚙️ Set Interval</button>` : ''}
+          ` : `
+            <span style="font-size: 0.8rem; font-weight: 700; background: #fef3c7; color: #92400e; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
+              📅 No Active Week Interval Set
+            </span>
+            ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal()">➕ Create Week Interval</button>` : ''}
+          `}
         </div>
       </div>
 
@@ -1495,7 +1517,7 @@ class OLAGApp {
         <div class="filter-field">
           <label>Week Interval</label>
           <select id="assessWeekSelect" class="form-select">
-            ${weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${w.name} (${w.dateRange})</option>`).join('')}
+            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
           </select>
         </div>
 
@@ -1545,7 +1567,7 @@ class OLAGApp {
       ${selectedStudent ? `
         <div class="scoring-table-card">
           <div class="scoring-table-title">
-            <span>Assessment Criteria (Each / 10) — Evaluating: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)} House)</span>
+            <span>Assessment Criteria (Each / 10) — Evaluating: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)})</span>
             <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Max Total: 80 Points</span>
           </div>
 
@@ -1689,11 +1711,11 @@ class OLAGApp {
     const container = document.getElementById('view-rankings');
     if (!container) return;
 
-    const weeks = this.store.state.weeks;
-    const classes = this.store.state.classes;
-    const currentWeekId = this.store.state.selectedWeekId || 'week-4';
+    const weeks = this.store.state.weeks || [];
+    const classes = this.store.state.classes || [];
+    const currentWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
     const currentClass = this.store.state.selectedClass || 'All';
-    const weekScores = this.store.state.scores[currentWeekId] || {};
+    const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
     const rankedStudents = [];
 
     let targetStudents = [...this.store.state.students];
@@ -1721,7 +1743,7 @@ class OLAGApp {
         <div class="filter-field">
           <label>Week Interval</label>
           <select id="rankingsWeekSelect" class="form-select">
-            ${weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${w.name} (${w.dateRange})</option>`).join('')}
+            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
           </select>
         </div>
 
@@ -1744,7 +1766,7 @@ class OLAGApp {
                 <span>Student Personality of the Week</span>
               </div>
               <div class="winner-banner-name">${escapeHtml(topWinner.student.name)}</div>
-              <div class="winner-banner-sub">${escapeHtml(topWinner.student.class)} | ${escapeHtml(topWinner.student.house)} House</div>
+              <div class="winner-banner-sub">${escapeHtml(topWinner.student.class)} | ${escapeHtml(topWinner.student.house)}</div>
             </div>
           </div>
 
@@ -1863,7 +1885,15 @@ class OLAGApp {
               </tr>
             </thead>
             <tbody>
-              ${weeks.map(w => `
+              ${weeks.length === 0 ? `
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📅</div>
+                    <strong>No week intervals configured yet.</strong><br>
+                    <span style="font-size: 0.85rem;">Click "+ Set New Week Interval" above to create your first scoring cycle.</span>
+                  </td>
+                </tr>
+              ` : weeks.map(w => `
                 <tr>
                   <td>
                     <strong>${escapeHtml(w.name)}</strong>
@@ -2140,7 +2170,13 @@ class OLAGApp {
                 </tr>
               </thead>
               <tbody>
-                ${performanceRows.map(p => `
+                ${performanceRows.length === 0 ? `
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                      No weekly assessment cycles configured yet.
+                    </td>
+                  </tr>
+                ` : performanceRows.map(p => `
                   <tr>
                     <td><strong>${p.week}</strong></td>
                     <td>${p.date}</td>
@@ -2168,14 +2204,14 @@ class OLAGApp {
     const container = document.getElementById('view-reports');
     if (!container) return;
 
-    const weeks = this.store.state.weeks;
-    const classes = this.store.state.classes;
-    const selectedWeekId = this.store.state.selectedWeekId || 'week-4';
-    const currentWeek = this.store.state.weeks.find(w => w.id === selectedWeekId) || this.store.state.weeks.find(w => w.isCurrent) || this.store.state.weeks[0];
+    const weeks = this.store.state.weeks || [];
+    const classes = this.store.state.classes || [];
+    const selectedWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
+    const currentWeek = (selectedWeekId ? weeks.find(w => w.id === selectedWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const selectedClass = this.store.state.selectedClass || 'All';
 
     // Build data based on selected week and class from actual scores
-    const weekScores = this.store.state.scores[selectedWeekId] || {};
+    const weekScores = selectedWeekId ? (this.store.state.scores[selectedWeekId] || {}) : {};
     let studentList = [...this.store.state.students];
     if (selectedClass && selectedClass !== 'All') {
       studentList = studentList.filter(s => s.class === selectedClass);
@@ -2224,7 +2260,7 @@ class OLAGApp {
         <div class="filter-field">
           <label>Week Interval</label>
           <select id="reportWeekSelect" class="form-select">
-            ${weeks.map(w => `<option value="${w.id}" ${w.id === selectedWeekId ? 'selected' : ''}>${w.name} (${w.dateRange})</option>`).join('')}
+            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === selectedWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
           </select>
         </div>
 
@@ -2244,7 +2280,7 @@ class OLAGApp {
             <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Official Logo" />
           </div>
           <div class="report-school-title">OUR LADY OF GRACE SENIOR HIGH SCHOOL</div>
-          <div class="report-assessment-title">Student Personality of the Week — ${escapeHtml(currentWeek.name)} (${escapeHtml(currentWeek.dateRange)})</div>
+          <div class="report-assessment-title">Student Personality of the Week ${currentWeek ? `— ${escapeHtml(currentWeek.name)} (${escapeHtml(currentWeek.dateRange)})` : ''}</div>
           <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.35rem;">Knowledge • Morality • Service</div>
         </div>
 
@@ -2265,7 +2301,7 @@ class OLAGApp {
                 <tr>
                   <td colspan="6" style="text-align: center; padding: 2.5rem; color: #64748b;">
                     <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📋</div>
-                    No official student scores recorded for ${escapeHtml(currentWeek.name)} yet.<br>
+                    No official student scores recorded for ${currentWeek ? escapeHtml(currentWeek.name) : 'this cycle'} yet.<br>
                     <small>Once scores are submitted in the Assessment portal, certificates will generate automatically.</small>
                   </td>
                 </tr>
@@ -2312,10 +2348,10 @@ class OLAGApp {
   }
 
   exportCsvReport() {
-    const selectedWeekId = this.store.state.selectedWeekId || 'week-4';
-    const currentWeek = this.store.state.weeks.find(w => w.id === selectedWeekId) || this.store.state.weeks[0];
+    const selectedWeekId = this.store.state.selectedWeekId || (this.store.state.weeks[0] ? this.store.state.weeks[0].id : null);
+    const currentWeek = (selectedWeekId ? this.store.state.weeks.find(w => w.id === selectedWeekId) : null) || this.store.state.weeks[0] || { name: 'Week' };
     const selectedClass = this.store.state.selectedClass || 'All';
-    const weekScores = this.store.state.scores[selectedWeekId] || {};
+    const weekScores = selectedWeekId ? (this.store.state.scores[selectedWeekId] || {}) : {};
 
     let studentList = [...this.store.state.students];
     if (selectedClass && selectedClass !== 'All') {
@@ -2356,7 +2392,7 @@ class OLAGApp {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    const safeWeekName = (currentWeek.name || 'Week').replace(/\s+/g, '_');
+    const safeWeekName = ((currentWeek && currentWeek.name) || 'Week').replace(/\s+/g, '_');
     link.setAttribute('download', `OLAG_SHS_SPOT_${safeWeekName}_Report.csv`);
     document.body.appendChild(link);
     link.click();
@@ -2597,7 +2633,7 @@ class OLAGApp {
 
     const select = document.getElementById('setWeekTargetSelect');
     if (select) {
-      const weeks = this.store.state.weeks;
+      const weeks = this.store.state.weeks || [];
       select.innerHTML = `
         <option value="new">➕ + Create New Week Interval</option>
         ${weeks.map(w => `
@@ -2607,9 +2643,9 @@ class OLAGApp {
         `).join('')}
       `;
 
-      let selectedId = targetWeekId || this.store.state.selectedWeekId;
-      if (!weeks.some(w => w.id === selectedId) && weeks.length > 0) {
-        selectedId = weeks[0].id;
+      let selectedId = targetWeekId || this.store.state.selectedWeekId || 'new';
+      if (selectedId !== 'new' && !weeks.some(w => w.id === selectedId)) {
+        selectedId = weeks.length > 0 ? weeks[0].id : 'new';
       }
       select.value = selectedId;
       this.loadWeekIntervalForm(selectedId);
@@ -2624,36 +2660,31 @@ class OLAGApp {
     const startInp = document.getElementById('weekStartDate');
     const endInp = document.getElementById('weekEndDate');
     const isCurrentChk = document.getElementById('weekIsCurrentCheckbox');
+    const btnDelete = document.getElementById('btnDeleteWeekInterval');
 
     if (weekId === 'new') {
-      const nextNo = this.store.state.weeks.length + 1;
-      if (nameInp) nameInp.value = `Week ${nextNo}`;
+      if (nameInp) nameInp.value = '';
       if (statusSelect) statusSelect.value = 'Open';
+      if (startInp) startInp.value = '';
+      if (endInp) endInp.value = '';
       if (isCurrentChk) isCurrentChk.checked = true;
-      this.applyWeekDatePreset('this-week');
+      if (btnDelete) btnDelete.style.display = 'none';
     } else {
-      const week = this.store.state.weeks.find(w => w.id === weekId);
-      if (!week) return;
+      const week = (this.store.state.weeks || []).find(w => w.id === weekId);
+      if (!week) {
+        if (nameInp) nameInp.value = '';
+        if (startInp) startInp.value = '';
+        if (endInp) endInp.value = '';
+        if (btnDelete) btnDelete.style.display = 'none';
+        return;
+      }
 
-      if (nameInp) nameInp.value = week.name;
+      if (nameInp) nameInp.value = week.name || '';
       if (statusSelect) statusSelect.value = week.status || 'Open';
       if (isCurrentChk) isCurrentChk.checked = !!week.isCurrent;
-
-      if (week.startDate && week.endDate) {
-        if (startInp) startInp.value = week.startDate;
-        if (endInp) endInp.value = week.endDate;
-      } else {
-        const defaultDates = {
-          'week-1': ['2025-03-31', '2025-04-06'],
-          'week-2': ['2025-04-07', '2025-04-13'],
-          'week-3': ['2025-04-14', '2025-04-20'],
-          'week-4': ['2025-04-21', '2025-04-27'],
-          'week-5': ['2025-04-28', '2025-05-04']
-        };
-        const dates = defaultDates[week.id] || ['2025-04-21', '2025-04-27'];
-        if (startInp) startInp.value = dates[0];
-        if (endInp) endInp.value = dates[1];
-      }
+      if (startInp) startInp.value = week.startDate || '';
+      if (endInp) endInp.value = week.endDate || '';
+      if (btnDelete) btnDelete.style.display = 'inline-flex';
     }
     this.updateWeekIntervalPreview();
   }
@@ -2697,15 +2728,20 @@ class OLAGApp {
     const previewEl = document.getElementById('weekIntervalPreviewText');
     if (!previewEl) return;
 
-    const name = nameInp ? nameInp.value.trim() : 'Week 4';
+    const name = nameInp ? nameInp.value.trim() : '';
     const sDate = startInp ? startInp.value : '';
     const eDate = endInp ? endInp.value : '';
 
-    if (sDate && eDate) {
+    if (name && sDate && eDate) {
       const formatted = formatDateRange(sDate, eDate);
-      previewEl.textContent = `${name || 'Week'} (${formatted})`;
+      previewEl.textContent = `${name} (${formatted})`;
+    } else if (name) {
+      previewEl.textContent = `${name} (Select start & end dates)`;
+    } else if (sDate && eDate) {
+      const formatted = formatDateRange(sDate, eDate);
+      previewEl.textContent = `Week (${formatted})`;
     } else {
-      previewEl.textContent = `${name || 'Week'} (Select start & end dates)`;
+      previewEl.textContent = 'No interval configured (Enter week name and dates)';
     }
   }
 
@@ -2719,14 +2755,14 @@ class OLAGApp {
     const isCurrentChk = document.getElementById('weekIsCurrentCheckbox');
 
     const targetVal = targetSelect ? targetSelect.value : 'new';
-    const weekName = nameInp ? nameInp.value.trim() : 'Week 4';
+    const weekName = nameInp ? nameInp.value.trim() : '';
     const status = statusSelect ? statusSelect.value : 'Open';
     const startDate = startInp ? startInp.value : '';
     const endDate = endInp ? endInp.value : '';
     const isCurrent = isCurrentChk ? isCurrentChk.checked : false;
 
     if (!weekName || !startDate || !endDate) {
-      alert('Please fill in all week interval fields.');
+      this.showToast('Please fill in all week interval fields.');
       return;
     }
 
@@ -2739,7 +2775,7 @@ class OLAGApp {
     if (targetVal === 'new') {
       const newWeek = {
         id: `week-${Date.now()}`,
-        no: this.store.state.weeks.length + 1,
+        no: (this.store.state.weeks || []).length + 1,
         name: weekName,
         dateRange: dateRange,
         startDate: startDate,
@@ -2752,12 +2788,12 @@ class OLAGApp {
         isCurrent: isCurrent
       };
       this.store.state.weeks.push(newWeek);
-      if (isCurrent) {
+      if (isCurrent || this.store.state.weeks.length === 1) {
         this.store.state.selectedWeekId = newWeek.id;
       }
-      this.showToast(`Created new week interval: ${weekName} (${dateRange})`);
+      this.showToast(`✓ Created new week interval: ${weekName} (${dateRange})`);
     } else {
-      const existing = this.store.state.weeks.find(w => w.id === targetVal);
+      const existing = (this.store.state.weeks || []).find(w => w.id === targetVal);
       if (existing) {
         existing.name = weekName;
         existing.dateRange = dateRange;
@@ -2768,13 +2804,33 @@ class OLAGApp {
           existing.isCurrent = true;
           this.store.state.selectedWeekId = existing.id;
         }
-        this.showToast(`Updated week interval: ${weekName} (${dateRange})`);
+        this.showToast(`✓ Updated week interval: ${weekName} (${dateRange})`);
       }
     }
 
     this.store.save();
     this.closeModals();
     this.render();
+  }
+
+  deleteSelectedWeekInterval() {
+    const targetSelect = document.getElementById('setWeekTargetSelect');
+    const targetVal = targetSelect ? targetSelect.value : 'new';
+    if (targetVal === 'new') return;
+
+    const week = (this.store.state.weeks || []).find(w => w.id === targetVal);
+    if (!week) return;
+
+    if (confirm(`Are you sure you want to delete "${week.name}"?`)) {
+      this.store.state.weeks = this.store.state.weeks.filter(w => w.id !== targetVal);
+      if (this.store.state.selectedWeekId === targetVal) {
+        this.store.state.selectedWeekId = this.store.state.weeks[0] ? this.store.state.weeks[0].id : null;
+      }
+      this.store.save();
+      this.closeModals();
+      this.showToast(`Deleted week interval: ${week.name}`);
+      this.render();
+    }
   }
 
   // =========================================================================

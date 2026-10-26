@@ -121,7 +121,7 @@
         <span class="cal-icon">📅</span>
         <div>
           <span class="header-week-interval-title">Current Week Interval</span>
-          <span id="headerWeekIntervalText">Week 4 (21 – 27 Apr 2025)</span>
+          <span id="headerWeekIntervalText">No active week interval</span>
         </div>
       </div>
 
@@ -353,7 +353,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
           <div class="filter-field">
             <label>Week Name / Number *</label>
-            <input type="text" id="weekNameInput" class="form-input" placeholder="e.g. Week 4" required />
+            <input type="text" id="weekNameInput" class="form-input" placeholder="e.g. Week 1" required />
           </div>
 
           <div class="filter-field">
@@ -394,7 +394,7 @@
         <div style="margin-bottom: 1.25rem; padding: 0.85rem 1rem; background: #eff6ff; border: 1.5px dashed #93c5fd; border-radius: 10px;">
           <div style="font-size: 0.72rem; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Generated Interval Display</div>
           <div id="weekIntervalPreviewText" style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin-top: 0.2rem;">
-            Week 4 (21 – 27 Apr 2025)
+            No interval configured (Enter week name and dates)
           </div>
         </div>
 
@@ -405,9 +405,12 @@
           </label>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Cancel</button>
-          <button type="submit" class="btn-navy-action" id="btnSaveWeekInterval">Save Week Interval</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+          <button type="button" class="btn-navy-action" id="btnDeleteWeekInterval" style="background: #fee2e2; color: #dc2626; display: none;" onclick="app.deleteSelectedWeekInterval()">🗑️ Delete Week</button>
+          <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+            <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Cancel</button>
+            <button type="submit" class="btn-navy-action" id="btnSaveWeekInterval">Save Week Interval</button>
+          </div>
         </div>
       </form>
     </div>
