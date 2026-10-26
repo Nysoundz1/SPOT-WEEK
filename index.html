@@ -231,47 +231,37 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
           <div class="filter-field">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <label style="margin-bottom: 0;">Class *</label>
-              <button type="button" class="btn-text-action" onclick="app.openAddClassModal('+ Add Student')">+ Add Class</button>
-            </div>
-            <select id="addStudentClass" class="form-select" onchange="if(this.value === '__add_new__') app.openAddClassModal('+ Add Student')">
-              <option value="SHS 1A">SHS 1A</option>
-              <option value="SHS 1B">SHS 1B</option>
-              <option value="SHS 2A" selected>SHS 2A</option>
-              <option value="SHS 2B">SHS 2B</option>
-              <option value="SHS 2C">SHS 2C</option>
-              <option value="SHS 3A">SHS 3A</option>
-              <option value="SHS 3B">SHS 3B</option>
-              <option value="SHS 3C">SHS 3C</option>
-              <option value="__add_new__">+ Add New Class...</option>
-            </select>
+            <label for="addStudentClass">Class *</label>
+            <input 
+              type="text" 
+              id="addStudentClass" 
+              class="form-input" 
+              placeholder="e.g. SHS 1A, Form 2" 
+              list="existingClassesList" 
+              required 
+            />
+            <datalist id="existingClassesList">
+              <!-- Dynamically populated from store.state.classes -->
+            </datalist>
           </div>
 
           <div class="filter-field">
-            <label>House *</label>
-            <select id="addStudentHouse" class="form-select">
-              <option value="Accra">Accra House</option>
-              <option value="Kumasi">Kumasi House</option>
-              <option value="Takoradi">Takoradi House</option>
-              <option value="Cape Coast">Cape Coast House</option>
+            <label for="addStudentHouse">House *</label>
+            <select id="addStudentHouse" class="form-select" required>
+              <option value="ST. THOMAS">ST. THOMAS</option>
+              <option value="ST. PAUL">ST. PAUL</option>
+              <option value="ST. MARY">ST. MARY</option>
+              <option value="ST. JOSEPH">ST. JOSEPH</option>
             </select>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-          <div class="filter-field">
-            <label>Gender *</label>
-            <select id="addStudentGender" class="form-select">
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-          </div>
-
-          <div class="filter-field">
-            <label>Phone / Guardian</label>
-            <input type="text" id="addStudentPhone" class="form-input" placeholder="024 123 4567" />
-          </div>
+        <div class="filter-field" style="margin-bottom: 1.5rem;">
+          <label for="addStudentGender">Gender *</label>
+          <select id="addStudentGender" class="form-select" required>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
@@ -453,13 +443,11 @@
               <option value="Head of Discipline">🛡️ Head of Discipline</option>
               <option value="Vice Principal">🏛️ Vice Principal</option>
               <option value="Senior House Master">🏠 Senior House Master</option>
-              <option value="House Master (Accra)">🏠 House Master (Accra)</option>
-              <option value="House Master (Kumasi)">🏠 House Master (Kumasi)</option>
-              <option value="House Master (Takoradi)">🏠 House Master (Takoradi)</option>
-              <option value="House Master (Cape Coast)">🏠 House Master (Cape Coast)</option>
-              <option value="Teacher Rep (SHS 1)">👨‍🏫 Teacher Rep (SHS 1)</option>
-              <option value="Teacher Rep (SHS 2)">👨‍🏫 Teacher Rep (SHS 2)</option>
-              <option value="Teacher Rep (SHS 3)">👨‍🏫 Teacher Rep (SHS 3)</option>
+              <option value="House Master (ST. THOMAS)">🏠 House Master (ST. THOMAS)</option>
+              <option value="House Master (ST. PAUL)">🏠 House Master (ST. PAUL)</option>
+              <option value="House Master (ST. MARY)">🏠 House Master (ST. MARY)</option>
+              <option value="House Master (ST. JOSEPH)">🏠 House Master (ST. JOSEPH)</option>
+              <option value="Teacher Rep">👨‍🏫 Teacher Representative</option>
               <option value="Guidance Counselor">🤝 Guidance Counselor</option>
               <option value="Sports Coordinator">⚽ Sports Coordinator</option>
               <option value="Parent Rep">👥 Parent Rep (PTA)</option>
@@ -471,13 +459,10 @@
             <label>Assigned Evaluation Scope *</label>
             <select id="addMemberScope" class="form-select">
               <option value="All Houses & Classes">🌐 All Houses & Classes</option>
-              <option value="Accra House Focus">🏠 Accra House Focus</option>
-              <option value="Kumasi House Focus">🏠 Kumasi House Focus</option>
-              <option value="Takoradi House Focus">🏠 Takoradi House Focus</option>
-              <option value="Cape Coast House Focus">🏠 Cape Coast House Focus</option>
-              <option value="SHS 1 Classes Focus">🎓 SHS 1 Classes Focus</option>
-              <option value="SHS 2 Classes Focus">🎓 SHS 2 Classes Focus</option>
-              <option value="SHS 3 Classes Focus">🎓 SHS 3 Classes Focus</option>
+              <option value="ST. THOMAS House Focus">🏠 ST. THOMAS House Focus</option>
+              <option value="ST. PAUL House Focus">🏠 ST. PAUL House Focus</option>
+              <option value="ST. MARY House Focus">🏠 ST. MARY House Focus</option>
+              <option value="ST. JOSEPH House Focus">🏠 ST. JOSEPH House Focus</option>
             </select>
           </div>
         </div>

@@ -53,8 +53,8 @@ const WEEKS_LIST = [
   { id: 'week-5', no: 5, name: 'Week 5', dateRange: '28 Apr – 04 May 2025', status: 'Upcoming' }
 ];
 
-const CLASSES_LIST = ['SHS 1A', 'SHS 1B', 'SHS 2A', 'SHS 2B', 'SHS 2C', 'SHS 3A', 'SHS 3B', 'SHS 3C'];
-const HOUSES_LIST = ['Accra House', 'Kumasi House', 'Takoradi House', 'Cape Coast House'];
+const CLASSES_LIST = [];
+const HOUSES_LIST = ['ST. THOMAS', 'ST. PAUL', 'ST. MARY', 'ST. JOSEPH'];
 
 // Clean Initial State: Empty arrays for students, scores, and registered members
 const COMMITTEE_MEMBERS = [];
@@ -64,7 +64,7 @@ const INITIAL_SCORES = {};
 // --- Store ---
 class OLAGStore {
   constructor() {
-    this.storageKey = 'OLAG_SHS_SPOT_DATA_V5';
+    this.storageKey = 'OLAG_SHS_SPOT_DATA_V6';
     this.state = this.loadState();
   }
 
@@ -91,7 +91,7 @@ class OLAGStore {
       isLoggedIn: false,
       currentView: 'dashboard-admin',
       selectedWeekId: 'week-4',
-      selectedClass: 'SHS 2A',
+      selectedClass: '',
       selectedStudentId: null,
       students: INITIAL_STUDENTS,
       weeks: WEEKS_LIST,
@@ -1044,7 +1044,7 @@ class OLAGApp {
                 <div class="winner-avatar-circle">👤</div>
                 <div class="winner-info-text">
                   <h3>${escapeHtml(topStudent.name)}</h3>
-                  <p>${escapeHtml(topStudent.class)} | ${escapeHtml(topStudent.house)} House</p>
+                  <p>${escapeHtml(topStudent.class)} | ${escapeHtml(topStudent.house)}</p>
                 </div>
               </div>
 
@@ -1337,7 +1337,7 @@ class OLAGApp {
 
           <select id="studentHouseFilterSelect" class="form-select" style="max-width: 140px;">
             <option value="All Houses">All Houses</option>
-            ${this.store.state.houses.map(h => `<option value="${h.replace(' House', '')}" ${houseFilter.includes(h.replace(' House', '')) ? 'selected' : ''}>${h.replace(' House', '')}</option>`).join('')}
+            ${this.store.state.houses.map(h => `<option value="${h}" ${houseFilter === h ? 'selected' : ''}>${h}</option>`).join('')}
           </select>
         </div>
 
@@ -2112,15 +2112,11 @@ class OLAGApp {
             </div>
             <div class="profile-detail-row">
               <span>House</span>
-              <span>${escapeHtml(student.house)} House</span>
+              <span>${escapeHtml(student.house)}</span>
             </div>
             <div class="profile-detail-row">
               <span>Gender</span>
               <span>${escapeHtml(student.gender)}</span>
-            </div>
-            <div class="profile-detail-row">
-              <span>Phone</span>
-              <span>${escapeHtml(student.phone || 'N/A')}</span>
             </div>
           </div>
 
@@ -2387,7 +2383,7 @@ class OLAGApp {
               <span>Total Classes: <strong>${this.store.state.classes.length} Classes</strong></span>
               <button type="button" class="btn-text-action" onclick="app.openAddClassModal()">+ Manage Classes</button>
             </li>
-            <li>Houses: <strong>Accra, Kumasi, Takoradi, Cape Coast</strong></li>
+            <li>Houses: <strong>${this.store.state.houses.join(', ')}</strong></li>
             <li>Total Criteria: <strong>8 Rubric Metrics (0-10 each, 80 total)</strong></li>
           </ul>
         </div>
@@ -2428,21 +2424,19 @@ class OLAGApp {
     this.populateAddStudentClasses();
     const modal = document.getElementById('modalAddStudent');
     if (modal) modal.classList.add('active');
+    const nameInp = document.getElementById('addStudentName');
+    if (nameInp) setTimeout(() => nameInp.focus(), 120);
   }
 
   populateAddStudentClasses(selectedClass = null) {
-    const select = document.getElementById('addStudentClass');
-    if (!select) return;
-
-    const classes = this.store.state.classes || [];
-    const currentVal = selectedClass || select.value || classes[0] || 'SHS 2A';
-
-    select.innerHTML = `
-      ${classes.map(c => `<option value="${escapeHtml(c)}" ${c === currentVal ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
-      <option value="__add_new__" style="color: var(--navy-primary); font-weight: 700;">+ Add New Class...</option>
-    `;
-    if (classes.includes(currentVal)) {
-      select.value = currentVal;
+    const input = document.getElementById('addStudentClass');
+    if (input && selectedClass) {
+      input.value = selectedClass;
+    }
+    const datalist = document.getElementById('existingClassesList');
+    if (datalist) {
+      const classes = this.store.state.classes || [];
+      datalist.innerHTML = classes.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
     }
   }
 
@@ -2565,7 +2559,16 @@ class OLAGApp {
     if (newName && newName.trim()) {
       student.name = newName.trim();
       const newClass = prompt('Edit Class:', student.class);
-      if (newClass && newClass.trim()) student.class = newClass.trim();
+      if (newClass && newClass.trim()) {
+        student.class = newClass.trim();
+        if (!this.store.state.classes.includes(newClass.trim())) {
+          this.store.state.classes.push(newClass.trim());
+        }
+      }
+      const newHouse = prompt(`Edit House (${this.store.state.houses.join(', ')}):`, student.house);
+      if (newHouse && newHouse.trim()) {
+        student.house = newHouse.trim();
+      }
       this.store.save();
       this.showToast(`Updated student ${student.name}`);
       this.render();
@@ -2990,12 +2993,21 @@ function initOLAGApp() {
     formAddStudent.addEventListener('submit', (e) => {
       e.preventDefault();
       const name = document.getElementById('addStudentName').value.trim();
-      const sClass = document.getElementById('addStudentClass').value;
+      const sClass = (document.getElementById('addStudentClass').value || '').trim();
       const sHouse = document.getElementById('addStudentHouse').value;
       const sGender = document.getElementById('addStudentGender').value;
-      const sPhone = document.getElementById('addStudentPhone').value.trim();
 
-      if (!name) return;
+      if (!name || !sClass) {
+        app.showToast('Please enter both student name and class.');
+        return;
+      }
+
+      if (sClass && !app.store.state.classes.includes(sClass)) {
+        app.store.state.classes.push(sClass);
+      }
+      if (!app.store.state.selectedClass) {
+        app.store.state.selectedClass = sClass;
+      }
 
       const newId = `OLAG${String(app.store.state.students.length + 1).padStart(3, '0')}`;
       const newStudent = {
@@ -3004,7 +3016,6 @@ function initOLAGApp() {
         class: sClass,
         house: sHouse,
         gender: sGender,
-        phone: sPhone || '024 123 4567',
         comment: 'Newly enrolled student for assessment.'
       };
 
@@ -3017,7 +3028,7 @@ function initOLAGApp() {
 
       app.closeModals();
       formAddStudent.reset();
-      app.showToast(`Added student: ${name} (${newId})`);
+      app.showToast(`✓ Added student: ${name} (${newId}) — ${sClass}, ${sHouse}`);
       app.render();
     });
   }
