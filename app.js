@@ -173,6 +173,7 @@ class OLAGApp {
     this.applyTheme(this.store.state.theme || 'light');
     this.applySidebarState();
     this.bindEvents();
+    window.addEventListener('resize', () => this.applySidebarState());
     this.render();
   }
 
@@ -206,11 +207,18 @@ class OLAGApp {
     if (labelEl) labelEl.textContent = isDark ? 'Light Mode' : 'Dark Mode';
   }
 
-  // --- Sidebar Collapse Management ---
+  // --- Sidebar Collapse Management (Desktop & Mobile Drawer) ---
   applySidebarState() {
     const shell = document.getElementById('screenAppShell');
     const arrow = document.getElementById('sidebarArrowIcon');
     if (!shell) return;
+    if (window.innerWidth <= 768) {
+      const isMobileOpen = shell.classList.contains('mobile-sidebar-open');
+      if (arrow) arrow.textContent = isMobileOpen ? '✕' : '☰';
+      return;
+    }
+    // Desktop mode
+    shell.classList.remove('mobile-sidebar-open');
     if (this.store.state.sidebarCollapsed) {
       shell.classList.add('sidebar-collapsed');
       if (arrow) arrow.textContent = '▶';
@@ -220,10 +228,26 @@ class OLAGApp {
     }
   }
 
-  toggleSidebar() {
-    this.store.state.sidebarCollapsed = !this.store.state.sidebarCollapsed;
+  toggleSidebar(forceState) {
+    const shell = document.getElementById('screenAppShell');
+    if (!shell) return;
+    if (window.innerWidth <= 768) {
+      const isMobileOpen = typeof forceState === 'boolean' ? forceState : !shell.classList.contains('mobile-sidebar-open');
+      shell.classList.toggle('mobile-sidebar-open', isMobileOpen);
+      const arrow = document.getElementById('sidebarArrowIcon');
+      if (arrow) arrow.textContent = isMobileOpen ? '✕' : '☰';
+      return;
+    }
+    this.store.state.sidebarCollapsed = typeof forceState === 'boolean' ? forceState : !this.store.state.sidebarCollapsed;
     this.store.save();
     this.applySidebarState();
+  }
+
+  closeMobileSidebar() {
+    const shell = document.getElementById('screenAppShell');
+    if (shell) shell.classList.remove('mobile-sidebar-open');
+    const arrow = document.getElementById('sidebarArrowIcon');
+    if (arrow && window.innerWidth <= 768) arrow.textContent = '☰';
   }
 
   // --- Dashboard Info Hide / Show Toggle ---
@@ -807,12 +831,14 @@ class OLAGApp {
   }
 
   navigateTo(viewId, payload = null) {
+    this.closeMobileSidebar();
     this.store.state.currentView = viewId;
     if (payload && payload.studentId) {
       this.store.state.selectedStudentId = payload.studentId;
     }
     this.store.save();
     this.render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   render() {

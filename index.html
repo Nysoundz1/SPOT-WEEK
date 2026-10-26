@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Student Personality of the Week Assessment System</title>
   <meta name="description" content="Official Student Personality of the Week Multi-Role Assessment Portals for Our Lady of Grace Senior High School (OLAG SHS).">
   
@@ -145,8 +145,11 @@
     <!-- Main Body Container -->
     <div class="app-body-container">
 
+      <!-- Backdrop Overlay for Mobile Drawer -->
+      <div id="sidebarMobileBackdrop" class="sidebar-mobile-backdrop" onclick="if(window.app) window.app.closeMobileSidebar()"></div>
+
       <!-- Left Sidebar (Deep Navy) -->
-      <aside class="olag-sidebar">
+      <aside class="olag-sidebar" id="olagSidebar">
         <nav class="sidebar-nav-menu" id="sidebarNavMenu">
           <!-- Dynamically populated based on active dashboard role -->
         </nav>

@@ -2171,6 +2171,459 @@ a {
 }
 
 /* ==========================================================================
+   MOBILE & TABLET RESPONSIVE SYSTEM
+   Provides rich, adaptive layouts for tablets (iPads) and mobile phones (iPhone/Android)
+   ========================================================================== */
+
+/* Tablet & Medium Screens (<= 1024px) */
+@media (max-width: 1024px) {
+  .stat-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .student-criteria-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .olag-main-content {
+    padding: 1.5rem 1.25rem 3rem;
+  }
+  .dashboard-winner-card {
+    padding: 1.5rem;
+  }
+  .scoring-table-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Mobile & Portrait Tablet (<= 768px) */
+@media (max-width: 768px) {
+  /* Compact Top Header */
+  .olag-top-header {
+    height: 58px;
+    padding: 0 0.75rem;
+  }
+
+  .header-left-brand {
+    gap: 0.5rem;
+  }
+
+  .header-crest {
+    width: 30px;
+    height: 38px;
+  }
+
+  .header-brand-text h1 {
+    font-size: 0.92rem;
+  }
+
+  .header-brand-text span {
+    display: none;
+  }
+
+  .sidebar-toggle-btn {
+    width: 32px;
+    height: 32px;
+    margin-right: 0.25rem;
+  }
+
+  /* Compact Week Interval Pill on Mobile */
+  .header-week-pill {
+    padding: 0.25rem 0.65rem;
+    gap: 0.35rem;
+  }
+
+  .header-week-interval-title {
+    display: none;
+  }
+
+  #headerWeekIntervalText {
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  .header-week-edit-badge {
+    display: none;
+  }
+
+  /* Compact User Profile & Theme Toggle */
+  .header-right-user {
+    gap: 0.4rem;
+  }
+
+  .header-theme-toggle {
+    padding: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    justify-content: center;
+  }
+
+  .header-theme-toggle .theme-label-indicator {
+    display: none;
+  }
+
+  .header-theme-toggle .theme-icon-indicator {
+    font-size: 1rem;
+  }
+
+  .header-user-profile {
+    padding: 2px;
+    border-radius: 50%;
+    gap: 0;
+    border: none;
+    background: transparent;
+  }
+
+  .header-user-text {
+    display: none;
+  }
+
+  .header-user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  /* Mobile Off-Canvas Drawer Navigation */
+  .olag-sidebar {
+    position: fixed;
+    top: 58px;
+    left: 0;
+    bottom: 0;
+    width: 270px;
+    max-width: 82vw;
+    height: calc(100vh - 58px);
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar-mobile-backdrop {
+    display: none;
+    position: fixed;
+    top: 58px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(3px);
+    z-index: 95;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .app-shell.mobile-sidebar-open .olag-sidebar {
+    transform: translateX(0);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .app-shell.mobile-sidebar-open .sidebar-mobile-backdrop {
+    display: block;
+    opacity: 1;
+  }
+
+  /* Main Content Area */
+  .olag-main-content {
+    padding: 1.15rem 0.85rem 3.5rem;
+    width: 100%;
+  }
+
+  .view-header {
+    margin-bottom: 1.15rem;
+  }
+
+  .view-header h2 {
+    font-size: 1.35rem;
+  }
+
+  .view-header p {
+    font-size: 0.82rem;
+  }
+
+  .view-header-with-toggle {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .btn-toggle-dash-info {
+    width: 100%;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+  }
+
+  /* Stat Cards on Mobile */
+  .stat-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    padding: 0.95rem 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .stat-card-title {
+    font-size: 0.72rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.45rem;
+  }
+
+  .stat-card-sub {
+    font-size: 0.7rem;
+  }
+
+  .stat-card-icon {
+    font-size: 1.75rem;
+  }
+
+  /* Student Personality of the Week Spotlight Card */
+  .dashboard-winner-card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .dashboard-winner-card-header {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .winner-card-heading {
+    font-size: 0.95rem;
+  }
+
+  .winner-card-week-tag {
+    font-size: 0.72rem;
+  }
+
+  .dashboard-winner-body {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.15rem;
+  }
+
+  .dashboard-winner-left {
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .winner-avatar-circle {
+    width: 46px;
+    height: 46px;
+    font-size: 1.25rem;
+  }
+
+  .winner-info-text h3 {
+    font-size: 1.2rem;
+  }
+
+  .winner-info-text p {
+    font-size: 0.8rem;
+  }
+
+  .dashboard-winner-scores {
+    width: 100%;
+    justify-content: space-around;
+    gap: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 1rem;
+  }
+
+  .winner-score-value,
+  .winner-percentage-value {
+    font-size: 1.65rem;
+  }
+
+  .winner-laurel-decor {
+    font-size: 2.2rem;
+    margin-left: 0;
+  }
+
+  /* Committee Progress Quorum Banner */
+  .committee-progress-hero {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    padding: 1.25rem 1rem;
+    gap: 1.15rem;
+  }
+
+  .committee-progress-ring-block {
+    justify-content: center;
+  }
+
+  .committee-progress-pct {
+    font-size: 2.25rem;
+  }
+
+  /* Responsive Touch Tables */
+  .scoring-table-card {
+    padding: 1rem 0.75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+  }
+
+  .scoring-table-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-size: 0.88rem;
+  }
+
+  .table-standard {
+    min-width: 500px;
+  }
+
+  .table-standard th,
+  .table-standard td {
+    padding: 0.65rem 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  /* Touch-friendly Score Inputs */
+  .score-input-number {
+    width: 80px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  /* Form & Assessment Filter Bars */
+  .assessment-filter-card {
+    padding: 1rem 0.85rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .filter-field {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .btn-navy-action {
+    width: 100%;
+    height: 44px;
+    justify-content: center;
+  }
+
+  /* Scoring Summary Bar */
+  .scoring-summary-bar {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 0.85rem;
+    padding: 1rem 0.85rem;
+  }
+
+  .scoring-summary-bar .btn-navy-action {
+    width: 100%;
+  }
+
+  /* Student Profile Cards */
+  .student-profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+  }
+
+  /* Modals on Mobile */
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-lg);
+    max-height: 92vh;
+  }
+
+  .modal-header-row h3 {
+    font-size: 1.05rem;
+  }
+
+  /* Report Action Buttons */
+  .report-action-buttons {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .report-action-buttons button {
+    flex: 1 1 calc(50% - 0.5rem);
+    height: 42px;
+    justify-content: center;
+    font-size: 0.8rem;
+    padding: 0 0.5rem;
+  }
+
+  .report-sheet-preview {
+    padding: 1.5rem 1rem;
+  }
+
+  .report-school-title {
+    font-size: 1.1rem;
+  }
+
+  .report-footer-signatures {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+}
+
+/* Small Phones (<= 480px) */
+@media (max-width: 480px) {
+  .stat-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .header-week-pill {
+    display: none;
+  }
+
+  .auth-panel-form {
+    padding: 1.75rem 1rem 2.5rem;
+  }
+
+  .auth-panel-showcase {
+    min-height: 160px;
+    padding: 1.75rem 1rem;
+  }
+
+  .auth-main-heading {
+    font-size: 1.6rem;
+  }
+
+  .auth-showcase-title {
+    font-size: 1.35rem;
+  }
+
+  .auth-showcase-desc {
+    font-size: 0.82rem;
+  }
+}
+
+/* ==========================================================================
    PERFECT PRINT CERTIFICATE RULES
    Guarantees clean, single-page official school certificate output without UI clutter
    ========================================================================== */
