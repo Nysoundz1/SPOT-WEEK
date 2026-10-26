@@ -19,6 +19,14 @@
 </head>
 <body>
 
+  <!-- Floating Dark/Light Mode Toggle -->
+  <div style="position: fixed; top: 1.25rem; right: 1.25rem; z-index: 100;">
+    <button type="button" class="header-theme-toggle btn-auth-theme-toggle" id="btnAuthThemeToggle" onclick="toggleAuthTheme()" title="Toggle Dark / Light Mode" style="background: rgba(12, 35, 64, 0.08); color: var(--navy-primary); border: 1px solid rgba(12, 35, 64, 0.15);">
+      <span id="authThemeIcon">🌙</span>
+      <span id="authThemeLabel" style="font-size: 0.78rem;">Dark Mode</span>
+    </button>
+  </div>
+
   <div id="screenLoginWrapper" class="login-split-container">
     <!-- LEFT HALF: Pristine White Minimalist Form matching screenshot -->
     <div class="auth-panel-form">
@@ -163,6 +171,31 @@
   <!-- JavaScript Application Bundle -->
   <script src="app.js?v=8"></script>
   <script>
+    function updateAuthThemeUI(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const icon = document.getElementById('authThemeIcon');
+      const label = document.getElementById('authThemeLabel');
+      if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      if (label) label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    }
+
+    function toggleAuthTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('olag_theme', next);
+      updateAuthThemeUI(next);
+      if (window.app && window.app.store) {
+        window.app.store.state.theme = next;
+        window.app.store.save();
+      }
+    }
+
+    // Apply saved theme immediately
+    (function() {
+      const savedTheme = localStorage.getItem('olag_theme') || 'light';
+      updateAuthThemeUI(savedTheme);
+    })();
+
     function checkRegisterHash() {
       if (window.location.hash === '#register' || window.location.search.includes('register')) {
         if (window.app && window.app.switchCommitteeForm) {

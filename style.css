@@ -4,8 +4,9 @@
    Multi-Role Dashboards & Login Design System
    ========================================================================== */
 
-:root {
-  /* Brand Navy & Accent Gold Colors from Screenshot */
+:root,
+[data-theme="light"] {
+  /* Brand Navy & Accent Gold Colors */
   --navy-darkest: #071729;
   --navy-primary: #0c2340;
   --navy-sidebar: #0b223d;
@@ -26,7 +27,7 @@
   --stat-purple: #6f42c1;
   --stat-orange: #fd7e14;
 
-  /* Neutrals */
+  /* Neutrals & Surfaces */
   --bg-main: #f4f6f9;
   --card-bg: #ffffff;
   --card-border: #e2e8f0;
@@ -36,6 +37,15 @@
   --text-muted: #64748b;
   --text-light: #94a3b8;
   --text-white: #ffffff;
+
+  --table-header-bg: #f8fafc;
+  --table-row-hover: #f1f5f9;
+  --table-border: #e2e8f0;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-text: #0f172a;
+  --modal-bg: #ffffff;
+  --banner-bg: #f8fafc;
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -54,6 +64,45 @@
   --shadow-card: 0 2px 10px rgba(12, 35, 64, 0.06);
 
   --transition: all 0.2s ease-in-out;
+}
+
+/* ==========================================================================
+   DARK THEME PALETTE
+   ========================================================================== */
+[data-theme="dark"] {
+  --navy-darkest: #030712;
+  --navy-primary: #1e3a5f;
+  --navy-sidebar: #09101c;
+  --navy-header: #060c16;
+  --navy-card: #0f1c30;
+  --navy-card-border: #1e355b;
+  --navy-light: #162a45;
+
+  --bg-main: #0a0f1d;
+  --card-bg: #111a2e;
+  --card-border: #1e2c45;
+  --card-border-subtle: #162338;
+  
+  --text-dark: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+
+  --table-header-bg: #0d1526;
+  --table-row-hover: #16243d;
+  --table-border: #1e2c45;
+  --input-bg: #0c1424;
+  --input-border: #243654;
+  --input-text: #f8fafc;
+  --modal-bg: #111a2e;
+  --banner-bg: #0d1627;
+
+  --accent-yellow-light: rgba(255, 199, 44, 0.12);
+  --accent-yellow-border: rgba(255, 199, 44, 0.35);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 /* Base Reset */
@@ -321,6 +370,55 @@ a {
   text-decoration: underline;
 }
 
+/* Dark mode overrides for Auth / Login split layout */
+[data-theme="dark"] .login-split-container {
+  background: #0a0f1d;
+}
+
+[data-theme="dark"] .auth-panel-form {
+  background: #0c1424;
+}
+
+[data-theme="dark"] .auth-brand-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .auth-brand-sub {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .auth-main-heading {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .auth-sub-heading {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .auth-form-group label {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .auth-input-field {
+  background: #111c2e;
+  border-color: #243654;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .auth-bottom-switch {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .auth-navy-link {
+  color: var(--accent-yellow);
+}
+
+[data-theme="dark"] .btn-auth-theme-toggle {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
 /* RIGHT HALF: Atmospheric Gradient Showcase */
 .auth-panel-showcase {
   flex: 1;
@@ -565,6 +663,270 @@ a {
   border-radius: var(--radius-pill);
   font-size: 0.76rem;
   font-weight: 700;
+}
+
+/* Header Theme Toggle Button */
+.header-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.85rem;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.header-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--accent-yellow);
+  color: var(--accent-yellow);
+  transform: translateY(-1px);
+}
+
+.theme-icon-indicator {
+  font-size: 0.95rem;
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Sidebar Toggle Arrow Button in Header */
+.sidebar-toggle-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--accent-yellow);
+  color: var(--accent-yellow);
+}
+
+.sidebar-arrow-icon {
+  font-size: 0.8rem;
+  display: inline-block;
+  transition: transform 0.25s ease;
+}
+
+/* Sidebar Collapsed State */
+.olag-sidebar {
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s ease;
+}
+
+.app-shell.sidebar-collapsed .olag-sidebar {
+  width: 68px;
+  padding: 1.25rem 0.4rem;
+}
+
+.app-shell.sidebar-collapsed .sidebar-role-badge,
+.app-shell.sidebar-collapsed .sidebar-nav-item span:not(.nav-icon),
+.app-shell.sidebar-collapsed .sidebar-logout-btn span:not(:first-child) {
+  display: none !important;
+}
+
+.app-shell.sidebar-collapsed .sidebar-nav-item,
+.app-shell.sidebar-collapsed .sidebar-logout-btn {
+  justify-content: center;
+  padding: 0.75rem 0;
+  border-radius: 10px;
+}
+
+.app-shell.sidebar-collapsed .sidebar-arrow-icon {
+  transform: rotate(180deg);
+}
+
+/* View Header with Arrow Toggle */
+.view-header-with-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.btn-toggle-dash-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.95rem;
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border);
+  border-radius: var(--radius-pill);
+  color: var(--text-dark);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.btn-toggle-dash-info:hover {
+  background: var(--accent-yellow-light);
+  border-color: var(--accent-yellow);
+  color: var(--navy-primary);
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .btn-toggle-dash-info:hover {
+  background: rgba(255, 199, 44, 0.15);
+  color: var(--accent-yellow);
+}
+
+.dash-toggle-arrow {
+  display: inline-block;
+  font-size: 0.72rem;
+  transition: transform 0.25s ease;
+}
+
+.btn-toggle-dash-info.is-collapsed .dash-toggle-arrow {
+  transform: rotate(180deg);
+}
+
+.dashboard-info-collapsible {
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin 0.25s ease, transform 0.25s ease;
+  max-height: 1200px;
+  opacity: 1;
+  overflow: hidden;
+  transform: translateY(0);
+}
+
+.dashboard-info-collapsible.is-collapsed {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+/* Dark theme support for core surface elements */
+[data-theme="dark"] .quick-action-card,
+[data-theme="dark"] .scoring-table-card,
+[data-theme="dark"] .assessment-filter-card,
+[data-theme="dark"] .committee-progress-hero,
+[data-theme="dark"] .house-rank-row,
+[data-theme="dark"] .modal-container {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] .quick-action-label,
+[data-theme="dark"] .scoring-table-title,
+[data-theme="dark"] .committee-progress-text h3,
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .modal-header-row h3 {
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .score-input-number {
+  background: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--input-border);
+}
+
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .score-input-number:focus {
+  border-color: var(--accent-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 199, 44, 0.2);
+}
+
+[data-theme="dark"] .table-standard th {
+  background: var(--table-header-bg);
+  border-bottom-color: var(--table-border);
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .table-standard td {
+  border-bottom-color: var(--card-border-subtle);
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] .table-standard tr:hover {
+  background-color: var(--table-row-hover);
+}
+
+[data-theme="dark"] .scoring-summary-bar {
+  background: var(--table-header-bg);
+  border-color: var(--card-border);
+}
+
+[data-theme="dark"] .scoring-tally-text strong {
+  color: var(--accent-yellow);
+}
+
+[data-theme="dark"] .evaluator-banner {
+  background: var(--banner-bg);
+  border-color: var(--card-border);
+}
+
+[data-theme="dark"] .role-switcher-card-btn {
+  background: var(--banner-bg);
+  border-color: var(--card-border);
+  color: var(--text-dark);
+}
+
+[data-theme="dark"] .role-switcher-card-btn:hover {
+  background: var(--card-bg);
+  border-color: var(--accent-yellow);
+}
+
+[data-theme="dark"] .role-switcher-card-btn.active {
+  background: var(--card-bg);
+  border-color: var(--accent-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 199, 44, 0.25);
+}
+
+[data-theme="dark"] .header-week-pill {
+  background: #101c30;
+  color: #ffffff;
+  border: 1px solid #1e355b;
+}
+
+[data-theme="dark"] .header-week-pill .cal-icon {
+  color: var(--accent-yellow);
+}
+
+[data-theme="dark"] .header-week-edit-badge {
+  background: #182a46;
+  color: var(--accent-yellow);
+  border-color: #274572;
+}
+
+[data-theme="dark"] .btn-close-x:hover {
+  background: #1b2940;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .btn-navy-action {
+  background: #1e3a5f;
+  color: #ffffff;
+  border: 1px solid #2e5384;
+}
+
+[data-theme="dark"] .btn-navy-action:hover {
+  background: #254977;
+  border-color: var(--accent-yellow);
 }
 
 /* Right User Profile Pill */

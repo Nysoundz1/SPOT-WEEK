@@ -103,11 +103,14 @@
 
     <!-- Top App Header (Dark Navy) -->
     <header class="olag-top-header">
-      <div class="header-left-brand" onclick="app.navigateTo('dashboard-' + app.store.state.currentRoleKey)">
-        <div class="header-crest">
+      <div class="header-left-brand">
+        <button type="button" class="sidebar-toggle-btn" id="btnToggleSidebar" title="Collapse / Expand Sidebar" aria-label="Toggle Sidebar" onclick="if(window.app) window.app.toggleSidebar()">
+          <span class="sidebar-arrow-icon" id="sidebarArrowIcon">◀</span>
+        </button>
+        <div class="header-crest" onclick="if(window.app) window.app.navigateTo('dashboard-' + window.app.store.state.currentRoleKey)" style="cursor: pointer;">
           <img src="olag_logo.png" alt="Our Lady of Grace SHS Official Logo" />
         </div>
-        <div class="header-brand-text">
+        <div class="header-brand-text" onclick="if(window.app) window.app.navigateTo('dashboard-' + window.app.store.state.currentRoleKey)" style="cursor: pointer;">
           <h1>OLAG SHS</h1>
           <span>Student Personality of the Week</span>
         </div>
@@ -122,8 +125,13 @@
         </div>
       </div>
 
-      <!-- Right: User Profile Pill -->
+      <!-- Right: Theme Toggle & User Profile Pill -->
       <div class="header-right-user">
+        <button type="button" class="header-theme-toggle" id="btnHeaderThemeToggle" onclick="if(window.app) window.app.toggleTheme()" title="Toggle Dark / Light Mode" aria-label="Toggle theme mode">
+          <span class="theme-icon-indicator" id="themeIconIndicator">🌙</span>
+          <span class="theme-label-indicator" id="themeLabelIndicator">Dark Mode</span>
+        </button>
+
         <div class="header-user-profile" id="headerUserProfile">
           <div class="header-user-avatar" id="headerProfileAvatar">AD</div>
           <div class="header-user-text">

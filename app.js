@@ -103,7 +103,13 @@ class OLAGStore {
   loadState() {
     try {
       const saved = localStorage.getItem(this.storageKey);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!parsed.theme) parsed.theme = localStorage.getItem('olag_theme') || 'light';
+        if (typeof parsed.sidebarCollapsed === 'undefined') parsed.sidebarCollapsed = false;
+        if (typeof parsed.dashInfoHidden === 'undefined') parsed.dashInfoHidden = false;
+        return parsed;
+      }
     } catch (e) {
       console.warn('Failed to parse state:', e);
     }
@@ -134,7 +140,10 @@ class OLAGStore {
       selectedEvaluatorId: 'mem-1',
       committeeSearchQuery: '',
       committeeRoleFilter: 'All',
-      committeeStatusFilter: 'All'
+      committeeStatusFilter: 'All',
+      theme: localStorage.getItem('olag_theme') || 'light',
+      sidebarCollapsed: false,
+      dashInfoHidden: false
     };
   }
 
@@ -161,8 +170,88 @@ class OLAGApp {
   }
 
   init() {
+    this.applyTheme(this.store.state.theme || 'light');
+    this.applySidebarState();
     this.bindEvents();
     this.render();
+  }
+
+  // --- Theme Management (Light & Dark Mode) ---
+  applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    this.store.state.theme = theme;
+    localStorage.setItem('olag_theme', theme);
+    this.updateThemeUI();
+  }
+
+  toggleTheme() {
+    const nextTheme = this.store.state.theme === 'dark' ? 'light' : 'dark';
+    this.setTheme(nextTheme);
+  }
+
+  setTheme(theme) {
+    this.applyTheme(theme);
+    this.store.save();
+    this.showToast(`Switched to ${theme === 'dark' ? 'Dark' : 'Light'} Mode`);
+    if (this.store.state.currentView === 'settings') {
+      this.renderSettings();
+    }
+  }
+
+  updateThemeUI() {
+    const isDark = this.store.state.theme === 'dark';
+    const iconEl = document.getElementById('themeIconIndicator');
+    const labelEl = document.getElementById('themeLabelIndicator');
+    if (iconEl) iconEl.textContent = isDark ? '☀️' : '🌙';
+    if (labelEl) labelEl.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+  }
+
+  // --- Sidebar Collapse Management ---
+  applySidebarState() {
+    const shell = document.getElementById('screenAppShell');
+    const arrow = document.getElementById('sidebarArrowIcon');
+    if (!shell) return;
+    if (this.store.state.sidebarCollapsed) {
+      shell.classList.add('sidebar-collapsed');
+      if (arrow) arrow.textContent = '▶';
+    } else {
+      shell.classList.remove('sidebar-collapsed');
+      if (arrow) arrow.textContent = '◀';
+    }
+  }
+
+  toggleSidebar() {
+    this.store.state.sidebarCollapsed = !this.store.state.sidebarCollapsed;
+    this.store.save();
+    this.applySidebarState();
+  }
+
+  // --- Dashboard Info Hide / Show Toggle ---
+  toggleDashboardInfo() {
+    this.store.state.dashInfoHidden = !this.store.state.dashInfoHidden;
+    this.store.save();
+
+    const isHidden = this.store.state.dashInfoHidden;
+    const adminWrap = document.getElementById('adminDashboardInfoWrap');
+    const commWrap = document.getElementById('committeeDashboardInfoWrap');
+    const adminBtn = document.getElementById('btnToggleAdminDashInfo');
+    const commBtn = document.getElementById('btnToggleCommitteeDashInfo');
+
+    [adminWrap, commWrap].forEach(el => {
+      if (el) el.classList.toggle('is-collapsed', isHidden);
+    });
+
+    [adminBtn, commBtn].forEach(btn => {
+      if (btn) {
+        btn.classList.toggle('is-collapsed', isHidden);
+        const arrow = btn.querySelector('.dash-toggle-arrow');
+        const text = btn.querySelector('.dash-toggle-text');
+        if (arrow) arrow.textContent = isHidden ? '▼' : '▲';
+        if (text) text.textContent = isHidden ? 'Show Dashboard Info' : 'Hide Dashboard Info';
+      }
+    });
+
+    this.showToast(isHidden ? 'Dashboard info minimized' : 'Dashboard info expanded');
   }
 
   bindEvents() {
@@ -892,82 +981,91 @@ class OLAGApp {
 
     const currentWeek = this.store.state.weeks.find(w => w.id === 'week-4') || this.store.state.weeks[3];
     const topStudent = this.store.state.students.find(s => s.name === currentWeek.topStudent) || this.store.state.students[0];
+    const isHidden = !!this.store.state.dashInfoHidden;
 
     container.innerHTML = `
-      <div class="view-header">
-        <h2>Administrator Dashboard</h2>
-        <p>Welcome, ${escapeHtml(this.store.state.currentUser.name)}. Full system management and assessment control.</p>
+      <div class="view-header view-header-with-toggle">
+        <div>
+          <h2>Administrator Dashboard</h2>
+          <p>Welcome, ${escapeHtml(this.store.state.currentUser.name)}. Full system management and assessment control.</p>
+        </div>
+        <button type="button" class="btn-toggle-dash-info ${isHidden ? 'is-collapsed' : ''}" id="btnToggleAdminDashInfo" onclick="app.toggleDashboardInfo()" title="Toggle Dashboard Info Cards">
+          <span class="dash-toggle-arrow">${isHidden ? '▼' : '▲'}</span>
+          <span class="dash-toggle-text">${isHidden ? 'Show Dashboard Info' : 'Hide Dashboard Info'}</span>
+        </button>
       </div>
 
-      <div class="stat-cards-grid">
-        <div class="stat-card card-blue">
-          <div class="stat-card-text">
-            <span class="stat-card-title">Total Students</span>
-            <span class="stat-card-value">${this.store.state.totalStudentsCount}</span>
-          </div>
-          <div class="stat-card-icon">👥</div>
-        </div>
-
-        <div class="stat-card card-green" style="cursor: pointer;" onclick="app.openSetWeekIntervalModal('${currentWeek.id}')" title="Click to Set / Configure Week Interval">
-          <div class="stat-card-text">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.15rem;">
-              <span class="stat-card-title">This Week</span>
-              <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,255,255,0.3); padding: 0.1rem 0.45rem; border-radius: 999px;">⚙️ Set</span>
+      <div class="dashboard-info-collapsible ${isHidden ? 'is-collapsed' : ''}" id="adminDashboardInfoWrap">
+        <div class="stat-cards-grid">
+          <div class="stat-card card-blue">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Total Students</span>
+              <span class="stat-card-value">${this.store.state.totalStudentsCount}</span>
             </div>
-            <span class="stat-card-value" style="font-size: 1.45rem;">${escapeHtml(currentWeek.name)}</span>
-            <span class="stat-card-sub">(${escapeHtml(currentWeek.dateRange)})</span>
+            <div class="stat-card-icon">👥</div>
           </div>
-          <div class="stat-card-icon">📅</div>
-        </div>
 
-        <div class="stat-card card-purple">
-          <div class="stat-card-text">
-            <span class="stat-card-title">Total Classes</span>
-            <span class="stat-card-value">${this.store.state.classes.length}</span>
-          </div>
-          <div class="stat-card-icon">🎓</div>
-        </div>
-
-        <div class="stat-card card-orange">
-          <div class="stat-card-text">
-            <span class="stat-card-title">Total Houses</span>
-            <span class="stat-card-value">${this.store.state.houses.length}</span>
-          </div>
-          <div class="stat-card-icon">🏠</div>
-        </div>
-      </div>
-
-      <!-- Student Personality of the Week Spotlight Card -->
-      <div class="dashboard-winner-card">
-        <div class="dashboard-winner-card-header">
-          <div class="winner-card-heading">
-            <span class="trophy-icon">🏆</span>
-            <span>Student Personality of the Week</span>
-          </div>
-          <span class="winner-card-week-tag">(${currentWeek.name})</span>
-        </div>
-
-        <div class="dashboard-winner-body">
-          <div class="dashboard-winner-left">
-            <div class="winner-avatar-circle">👤</div>
-            <div class="winner-info-text">
-              <h3>${escapeHtml(topStudent.name)}</h3>
-              <p>${escapeHtml(topStudent.class)} | ${escapeHtml(topStudent.house)} House</p>
+          <div class="stat-card card-green" style="cursor: pointer;" onclick="app.openSetWeekIntervalModal('${currentWeek.id}')" title="Click to Set / Configure Week Interval">
+            <div class="stat-card-text">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.15rem;">
+                <span class="stat-card-title">This Week</span>
+                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,255,255,0.3); padding: 0.1rem 0.45rem; border-radius: 999px;">⚙️ Set</span>
+              </div>
+              <span class="stat-card-value" style="font-size: 1.45rem;">${escapeHtml(currentWeek.name)}</span>
+              <span class="stat-card-sub">(${escapeHtml(currentWeek.dateRange)})</span>
             </div>
+            <div class="stat-card-icon">📅</div>
           </div>
 
-          <div class="dashboard-winner-scores">
-            <div class="winner-score-block">
-              <div class="winner-score-label">Total Score</div>
-              <div class="winner-score-value">${currentWeek.totalScore} / ${currentWeek.maxScore}</div>
+          <div class="stat-card card-purple">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Total Classes</span>
+              <span class="stat-card-value">${this.store.state.classes.length}</span>
+            </div>
+            <div class="stat-card-icon">🎓</div>
+          </div>
+
+          <div class="stat-card card-orange">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Total Houses</span>
+              <span class="stat-card-value">${this.store.state.houses.length}</span>
+            </div>
+            <div class="stat-card-icon">🏠</div>
+          </div>
+        </div>
+
+        <!-- Student Personality of the Week Spotlight Card -->
+        <div class="dashboard-winner-card">
+          <div class="dashboard-winner-card-header">
+            <div class="winner-card-heading">
+              <span class="trophy-icon">🏆</span>
+              <span>Student Personality of the Week</span>
+            </div>
+            <span class="winner-card-week-tag">(${currentWeek.name})</span>
+          </div>
+
+          <div class="dashboard-winner-body">
+            <div class="dashboard-winner-left">
+              <div class="winner-avatar-circle">👤</div>
+              <div class="winner-info-text">
+                <h3>${escapeHtml(topStudent.name)}</h3>
+                <p>${escapeHtml(topStudent.class)} | ${escapeHtml(topStudent.house)} House</p>
+              </div>
             </div>
 
-            <div class="winner-score-block">
-              <div class="winner-score-label">Percentage</div>
-              <div class="winner-percentage-value">${currentWeek.percentage}%</div>
-            </div>
+            <div class="dashboard-winner-scores">
+              <div class="winner-score-block">
+                <div class="winner-score-label">Total Score</div>
+                <div class="winner-score-value">${currentWeek.totalScore} / ${currentWeek.maxScore}</div>
+              </div>
 
-            <div class="winner-laurel-decor">🌿</div>
+              <div class="winner-score-block">
+                <div class="winner-score-label">Percentage</div>
+                <div class="winner-percentage-value">${currentWeek.percentage}%</div>
+              </div>
+
+              <div class="winner-laurel-decor">🌿</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1011,58 +1109,68 @@ class OLAGApp {
     const container = document.getElementById('view-dashboard-committee');
     if (!container) return;
 
+    const isHidden = !!this.store.state.dashInfoHidden;
+
     container.innerHTML = `
-      <div class="view-header">
-        <h2>Committee Member Dashboard</h2>
-        <p>Logged in as <strong>${escapeHtml(this.store.state.currentUser.name)}</strong> (${this.store.state.currentUser.title})</p>
+      <div class="view-header view-header-with-toggle">
+        <div>
+          <h2>Committee Member Dashboard</h2>
+          <p>Logged in as <strong>${escapeHtml(this.store.state.currentUser.name)}</strong> (${this.store.state.currentUser.title})</p>
+        </div>
+        <button type="button" class="btn-toggle-dash-info ${isHidden ? 'is-collapsed' : ''}" id="btnToggleCommitteeDashInfo" onclick="app.toggleDashboardInfo()" title="Toggle Dashboard Info Cards">
+          <span class="dash-toggle-arrow">${isHidden ? '▼' : '▲'}</span>
+          <span class="dash-toggle-text">${isHidden ? 'Show Dashboard Info' : 'Hide Dashboard Info'}</span>
+        </button>
       </div>
 
-      <!-- Committee Progress Hero Banner -->
-      <div class="committee-progress-hero">
-        <div class="committee-progress-text">
-          <h3>Assessment Quorum: Week 4 Cycle</h3>
-          <p>You have evaluated <strong>18 of 24 assigned nominees</strong> across SHS 2A, SHS 2B, and SHS 2C.</p>
-        </div>
-        <div class="committee-progress-ring-block">
-          <div class="committee-progress-pct">75%</div>
-          <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-            Completed<br><span style="color: var(--stat-green);">6 Remaining</span>
+      <div class="dashboard-info-collapsible ${isHidden ? 'is-collapsed' : ''}" id="committeeDashboardInfoWrap">
+        <!-- Committee Progress Hero Banner -->
+        <div class="committee-progress-hero">
+          <div class="committee-progress-text">
+            <h3>Assessment Quorum: Week 4 Cycle</h3>
+            <p>You have evaluated <strong>18 of 24 assigned nominees</strong> across SHS 2A, SHS 2B, and SHS 2C.</p>
           </div>
-        </div>
-      </div>
-
-      <div class="stat-cards-grid">
-        <div class="stat-card card-blue">
-          <div class="stat-card-text">
-            <span class="stat-card-title">Assigned Students</span>
-            <span class="stat-card-value">24</span>
+          <div class="committee-progress-ring-block">
+            <div class="committee-progress-pct">75%</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+              Completed<br><span style="color: var(--stat-green);">6 Remaining</span>
+            </div>
           </div>
-          <div class="stat-card-icon">📋</div>
         </div>
 
-        <div class="stat-card card-green">
-          <div class="stat-card-text">
-            <span class="stat-card-title">Evaluated</span>
-            <span class="stat-card-value">18</span>
+        <div class="stat-cards-grid">
+          <div class="stat-card card-blue">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Assigned Students</span>
+              <span class="stat-card-value">24</span>
+            </div>
+            <div class="stat-card-icon">📋</div>
           </div>
-          <div class="stat-card-icon">✓</div>
-        </div>
 
-        <div class="stat-card card-orange">
-          <div class="stat-card-text">
-            <span class="stat-card-title">Pending</span>
-            <span class="stat-card-value">6</span>
+          <div class="stat-card card-green">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Evaluated</span>
+              <span class="stat-card-value">18</span>
+            </div>
+            <div class="stat-card-icon">✓</div>
           </div>
-          <div class="stat-card-icon">⏳</div>
-        </div>
 
-        <div class="stat-card card-purple">
-          <div class="stat-card-text">
-            <span class="stat-card-title">Criteria Scale</span>
-            <span class="stat-card-value" style="font-size: 1.45rem;">8 Criteria</span>
-            <span class="stat-card-sub">Max 80 Pts</span>
+          <div class="stat-card card-orange">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Pending</span>
+              <span class="stat-card-value">6</span>
+            </div>
+            <div class="stat-card-icon">⏳</div>
           </div>
-          <div class="stat-card-icon">⚖️</div>
+
+          <div class="stat-card card-purple">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Criteria Scale</span>
+              <span class="stat-card-value" style="font-size: 1.45rem;">8 Criteria</span>
+              <span class="stat-card-sub">Max 80 Pts</span>
+            </div>
+            <div class="stat-card-icon">⚖️</div>
+          </div>
         </div>
       </div>
 
@@ -2147,7 +2255,7 @@ class OLAGApp {
         <p>Configure academic year, houses, classes, criteria, and system preferences.</p>
       </div>
 
-      <div class="stat-cards-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 2rem;">
+      <div class="stat-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-bottom: 2rem;">
         <div class="scoring-table-card">
           <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin-bottom: 0.75rem;">School Configuration</h3>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Academic Year: <strong>2024 / 2025</strong> • Term 2</p>
@@ -2159,6 +2267,19 @@ class OLAGApp {
             <li>Houses: <strong>Accra, Kumasi, Takoradi, Cape Coast</strong></li>
             <li>Total Criteria: <strong>8 Rubric Metrics (0-10 each, 80 total)</strong></li>
           </ul>
+        </div>
+
+        <div class="scoring-table-card">
+          <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin-bottom: 0.75rem;">Appearance & Theme</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Choose between clean light mode or elegant dark mode.</p>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="btn-navy-action" style="${this.store.state.theme === 'light' ? 'border: 2px solid var(--accent-yellow);' : 'opacity: 0.75;'}" onclick="app.setTheme('light')">
+              ☀️ Light Mode
+            </button>
+            <button type="button" class="btn-navy-action" style="${this.store.state.theme === 'dark' ? 'border: 2px solid var(--accent-yellow);' : 'opacity: 0.75;'}" onclick="app.setTheme('dark')">
+              🌙 Dark Mode
+            </button>
+          </div>
         </div>
 
         <div class="scoring-table-card">
