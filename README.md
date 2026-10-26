@@ -65,11 +65,13 @@ The application is structured into **exactly two dashboards**: **Admin Dashboard
 
 ## 🚀 How to Access & Switch Dashboards
 
-1. **Dedicated Login Portals**:
-   - **Admin Portal**: [http://localhost:3000](http://localhost:3000) (`index.html`) — For administrators to sign in with their credentials.
-   - **Committee Portal**: [http://localhost:3000/committee-login](http://localhost:3000/committee-login) (`committee-login.html`) — For committee members to sign in or register with their information.
-2. **Inside the App**:
-   - Tap the **"🔄 Switch to Committee Member"** / **"🔄 Switch to Admin View"** button in the top header (or click the user profile pill) to switch perspectives with 1 click.
+1. **Dedicated Standalone Login Portals**:
+   - **Administrator Portal**: [http://localhost:3000/admin-login](http://localhost:3000/admin-login) (`admin-login.html` or `index.html`) — Dedicated exclusively to administrators with no cross-portal links.
+   - **Committee Member Portal**: [http://localhost:3000/committee-login](http://localhost:3000/committee-login) (`committee-login.html`) — Dedicated exclusively to committee members for authentication and registration with no cross-portal links.
+2. **Independent Sessions & Logout**:
+   - Each role operates in its own isolated environment.
+   - Logging out as an Admin returns directly to `admin-login.html`.
+   - Logging out as a Committee Member returns directly to `committee-login.html`.
 3. **Official Certificate Printing**:
    - Navigate to **Reports** in the sidebar.
    - Click **"🖨️ Print Certificate"** (or press <kbd>Ctrl</kbd> + <kbd>P</kbd> / <kbd>Cmd</kbd> + <kbd>P</kbd>).

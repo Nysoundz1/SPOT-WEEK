@@ -473,7 +473,7 @@ class OLAGApp {
       this.store.state.isLoggedIn = true;
       this.store.save();
       this.closeModals();
-      if (typeof window !== 'undefined' && window.location && window.location.pathname && window.location.pathname.includes('committee-login')) {
+      if (typeof window !== 'undefined' && window.location && window.location.pathname && (window.location.pathname.includes('committee-login') || window.location.pathname.includes('admin-login'))) {
         window.location.href = 'index.html';
         return;
       }
@@ -587,7 +587,7 @@ class OLAGApp {
     this.store.state.isLoggedIn = true;
     this.store.save();
     this.closeModals();
-    if (typeof window !== 'undefined' && window.location && window.location.pathname && window.location.pathname.includes('committee-login')) {
+    if (typeof window !== 'undefined' && window.location && window.location.pathname && (window.location.pathname.includes('committee-login') || window.location.pathname.includes('admin-login'))) {
       window.location.href = 'index.html';
       return;
     }
@@ -623,7 +623,7 @@ class OLAGApp {
     this.store.state.isLoggedIn = true;
     this.store.save();
     this.closeModals();
-    if (typeof window !== 'undefined' && window.location && window.location.pathname && window.location.pathname.includes('committee-login')) {
+    if (typeof window !== 'undefined' && window.location && window.location.pathname && (window.location.pathname.includes('committee-login') || window.location.pathname.includes('admin-login'))) {
       window.location.href = 'index.html';
       return;
     }
@@ -703,8 +703,8 @@ class OLAGApp {
     const isCommittee = this.store.state.currentRoleKey === 'committee';
     this.store.state.isLoggedIn = false;
     this.store.save();
-    if (isCommittee && typeof window !== 'undefined' && window.location && window.location.pathname && !window.location.pathname.includes('committee-login')) {
-      window.location.href = 'committee-login.html';
+    if (typeof window !== 'undefined' && window.location) {
+      window.location.href = isCommittee ? 'committee-login.html' : 'admin-login.html';
       return;
     }
     this.render();

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Student Personality of the Week (Administrator Portal)</title>
+  <meta name="description" content="Official Student Personality of the Week Administrator Login Portal for Our Lady of Grace Senior High School (OLAG SHS).">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Official School Favicon -->
+  <link rel="icon" type="image/png" href="olag_logo.png">
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=6">
+</head>
+<body>
+
+  <!-- =========================================================================
+       ADMINISTRATOR PORTAL: DEDICATED STANDALONE LOGIN PAGE
+       ========================================================================= -->
+  <div id="screenLoginWrapper" class="login-wrapper">
+    <!-- Left Hero Side: Centered Official School Branding & Assessment Title -->
+    <div class="login-left-hero">
+      <div class="login-hero-centered-content">
+        <div class="login-brand-top">
+          <div class="login-crest-icon">
+            <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Official Logo" />
+          </div>
+          <div class="login-brand-text">
+            <div class="login-school-name">OUR LADY OF GRACE SENIOR HIGH SCHOOL</div>
+            <div class="login-school-motto">Knowledge • Morality • Service</div>
+          </div>
+        </div>
+
+        <div class="login-hero-divider"></div>
+
+        <div class="login-hero-headline-group">
+          <h1 class="login-hero-title">Student Personality of the Week<br>Assessment System</h1>
+          <p class="login-hero-subtitle">Building character, Developing future leaders.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Login Area: Dedicated Administrator Login Card -->
+    <div class="login-right-form">
+      <div class="login-cards-grid single-card-mode">
+        <!-- Administrator Login Card -->
+        <div class="login-card login-card-admin" id="cardLoginAdmin">
+          <div class="login-card-header">
+            <span class="card-role-badge admin">🛡️ Administrator Portal</span>
+            <h2>Administrator Sign In</h2>
+            <p>Sign in with your administrative credentials to manage student assessments</p>
+          </div>
+
+          <form id="loginFormAdmin" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleAdminLogin(); return false;">
+            <div class="login-input-group">
+              <label for="loginAdminUsername">Username</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">👤</span>
+                <input type="text" id="loginAdminUsername" class="login-input-field" placeholder="Enter administrator username" value="admin" autocomplete="username" required 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" />
+              </div>
+            </div>
+
+            <div class="login-input-group">
+              <label for="loginAdminPassword">Password</label>
+              <div class="login-input-wrapper">
+                <span class="login-input-icon-left">🔒</span>
+                <input type="password" id="loginAdminPassword" class="login-input-field" placeholder="Enter administrator password" value="admin" autocomplete="current-password" required 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" />
+                <button type="button" id="btnToggleAdminPassword" class="login-input-icon-right" title="Show Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginAdminPassword', 'btnToggleAdminPassword')">👁️</button>
+              </div>
+            </div>
+
+            <div class="login-remember-row">
+              <label class="remember-label">
+                <input type="checkbox" id="rememberMeAdmin" checked />
+                <span>Remember me</span>
+              </label>
+              <a href="javascript:void(0)" class="login-forgot-a" onclick="alert('Please contact the School IT Administrator to reset your credentials.')">Forgot password?</a>
+            </div>
+
+            <button type="button" class="btn-login-submit" id="btnLoginSubmitAdmin" onclick="if(window.app) window.app.handleAdminLogin()">
+              <span>Login as Administrator</span>
+              <span class="btn-arrow">➔</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toastStack" class="toast-stack"></div>
+
+  <!-- JavaScript Application Bundle -->
+  <script src="app.js?v=6"></script>
+  <script>
+    // If already logged in as Administrator, direct immediately to dashboard on index.html
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.app && window.app.store && window.app.store.state.isLoggedIn && window.app.store.state.currentRoleKey === 'admin') {
+        window.location.href = 'index.html';
+      }
+    });
+  </script>
+</body>
+</html>
