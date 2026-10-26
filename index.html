@@ -6,91 +6,88 @@
   <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Student Personality of the Week Assessment System</title>
   <meta name="description" content="Official Student Personality of the Week Multi-Role Assessment Portals for Our Lady of Grace Senior High School (OLAG SHS).">
   
-  <!-- Modern Google Fonts -->
+  <!-- Modern Google Fonts: Plus Jakarta Sans & Playfair Display for exact Serif Match -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Official School Favicon -->
   <link rel="icon" type="image/png" href="olag_logo.png">
 
   <!-- Application Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
   <!-- =========================================================================
-       SCREEN 1: LOGIN PAGE (SPLIT HERO LAYOUT WITH MULTI-ROLE PORTAL TABS)
+       SCREEN 1: LOGIN PAGE (SPLIT HERO LAYOUT: WHITE FORM LEFT | NAVY RIGHT)
        ========================================================================= -->
-  <div id="screenLoginWrapper" class="login-wrapper">
-    <!-- Left Hero Side: Centered Official School Branding & Assessment Title -->
-    <div class="login-left-hero">
-      <div class="login-hero-centered-content">
-        <div class="login-brand-top">
-          <div class="login-crest-icon">
-            <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Official Logo" />
+  <div id="screenLoginWrapper" class="login-split-container">
+    <!-- LEFT HALF: Pristine White Minimalist Form matching screenshot -->
+    <div class="auth-panel-form">
+      <div class="auth-form-inner">
+
+        <!-- Brand Logo at top -->
+        <div class="auth-brand-header">
+          <div class="auth-brand-logo-wrap">
+            <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Crest" />
           </div>
-          <div class="login-brand-text">
-            <div class="login-school-name">OUR LADY OF GRACE SENIOR HIGH SCHOOL</div>
-            <div class="login-school-motto">Knowledge • Morality • Service</div>
+          <div class="auth-brand-text-wrap">
+            <div class="auth-brand-name">OUR LADY OF GRACE</div>
+            <div class="auth-brand-sub">SENIOR HIGH SCHOOL</div>
           </div>
         </div>
 
-        <div class="login-hero-divider"></div>
+        <h1 class="auth-main-heading">Welcome back</h1>
+        <p class="auth-sub-heading">Sign in with your administrator credentials to continue</p>
 
-        <div class="login-hero-headline-group">
-          <h1 class="login-hero-title">Student Personality of the Week<br>Assessment System</h1>
-          <p class="login-hero-subtitle">Building character, Developing future leaders.</p>
-        </div>
+        <form id="loginFormAdmin" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleAdminLogin(); return false;">
+          <div class="auth-form-group">
+            <label for="loginAdminUsername">Username</label>
+            <div class="auth-input-container">
+              <input 
+                type="text" 
+                id="loginAdminUsername" 
+                class="auth-input-field admin-focus" 
+                placeholder="Enter administrator username" 
+                value="admin" 
+                autocomplete="username" 
+                required 
+                onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" 
+              />
+            </div>
+          </div>
+
+          <div class="auth-form-group">
+            <label for="loginAdminPassword">Password</label>
+            <div class="auth-input-container">
+              <input 
+                type="password" 
+                id="loginAdminPassword" 
+                class="auth-input-field admin-focus" 
+                placeholder="••••••••" 
+                value="admin" 
+                autocomplete="current-password" 
+                required 
+                onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" 
+              />
+              <button type="button" id="btnToggleAdminPassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginAdminPassword', 'btnToggleAdminPassword')">👁️</button>
+            </div>
+          </div>
+
+          <button type="button" class="auth-submit-btn admin-navy-btn" id="btnLoginSubmitAdmin" onclick="if(window.app) window.app.handleAdminLogin()">
+            <span>Sign in as Administrator</span>
+          </button>
+        </form>
+
       </div>
     </div>
 
-    <!-- Right Login Area: Dedicated Administrator Login Page -->
-    <div class="login-right-form">
-      <div class="login-cards-grid single-card-mode">
-        <!-- 1. Administrator Login Card -->
-        <div class="login-card login-card-admin" id="cardLoginAdmin">
-          <div class="login-card-header">
-            <span class="card-role-badge admin">🛡️ Administrator Portal</span>
-            <h2>Administrator Login</h2>
-            <p>Sign in with your administrator info for full oversight</p>
-          </div>
-
-          <form id="loginFormAdmin" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleAdminLogin(); return false;">
-            <div class="login-input-group">
-              <label for="loginAdminUsername">Username</label>
-              <div class="login-input-wrapper">
-                <span class="login-input-icon-left">👤</span>
-                <input type="text" id="loginAdminUsername" class="login-input-field" placeholder="Enter administrator username" value="admin" autocomplete="username" required 
-                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" />
-              </div>
-            </div>
-
-            <div class="login-input-group">
-              <label for="loginAdminPassword">Password</label>
-              <div class="login-input-wrapper">
-                <span class="login-input-icon-left">🔒</span>
-                <input type="password" id="loginAdminPassword" class="login-input-field" placeholder="Enter administrator password" value="admin" autocomplete="current-password" required 
-                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleAdminLogin();}" />
-                <button type="button" id="btnToggleAdminPassword" class="login-input-icon-right" title="Show Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginAdminPassword', 'btnToggleAdminPassword')">👁️</button>
-              </div>
-            </div>
-
-            <div class="login-remember-row">
-              <label class="remember-label">
-                <input type="checkbox" id="rememberMeAdmin" checked />
-                <span>Remember me</span>
-              </label>
-              <a href="javascript:void(0)" class="login-forgot-a" onclick="alert('Please contact the School IT Administrator to reset your credentials.')">Forgot password?</a>
-            </div>
-
-            <button type="button" class="btn-login-submit" id="btnLoginSubmitAdmin" onclick="if(window.app) window.app.handleAdminLogin()">
-              <span>Login as Administrator</span>
-              <span class="btn-arrow">➔</span>
-            </button>
-
-          </form>
-        </div>
+    <!-- RIGHT HALF: Atmospheric Royal Navy Gradient Showcase -->
+    <div class="auth-panel-showcase admin-showcase">
+      <div class="auth-showcase-inner">
+        <h2 class="auth-showcase-title">Student Personality of the Week</h2>
+        <p class="auth-showcase-desc">Official administration portal for student nominations, scoring rubrics, week intervals, and certificates at Our Lady of Grace Senior High School.</p>
       </div>
     </div>
   </div>

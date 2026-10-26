@@ -325,6 +325,8 @@ class OLAGApp {
   switchCommitteeForm(mode = 'login') {
     const formLogin = document.getElementById('loginFormCommittee');
     const formRegister = document.getElementById('registerFormCommittee');
+    const panelLogin = document.getElementById('panelCommitteeLogin');
+    const panelRegister = document.getElementById('panelCommitteeRegister');
     const tabLogin = document.getElementById('tabCommitteeLogin');
     const tabRegister = document.getElementById('tabCommitteeRegister');
     const titleEl = document.getElementById('committeeCardTitle');
@@ -333,19 +335,23 @@ class OLAGApp {
     if (mode === 'register') {
       if (formLogin) formLogin.style.display = 'none';
       if (formRegister) formRegister.style.display = 'block';
+      if (panelLogin) panelLogin.style.display = 'none';
+      if (panelRegister) panelRegister.style.display = 'block';
       if (tabLogin) tabLogin.classList.remove('active');
       if (tabRegister) tabRegister.classList.add('active');
-      if (titleEl) titleEl.textContent = 'Committee Registration';
-      if (subtitleEl) subtitleEl.textContent = 'Create your evaluator account to participate in weekly assessments';
+      if (titleEl) titleEl.textContent = 'Create your account';
+      if (subtitleEl) subtitleEl.textContent = 'Register as a committee member to evaluate students';
       const nameInp = document.getElementById('regCommitteeName');
       if (nameInp) nameInp.focus();
     } else {
       if (formLogin) formLogin.style.display = 'block';
       if (formRegister) formRegister.style.display = 'none';
+      if (panelLogin) panelLogin.style.display = 'block';
+      if (panelRegister) panelRegister.style.display = 'none';
       if (tabLogin) tabLogin.classList.add('active');
       if (tabRegister) tabRegister.classList.remove('active');
-      if (titleEl) titleEl.textContent = 'Committee Member Portal';
-      if (subtitleEl) subtitleEl.textContent = 'Sign in or register with your staff info to evaluate students';
+      if (titleEl) titleEl.textContent = 'Welcome back';
+      if (subtitleEl) subtitleEl.textContent = 'Sign in to your account to continue';
       const userInp = document.getElementById('loginCommitteeUsername');
       if (userInp) userInp.focus();
     }
