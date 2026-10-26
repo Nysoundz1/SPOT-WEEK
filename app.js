@@ -136,6 +136,12 @@ class OLAGApp {
     this.applySidebarState();
     this.bindEvents();
     window.addEventListener('resize', () => this.applySidebarState());
+    window.addEventListener('storage', (e) => {
+      if (e.key === this.store.storageKey) {
+        this.store.state = this.store.loadState();
+        this.render();
+      }
+    });
     this.render();
   }
 
@@ -943,6 +949,7 @@ class OLAGApp {
         { id: 'dashboard-committee', icon: '🏠', label: 'My Dashboard' },
         { id: 'assessment', icon: '📝', label: 'Enter Assessment' },
         { id: 'rankings', icon: '📊', label: 'Results & Rankings' },
+        { id: 'previous-weeks', icon: '📅', label: 'Week Intervals' },
         { id: 'students', icon: '🎓', label: 'Student Directory' },
         { id: 'reports', icon: '📑', label: 'Official Reports' }
       ];
@@ -1154,13 +1161,20 @@ class OLAGApp {
     if (!container) return;
 
     const weeks = this.store.state.weeks || [];
-    const currentWeek = weeks.find(w => w.isCurrent) 
-                     || (this.store.state.selectedWeekId ? weeks.find(w => w.id === this.store.state.selectedWeekId) : null) 
-                     || weeks[0] 
-                     || null;
+    let currentWeek = null;
+    if (this.store.state.selectedWeekId) {
+      currentWeek = weeks.find(w => w.id === this.store.state.selectedWeekId);
+    }
+    if (!currentWeek) {
+      currentWeek = weeks.find(w => w.isCurrent) || weeks[0] || null;
+      if (currentWeek) this.store.state.selectedWeekId = currentWeek.id;
+    }
+
     const allStudents = this.store.state.students || [];
     const weekScores = (currentWeek && this.store.state.scores[currentWeek.id]) || {};
-    const weekLabel = currentWeek ? currentWeek.name : 'Current Cycle';
+    const weekLabel = currentWeek ? currentWeek.name : 'No Interval Set';
+    const weekDateRange = currentWeek ? currentWeek.dateRange : 'Interval not configured';
+    const weekStatus = currentWeek ? (currentWeek.status || 'Open') : 'Pending';
 
     const evaluatedStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
@@ -1180,7 +1194,7 @@ class OLAGApp {
       <div class="view-header view-header-with-toggle">
         <div>
           <h2>Committee Member Dashboard</h2>
-          <p>Logged in as <strong>${escapeHtml(this.store.state.currentUser.name)}</strong> (${this.store.state.currentUser.title})</p>
+          <p>Logged in as <strong>${escapeHtml(this.store.state.currentUser.name)}</strong> (${escapeHtml(this.store.state.currentUser.title)})</p>
         </div>
         <button type="button" class="btn-toggle-dash-info ${isHidden ? 'is-collapsed' : ''}" id="btnToggleCommitteeDashInfo" onclick="app.toggleDashboardInfo()" title="Toggle Dashboard Info Cards">
           <span class="dash-toggle-arrow">${isHidden ? '▼' : '▲'}</span>
@@ -1188,13 +1202,54 @@ class OLAGApp {
         </button>
       </div>
 
+      <!-- Prominent Active Assessment Interval Banner for Committee Members -->
+      <div class="evaluator-banner" style="margin-bottom: 1.25rem;">
+        <div class="evaluator-banner-left">
+          <div class="evaluator-avatar" style="background: var(--stat-green); font-size: 1.25rem;">📅</div>
+          <div>
+            <div style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span>Assessment Interval: <strong>${currentWeek ? escapeHtml(currentWeek.name) : 'No Active Interval'}</strong></span>
+              ${currentWeek ? `
+                <span class="status-badge-${currentWeek.status === 'Closed' ? 'closed' : 'active'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem;">
+                  ● ${currentWeek.status === 'Closed' ? 'Closed' : 'Open for Scoring'}
+                </span>
+                ${currentWeek.isCurrent ? '<span style="font-size: 0.68rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.45rem; border-radius: 999px;">★ Current Cycle</span>' : ''}
+              ` : `
+                <span style="font-size: 0.72rem; font-weight: 700; background: #fef3c7; color: #92400e; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                  ⚠️ Awaiting Admin Interval Setup
+                </span>
+              `}
+            </div>
+            <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.15rem;">
+              ${currentWeek ? `🗓️ Dates: <strong>${escapeHtml(currentWeek.dateRange)}</strong>` : 'No scoring intervals have been configured by administrators yet.'}
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+          ${weeks.length > 0 ? `
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label for="committeeDashWeekSelect" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Interval:</label>
+              <select id="committeeDashWeekSelect" class="form-select" style="font-size: 0.82rem; height: 34px; min-width: 170px;" onchange="app.changeCommitteeDashboardWeek(this.value)">
+                ${weeks.map(w => `<option value="${w.id}" ${currentWeek && w.id === currentWeek.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${w.isCurrent ? ' ★' : ''}</option>`).join('')}
+              </select>
+            </div>
+          ` : ''}
+          <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
+            📝 Enter Scores
+          </button>
+          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
+            📅 View All Intervals
+          </button>
+        </div>
+      </div>
+
       <div class="dashboard-info-collapsible ${isHidden ? 'is-collapsed' : ''}" id="committeeDashboardInfoWrap">
         <!-- Committee Progress Hero Banner -->
         <div class="committee-progress-hero">
           <div class="committee-progress-text">
-            <h3>Assessment Quorum: ${escapeHtml(weekLabel)} Cycle</h3>
+            <h3>Assessment Quorum: ${escapeHtml(weekLabel)} Cycle ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</h3>
             <p>${totalAssigned > 0 
-              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} assigned students</strong>.` 
+              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} assigned students</strong> for ${escapeHtml(weekLabel)}.` 
               : `No students have been enrolled in the assessment database yet.`}</p>
           </div>
           <div class="committee-progress-ring-block">
@@ -1206,37 +1261,49 @@ class OLAGApp {
         </div>
 
         <div class="stat-cards-grid">
+          <!-- Card 1: Active Week Interval matching Admin Dashboard -->
+          <div class="stat-card card-green" style="cursor: pointer;" onclick="app.navigateTo('previous-weeks')" title="Click to view all weekly scoring intervals">
+            <div class="stat-card-text">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.15rem;">
+                <span class="stat-card-title">This Week</span>
+                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,255,255,0.3); padding: 0.1rem 0.45rem; border-radius: 999px;">
+                  ${currentWeek ? (currentWeek.status === 'Closed' ? 'Closed' : 'Open') : 'Pending'}
+                </span>
+              </div>
+              <span class="stat-card-value" style="font-size: 1.45rem;">${currentWeek ? escapeHtml(currentWeek.name) : 'No Week Set'}</span>
+              <span class="stat-card-sub">${currentWeek ? `(${escapeHtml(currentWeek.dateRange)})` : '(Awaiting admin setup)'}</span>
+            </div>
+            <div class="stat-card-icon">📅</div>
+          </div>
+
+          <!-- Card 2: Assigned Students -->
           <div class="stat-card card-blue">
             <div class="stat-card-text">
               <span class="stat-card-title">Assigned Students</span>
               <span class="stat-card-value">${totalAssigned}</span>
+              <span class="stat-card-sub">In evaluation queue</span>
             </div>
             <div class="stat-card-icon">📋</div>
           </div>
 
+          <!-- Card 3: Evaluated Students -->
           <div class="stat-card card-green">
             <div class="stat-card-text">
               <span class="stat-card-title">Evaluated</span>
               <span class="stat-card-value">${evaluatedCount}</span>
+              <span class="stat-card-sub">${completionPct}% completed</span>
             </div>
             <div class="stat-card-icon">✓</div>
           </div>
 
+          <!-- Card 4: Pending Students -->
           <div class="stat-card card-orange">
             <div class="stat-card-text">
               <span class="stat-card-title">Pending</span>
               <span class="stat-card-value">${pendingCount}</span>
+              <span class="stat-card-sub">${pendingCount === 0 && totalAssigned > 0 ? 'All caught up!' : 'Awaiting grading'}</span>
             </div>
             <div class="stat-card-icon">⏳</div>
-          </div>
-
-          <div class="stat-card card-purple">
-            <div class="stat-card-text">
-              <span class="stat-card-title">Criteria Scale</span>
-              <span class="stat-card-value" style="font-size: 1.45rem;">8 Criteria</span>
-              <span class="stat-card-sub">Max 80 Pts</span>
-            </div>
-            <div class="stat-card-icon">⚖️</div>
           </div>
         </div>
       </div>
@@ -1244,10 +1311,12 @@ class OLAGApp {
       <!-- Next Pending Nominees to Assess -->
       <div class="scoring-table-card">
         <div class="scoring-table-title">
-          <span>Pending Student Evaluations for ${escapeHtml(weekLabel)}</span>
-          <button class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
-            Open Full Rubric ➜
-          </button>
+          <span>Pending Student Evaluations for ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
+              Open Full Rubric ➜
+            </button>
+          </div>
         </div>
 
         <table class="table-standard">
@@ -1295,6 +1364,17 @@ class OLAGApp {
         </table>
       </div>
     `;
+  }
+
+  changeCommitteeDashboardWeek(weekId) {
+    if (!weekId) return;
+    this.store.state.selectedWeekId = weekId;
+    this.store.save();
+    this.render();
+  }
+
+  startStudentAssessment(studentId) {
+    this.scoreStudentFromQueue(studentId);
   }
 
   scoreStudentFromQueue(studentId) {
@@ -2820,7 +2900,8 @@ class OLAGApp {
         isCurrent: isCurrent
       };
       this.store.state.weeks.push(newWeek);
-      if (isCurrent || this.store.state.weeks.length === 1) {
+      if (isCurrent || this.store.state.weeks.length === 1 || !this.store.state.weeks.some(w => w.isCurrent)) {
+        newWeek.isCurrent = true;
         this.store.state.selectedWeekId = newWeek.id;
       }
       this.showToast(`✓ Created new week interval: ${weekName} (${dateRange})`);
@@ -2832,9 +2913,12 @@ class OLAGApp {
         existing.startDate = startDate;
         existing.endDate = endDate;
         existing.status = status;
+        existing.isCurrent = isCurrent;
         if (isCurrent) {
-          existing.isCurrent = true;
           this.store.state.selectedWeekId = existing.id;
+        } else if (!this.store.state.weeks.some(w => w.isCurrent) && this.store.state.weeks.length > 0) {
+          this.store.state.weeks[0].isCurrent = true;
+          this.store.state.selectedWeekId = this.store.state.weeks[0].id;
         }
         this.showToast(`✓ Updated week interval: ${weekName} (${dateRange})`);
       }
@@ -2857,6 +2941,9 @@ class OLAGApp {
       this.store.state.weeks = this.store.state.weeks.filter(w => w.id !== targetVal);
       if (this.store.state.selectedWeekId === targetVal) {
         this.store.state.selectedWeekId = this.store.state.weeks[0] ? this.store.state.weeks[0].id : null;
+      }
+      if (!this.store.state.weeks.some(w => w.isCurrent) && this.store.state.weeks.length > 0) {
+        this.store.state.weeks[0].isCurrent = true;
       }
       this.store.save();
       this.closeModals();

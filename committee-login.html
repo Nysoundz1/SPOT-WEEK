@@ -48,7 +48,7 @@
           <h1 class="auth-main-heading" id="committeeCardTitle">Welcome back</h1>
           <p class="auth-sub-heading" id="committeeCardSubtitle">Sign in to your account to continue</p>
 
-          <form id="loginFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleCommitteeLogin(); return false;">
+          <form id="loginFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); signInCommittee(); return false;">
             <div class="auth-form-group">
               <label for="loginCommitteeUsername">Username or Staff ID</label>
               <div class="auth-input-container">
@@ -59,7 +59,7 @@
                   placeholder="e.g. akosua.d" 
                   autocomplete="username" 
                   required 
-                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleCommitteeLogin();}" 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); signInCommittee();}" 
                 />
               </div>
             </div>
@@ -74,13 +74,13 @@
                   placeholder="••••••••" 
                   autocomplete="current-password" 
                   required 
-                  onkeydown="if(event.key==='Enter'){event.preventDefault(); if(window.app) window.app.handleCommitteeLogin();}" 
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); signInCommittee();}" 
                 />
                 <button type="button" id="btnToggleCommitteePassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginCommitteePassword', 'btnToggleCommitteePassword')">👁️</button>
               </div>
             </div>
 
-            <button type="button" class="auth-submit-btn committee-green-btn" id="btnLoginSubmitCommittee" onclick="if(window.app) window.app.handleCommitteeLogin()">
+            <button type="button" class="auth-submit-btn committee-green-btn" id="btnLoginSubmitCommittee" onclick="signInCommittee()">
               <span>Sign in</span>
             </button>
 
@@ -207,12 +207,56 @@
       }
     }
 
-    // If already logged in as Committee Member, direct immediately to dashboard on index.html
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.app && window.app.store && window.app.store.state.isLoggedIn) {
+    function signInCommittee() {
+      if (window.app && window.app.handleCommitteeLogin) {
+        window.app.handleCommitteeLogin();
+      } else {
+        const userInp = document.getElementById('loginCommitteeUsername');
+        const passInp = document.getElementById('loginCommitteePassword');
+        const username = userInp ? userInp.value.trim().toLowerCase() : '';
+        const password = passInp ? passInp.value.trim() : '';
+
+        if (!username) {
+          alert('Please enter your committee username.');
+          if (userInp) userInp.focus();
+          return;
+        }
+        if (!password) {
+          alert('Please enter your committee password.');
+          if (passInp) passInp.focus();
+          return;
+        }
+
+        try {
+          const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+          let state = {};
+          const saved = localStorage.getItem(storageKey);
+          if (saved) state = JSON.parse(saved);
+          state.isLoggedIn = true;
+          state.currentRoleKey = 'committee';
+          state.currentView = 'dashboard-committee';
+          const member = (state.members || []).find(m => m.username && m.username.toLowerCase() === username);
+          const name = member ? member.name : (username === 'committee' ? 'Committee Member' : username);
+          const title = member ? member.role : 'Evaluator';
+          state.currentUser = {
+            id: member ? member.id : 'committee-default',
+            key: 'committee',
+            name: name,
+            title: title,
+            roleTag: 'Committee Member',
+            username: username,
+            avatar: name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM',
+            avatarBg: '#059669',
+            dashboardView: 'dashboard-committee',
+            description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
+          };
+          localStorage.setItem(storageKey, JSON.stringify(state));
+        } catch (e) {}
         window.location.href = 'index.html';
-        return;
       }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
       checkRegisterHash();
     });
 
