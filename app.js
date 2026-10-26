@@ -14,6 +14,7 @@ const SYSTEM_ROLES = {
     title: 'System Administrator',
     roleTag: 'Administrator',
     username: 'admin',
+    defaultPassword: 'admin@26',
     avatar: 'AD',
     avatarBg: '#0c2340',
     dashboardView: 'dashboard-admin',
@@ -479,8 +480,8 @@ class OLAGApp {
     }
 
     if (username === 'admin') {
-      if (password !== 'admin' && password !== 'password' && password !== '123456') {
-        this.showToast('Invalid administrator password. Please try again.');
+      if (password !== 'admin@26' && password !== 'admin' && password !== 'password' && password !== '123456') {
+        this.showToast('Invalid administrator password. Default password is admin@26.');
         return;
       }
       this.handleLoginByRole('admin');
@@ -724,8 +725,8 @@ class OLAGApp {
 
     // 1. Check Administrator
     if (cleanUser === 'admin') {
-      if (cleanPass && cleanPass !== 'admin' && cleanPass !== 'password' && cleanPass !== '123456') {
-        this.showToast('Invalid password for Administrator. Please try again.');
+      if (cleanPass && cleanPass !== 'admin@26' && cleanPass !== 'admin' && cleanPass !== 'password' && cleanPass !== '123456') {
+        this.showToast('Invalid password for Administrator. Default password is admin@26.');
         return;
       }
       this.handleLoginByRole('admin');
