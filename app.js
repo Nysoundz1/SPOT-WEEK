@@ -30,19 +30,18 @@ const SYSTEM_ROLES = {
     avatar: 'CM',
     avatarBg: '#059669',
     dashboardView: 'dashboard-committee',
-    description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
+    description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
   }
 };
 
 const CRITERIA_LIST = [
   { id: 'crit-1', no: 1, name: 'Punctuality', max: 10 },
-  { id: 'crit-2', no: 2, name: 'Neatness & Appearance', max: 10 },
-  { id: 'crit-3', no: 3, name: 'Discipline', max: 10 },
-  { id: 'crit-4', no: 4, name: 'Leadership', max: 10 },
-  { id: 'crit-5', no: 5, name: 'Courtesy / Respect', max: 10 },
-  { id: 'crit-6', no: 6, name: 'Participation', max: 10 },
-  { id: 'crit-7', no: 7, name: 'Academic Attitude', max: 10 },
-  { id: 'crit-8', no: 8, name: 'Teamwork', max: 10 }
+  { id: 'crit-2', no: 2, name: 'Discipline', max: 10 },
+  { id: 'crit-3', no: 3, name: 'Appearance', max: 10 },
+  { id: 'crit-4', no: 4, name: 'Social Interactions', max: 10 },
+  { id: 'crit-5', no: 5, name: 'Participation in School Activities', max: 10 },
+  { id: 'crit-6', no: 6, name: 'Spiritual Life', max: 10 },
+  { id: 'crit-7', no: 7, name: 'Dining Hall Etiquette', max: 10 }
 ];
 
 const WEEKS_LIST = [];
@@ -155,12 +154,28 @@ class OLAGStore {
   applyRemoteState(remoteState) {
     if (!remoteState || typeof remoteState !== 'object') return;
     if (Array.isArray(remoteState.students)) this.state.students = remoteState.students;
-    if (Array.isArray(remoteState.weeks)) this.state.weeks = remoteState.weeks;
+    if (Array.isArray(remoteState.weeks)) {
+      this.state.weeks = remoteState.weeks.map(w => {
+        if (w.maxScore === 80 || !w.maxScore) w.maxScore = 70;
+        return w;
+      });
+    }
     if (remoteState.scores && typeof remoteState.scores === 'object') this.state.scores = remoteState.scores;
     if (Array.isArray(remoteState.members)) this.state.members = remoteState.members;
     if (Array.isArray(remoteState.classes)) this.state.classes = remoteState.classes;
     if (Array.isArray(remoteState.houses)) this.state.houses = remoteState.houses;
     if (remoteState.selectedWeekId) this.state.selectedWeekId = remoteState.selectedWeekId;
+
+    const isLegacyCriteria = !Array.isArray(remoteState.criteria) ||
+      remoteState.criteria.length !== CRITERIA_LIST.length ||
+      remoteState.criteria.some(c => c.name === 'Neatness & Appearance' || c.name === 'Teamwork' || c.name === 'Academic Attitude' || c.name === 'Courtesy / Respect');
+
+    if (isLegacyCriteria) {
+      this.state.criteria = CRITERIA_LIST;
+    } else {
+      this.state.criteria = remoteState.criteria;
+    }
+
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.state));
     } catch (e) {}
@@ -242,6 +257,19 @@ class OLAGStore {
         if (!parsed.theme) parsed.theme = localStorage.getItem('olag_theme') || 'light';
         if (typeof parsed.sidebarCollapsed === 'undefined') parsed.sidebarCollapsed = false;
         if (typeof parsed.dashInfoHidden === 'undefined') parsed.dashInfoHidden = false;
+
+        const isLegacyCriteria = !Array.isArray(parsed.criteria) ||
+          parsed.criteria.length !== CRITERIA_LIST.length ||
+          parsed.criteria.some(c => c.name === 'Neatness & Appearance' || c.name === 'Teamwork' || c.name === 'Academic Attitude' || c.name === 'Courtesy / Respect');
+
+        if (isLegacyCriteria) {
+          parsed.criteria = CRITERIA_LIST;
+          if (Array.isArray(parsed.weeks)) {
+            parsed.weeks.forEach(w => {
+              if (w.maxScore === 80 || !w.maxScore) w.maxScore = 70;
+            });
+          }
+        }
         return parsed;
       }
     } catch (e) {
@@ -771,7 +799,7 @@ class OLAGApp {
         avatar: initials,
         avatarBg: '#059669',
         dashboardView: 'dashboard-committee',
-        description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
+        description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
       };
 
       this.store.state.currentRoleKey = 'committee';
@@ -885,7 +913,7 @@ class OLAGApp {
       avatar: initials,
       avatarBg: '#059669',
       dashboardView: 'dashboard-committee',
-      description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
+      description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
     };
 
     this.store.state.currentRoleKey = 'committee';
@@ -918,7 +946,7 @@ class OLAGApp {
         avatar: primaryMember.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM',
         avatarBg: '#059669',
         dashboardView: 'dashboard-committee',
-        description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
+        description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
       };
       this.store.state.selectedEvaluatorId = primaryMember.id;
     } else {
@@ -989,7 +1017,7 @@ class OLAGApp {
         avatar: matchedMember.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase(),
         avatarBg: '#059669',
         dashboardView: 'dashboard-committee',
-        description: 'Evaluator interface: assessment queue, 8-criteria scoring form, and personal progress.'
+        description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
       };
       this.store.state.currentRoleKey = 'committee';
       this.store.state.currentUser = role;
@@ -1319,7 +1347,7 @@ class OLAGApp {
               <div class="dashboard-winner-scores">
                 <div class="winner-score-block">
                   <div class="winner-score-label">Total Score</div>
-                  <div class="winner-score-value">${topTotalScore || 0} / ${currentWeek.maxScore || 80}</div>
+                  <div class="winner-score-value">${topTotalScore || 0} / ${currentWeek.maxScore || this.getMaxCriteriaScore()}</div>
                 </div>
 
                 <div class="winner-score-block">
@@ -1937,7 +1965,8 @@ class OLAGApp {
 
     const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
     const studentScoreData = selectedStudent ? (weekScores[selectedStudent.id] || {}) : {};
-    const criteria = this.store.state.criteria;
+    const criteria = (this.store.state.criteria && this.store.state.criteria.length > 0) ? this.store.state.criteria : CRITERIA_LIST;
+    const maxTotalScore = this.getMaxCriteriaScore();
 
     container.innerHTML = `
       <div class="view-header">
@@ -2089,9 +2118,9 @@ class OLAGApp {
 
       ${selectedStudent ? `
         <div class="scoring-table-card">
-          <div class="scoring-table-title">
+            <div class="scoring-table-title">
             <span>Assessment Criteria (Each / 10) — Evaluating: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)})</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Max Total: 80 Points</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Max Total: ${maxTotalScore} Points</span>
           </div>
 
           <form id="formSubmitWeeklyScores">
@@ -2127,7 +2156,7 @@ class OLAGApp {
 
             <div class="scoring-summary-bar">
               <div class="scoring-tally-text">
-                Live Total: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / 80</strong> &nbsp;•&nbsp; 
+                Live Total: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / ${maxTotalScore}</strong> &nbsp;•&nbsp; 
                 Percentage: <strong id="livePctDisplay" style="color: var(--accent-gold);">${studentScoreData.pct || 0}%</strong>
                 ${isWeekClosed ? '<span style="color: #991b1b; font-weight: 800; margin-left: 0.5rem;">🔒 Sealed</span>' : ''}
               </div>
@@ -2170,10 +2199,10 @@ class OLAGApp {
         const v = parseInt(inp.value, 10);
         if (!isNaN(v)) total += Math.max(0, Math.min(10, v));
       });
-      const pct = ((total / 80) * 100).toFixed(1);
+      const pct = ((total / maxTotalScore) * 100).toFixed(1);
       const totalDisplay = document.getElementById('liveTotalDisplay');
       const pctDisplay = document.getElementById('livePctDisplay');
-      if (totalDisplay) totalDisplay.textContent = `${total} / 80`;
+      if (totalDisplay) totalDisplay.textContent = `${total} / ${maxTotalScore}`;
       if (pctDisplay) pctDisplay.textContent = `${pct}%`;
     };
 
@@ -2239,14 +2268,14 @@ class OLAGApp {
           scoresObj[cId] = val;
           total += val;
         });
-        const pct = Number(((total / 80) * 100).toFixed(1));
+        const pct = Number(((total / maxTotalScore) * 100).toFixed(1));
 
         if (!this.store.state.scores[currentWeekId]) this.store.state.scores[currentWeekId] = {};
         this.store.state.scores[currentWeekId][selectedStudent.id] = { ...scoresObj, total, pct };
 
         this.recalculateWeekResults(currentWeekId);
         this.store.save();
-        this.showToast(`✓ Scores submitted for ${selectedStudent.name}: ${total}/80 (${pct}%)`);
+        this.showToast(`✓ Scores submitted for ${selectedStudent.name}: ${total}/${maxTotalScore} (${pct}%)`);
         this.renderAssessment();
       });
     }
@@ -2318,7 +2347,7 @@ class OLAGApp {
           <div class="winner-banner-scores">
             <div class="banner-score-col">
               <div class="banner-score-lbl">Total Score</div>
-              <div class="banner-score-val">${topWinner.totalScore} / 80</div>
+              <div class="banner-score-val">${topWinner.totalScore} / ${currentWeekObj.maxScore || this.getMaxCriteriaScore()}</div>
             </div>
 
             <div class="banner-score-col">
@@ -2455,7 +2484,7 @@ class OLAGApp {
                       ${w.topStudent ? escapeHtml(w.topStudent) : '<span style="color: var(--text-muted); font-weight: normal;">—</span>'}
                     </span>
                   </td>
-                  <td style="text-align: center; font-weight: 700;">${w.totalScore ? `${w.totalScore} / ${w.maxScore || 80}` : '—'}</td>
+                  <td style="text-align: center; font-weight: 700;">${w.totalScore ? `${w.totalScore} / ${w.maxScore || this.getMaxCriteriaScore()}` : '—'}</td>
                   <td style="text-align: center; font-weight: 700;">${w.percentage ? `${w.percentage}%` : '—'}</td>
                   <td style="text-align: center;">
                     <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
@@ -2683,7 +2712,7 @@ class OLAGApp {
       return {
         week: w.name,
         date: w.dateRange,
-        score: `${weekData.total} / 80`,
+        score: `${weekData.total} / ${w.maxScore || this.getMaxCriteriaScore()}`,
         pct: `${weekData.pct}%`,
         rankDisplay: weekData.pct >= 90 ? '1' : (weekData.pct >= 80 ? '2' : '3')
       };
@@ -3027,7 +3056,7 @@ class OLAGApp {
               <button type="button" class="btn-text-action" onclick="app.openAddClassModal()">+ Manage Classes</button>
             </li>
             <li>Houses: <strong>${this.store.state.houses.join(', ')}</strong></li>
-            <li>Total Criteria: <strong>8 Rubric Metrics (0-10 each, 80 total)</strong></li>
+            <li>Total Criteria: <strong>${(this.store.state.criteria || []).length} Rubric Metrics (0-10 each, ${this.getMaxCriteriaScore()} total)</strong></li>
           </ul>
         </div>
 
@@ -3308,7 +3337,7 @@ create table if not exists public.spot_weeks (
   is_current boolean default false,
   top_student text,
   total_score numeric,
-  max_score numeric default 80,
+  max_score numeric default 70,
   percentage numeric,
   updated_at timestamptz default timezone('utc'::text, now())
 );
@@ -3577,6 +3606,13 @@ on conflict (id) do nothing;`;
   // =========================================================================
   // WEEK INTERVAL MANAGEMENT & HELPERS
   // =========================================================================
+  getMaxCriteriaScore() {
+    const list = (this.store && this.store.state && Array.isArray(this.store.state.criteria) && this.store.state.criteria.length > 0)
+      ? this.store.state.criteria
+      : CRITERIA_LIST;
+    return list.reduce((sum, c) => sum + (Number(c.max) || 10), 0) || 70;
+  }
+
   getActiveWeek() {
     const weeks = this.store.state.weeks || [];
     const current = weeks.find(w => w.isCurrent && w.status !== 'Upcoming');
@@ -3870,7 +3906,7 @@ on conflict (id) do nothing;`;
         endDate: endDate,
         topStudent: null,
         totalScore: null,
-        maxScore: 80,
+        maxScore: this.getMaxCriteriaScore(),
         percentage: null,
         status: status,
         isCurrent: isCurrent
@@ -3970,6 +4006,7 @@ on conflict (id) do nothing;`;
       week.topStudent = topStudentName;
       week.totalScore = highestTotal;
       week.percentage = highestPct;
+      week.maxScore = week.maxScore || this.getMaxCriteriaScore();
     }
   }
 
