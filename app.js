@@ -1206,7 +1206,29 @@ class OLAGApp {
                      || (this.store.state.selectedWeekId ? weeks.find(w => w.id === this.store.state.selectedWeekId) : null) 
                      || weeks[0] 
                      || null;
-    const topStudent = (currentWeek && currentWeek.topStudent) ? this.store.state.students.find(s => s.name === currentWeek.topStudent) : null;
+
+    let topStudent = null;
+    let topTotalScore = currentWeek ? currentWeek.totalScore : null;
+    let topPercentage = currentWeek ? currentWeek.percentage : null;
+
+    if (currentWeek) {
+      if (currentWeek.topStudent) {
+        topStudent = this.store.state.students.find(s => s.name === currentWeek.topStudent);
+      }
+      if (!topStudent) {
+        const weekScores = this.store.state.scores[currentWeek.id] || {};
+        let bestTotal = -1;
+        Object.entries(weekScores).forEach(([sId, sc]) => {
+          if (sc && typeof sc.total === 'number' && sc.total > bestTotal) {
+            bestTotal = sc.total;
+            topTotalScore = sc.total;
+            topPercentage = sc.pct;
+            const st = this.store.state.students.find(s => s.id === sId);
+            if (st) topStudent = st;
+          }
+        });
+      }
+    }
     const isHidden = !!this.store.state.dashInfoHidden;
 
     container.innerHTML = `
@@ -1231,11 +1253,13 @@ class OLAGApp {
             <div class="stat-card-icon">👥</div>
           </div>
 
-          <div class="stat-card card-green" style="cursor: pointer;" onclick="app.openSetWeekIntervalModal(${currentWeek ? `'${currentWeek.id}'` : ''})" title="Click to Set / Configure Week Interval">
+          <div class="stat-card card-green" style="cursor: pointer; ${currentWeek && currentWeek.status === 'Closed' ? 'border: 2px solid #ef4444;' : ''}" onclick="app.openSetWeekIntervalModal(${currentWeek ? `'${currentWeek.id}'` : ''})" title="Click to Set / Configure Week Interval">
             <div class="stat-card-text">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.15rem;">
                 <span class="stat-card-title">This Week</span>
-                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,255,255,0.3); padding: 0.1rem 0.45rem; border-radius: 999px;">⚙️ Set</span>
+                <span style="font-size: 0.68rem; font-weight: 700; background: ${currentWeek && currentWeek.status === 'Closed' ? '#fee2e2' : 'rgba(255,255,255,0.3)'}; color: ${currentWeek && currentWeek.status === 'Closed' ? '#991b1b' : 'inherit'}; padding: 0.1rem 0.45rem; border-radius: 999px;">
+                  ${currentWeek ? (currentWeek.status === 'Closed' ? '🔒 Closed' : '🟢 Open') : '⚙️ Set'}
+                </span>
               </div>
               <span class="stat-card-value" style="font-size: 1.45rem;">${currentWeek ? escapeHtml(currentWeek.name) : 'No Week Set'}</span>
               <span class="stat-card-sub">${currentWeek ? `(${escapeHtml(currentWeek.dateRange)})` : '(Click to set interval)'}</span>
@@ -1267,7 +1291,7 @@ class OLAGApp {
               <span class="trophy-icon">🏆</span>
               <span>Student Personality of the Week</span>
             </div>
-            ${currentWeek ? `<span class="winner-card-week-tag">(${escapeHtml(currentWeek.name)})</span>` : ''}
+            ${currentWeek ? `<span class="winner-card-week-tag">(${escapeHtml(currentWeek.name)})${currentWeek.status === 'Closed' ? ' • Sealed' : ''}</span>` : ''}
           </div>
 
           ${topStudent ? `
@@ -1283,12 +1307,12 @@ class OLAGApp {
               <div class="dashboard-winner-scores">
                 <div class="winner-score-block">
                   <div class="winner-score-label">Total Score</div>
-                  <div class="winner-score-value">${currentWeek.totalScore || 0} / ${currentWeek.maxScore || 80}</div>
+                  <div class="winner-score-value">${topTotalScore || 0} / ${currentWeek.maxScore || 80}</div>
                 </div>
 
                 <div class="winner-score-block">
                   <div class="winner-score-label">Percentage</div>
-                  <div class="winner-percentage-value">${currentWeek.percentage || 0}%</div>
+                  <div class="winner-percentage-value">${topPercentage || 0}%</div>
                 </div>
 
                 <div class="winner-laurel-decor">🌿</div>
@@ -1312,9 +1336,18 @@ class OLAGApp {
             <div class="quick-action-label">Set Week Interval</div>
           </div>
 
+          ${currentWeek ? `
+            <div class="quick-action-card" onclick="app.quickToggleWeekStatus('${currentWeek.id}')" style="border: 1.5px solid ${currentWeek.status === 'Closed' ? '#86efac' : '#fca5a5'};">
+              <div class="quick-action-icon">${currentWeek.status === 'Closed' ? '🔓' : '🔒'}</div>
+              <div class="quick-action-label" style="font-weight: 800; color: ${currentWeek.status === 'Closed' ? '#15803d' : '#991b1b'};">
+                ${currentWeek.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal)'}
+              </div>
+            </div>
+          ` : ''}
+
           <div class="quick-action-card" onclick="app.navigateTo('assessment')">
             <div class="quick-action-icon">✏️</div>
-            <div class="quick-action-label">Enter Scores ${currentWeek ? `(${escapeHtml(currentWeek.name)})` : ''}</div>
+            <div class="quick-action-label">${currentWeek && currentWeek.status === 'Closed' ? 'View Scores (Sealed)' : `Enter Scores ${currentWeek ? `(${escapeHtml(currentWeek.name)})` : ''}`}</div>
           </div>
 
           <div class="quick-action-card" onclick="app.navigateTo('rankings')">
@@ -1373,6 +1406,9 @@ class OLAGApp {
     const completionPct = totalAssigned > 0 ? Math.round((evaluatedCount / totalAssigned) * 100) : 0;
     const isHidden = !!this.store.state.dashInfoHidden;
 
+    const isWeekClosed = currentWeek && currentWeek.status === 'Closed';
+    const isWeekUpcoming = currentWeek && currentWeek.status === 'Upcoming';
+
     container.innerHTML = `
       <div class="view-header view-header-with-toggle">
         <div>
@@ -1385,16 +1421,36 @@ class OLAGApp {
         </button>
       </div>
 
+      ${isWeekClosed ? `
+        <!-- Prominent Closed Scoring Notification Banner for Committee Members -->
+        <div class="scoring-locked-banner" style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: var(--radius-md); padding: 0.9rem 1.15rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <span style="font-size: 1.45rem;">🔒</span>
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: #991b1b;">
+                Scoring Closed (Results Sealed by Administrator)
+              </div>
+              <div style="font-size: 0.82rem; color: #7f1d1d; margin-top: 0.15rem;">
+                The administrator has closed scoring for <strong>${escapeHtml(currentWeek.name)} (${escapeHtml(currentWeek.dateRange)})</strong>. All evaluation forms are sealed and cannot be modified.
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.76rem; background: #991b1b; color: #fff;" onclick="app.navigateTo('rankings')">
+            🏆 View Sealed Rankings
+          </button>
+        </div>
+      ` : ''}
+
       <!-- Prominent Active Assessment Interval Banner for Committee Members -->
       <div class="evaluator-banner" style="margin-bottom: 1.25rem;">
         <div class="evaluator-banner-left">
-          <div class="evaluator-avatar" style="background: var(--stat-green); font-size: 1.25rem;">📅</div>
+          <div class="evaluator-avatar" style="background: ${isWeekClosed ? '#991b1b' : 'var(--stat-green)'}; font-size: 1.25rem;">${isWeekClosed ? '🔒' : '📅'}</div>
           <div>
             <div style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <span>Assessment Interval: <strong>${currentWeek ? escapeHtml(currentWeek.name) : 'No Active Interval'}</strong></span>
               ${currentWeek ? `
-                <span class="status-badge-${currentWeek.status === 'Closed' ? 'closed' : 'active'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem;">
-                  ● ${currentWeek.status === 'Closed' ? 'Closed' : 'Open for Scoring'}
+                <span class="status-badge-${currentWeek.status === 'Closed' ? 'closed' : 'active'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; ${currentWeek.status === 'Closed' ? 'background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;' : ''}">
+                  ● ${currentWeek.status === 'Closed' ? '🔒 Closed (Results Sealed)' : (currentWeek.status === 'Upcoming' ? '⏳ Upcoming' : '🟢 Open for Scoring')}
                 </span>
                 ${currentWeek.isCurrent ? '<span style="font-size: 0.68rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.45rem; border-radius: 999px;">★ Current Cycle</span>' : ''}
               ` : `
@@ -1413,12 +1469,12 @@ class OLAGApp {
             <div style="display: flex; align-items: center; gap: 0.4rem;">
               <label for="committeeDashWeekSelect" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Interval:</label>
               <select id="committeeDashWeekSelect" class="form-select" style="font-size: 0.82rem; height: 34px; min-width: 170px;" onchange="app.changeCommitteeDashboardWeek(this.value)">
-                ${weeks.map(w => `<option value="${w.id}" ${currentWeek && w.id === currentWeek.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${w.isCurrent ? ' ★' : ''}</option>`).join('')}
+                ${weeks.map(w => `<option value="${w.id}" ${currentWeek && w.id === currentWeek.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${w.status === 'Closed' ? ' [🔒 Closed]' : ''}${w.isCurrent ? ' ★' : ''}</option>`).join('')}
               </select>
             </div>
           ` : ''}
-          <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
-            📝 Enter Scores
+          <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
+            ${isWeekClosed ? '👁️ View Sealed Scores' : '📝 Enter Scores'}
           </button>
           <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
             📅 View All Intervals
@@ -1537,9 +1593,15 @@ class OLAGApp {
                 <td>${escapeHtml(s.house)}</td>
                 <td><span class="status-badge-pending">Pending</span></td>
                 <td style="text-align: center;">
-                  <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
-                    Assess ➜
-                  </button>
+                  ${isWeekClosed ? `
+                    <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #94a3b8; cursor: not-allowed; opacity: 0.75;" disabled title="Scoring closed by administrator">
+                      🔒 Closed
+                    </button>
+                  ` : `
+                    <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
+                      Assess ➜
+                    </button>
+                  `}
                 </td>
               </tr>
             `).join(''))}
@@ -1763,6 +1825,9 @@ class OLAGApp {
     const evaluator = members.find(m => m.id === currentEvaluatorId) || members[0] || (this.store.state.currentUser || { name: 'Committee Member', role: 'Evaluator' });
     const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
+    const isWeekClosed = currentWeekObj && currentWeekObj.status === 'Closed';
+    const isWeekUpcoming = currentWeekObj && currentWeekObj.status === 'Upcoming';
+    const isScoringLocked = isWeekClosed || isWeekUpcoming;
 
     const classStudents = this.store.state.students.filter(s => s.class === currentClass);
     const selectedStudent = (currentStudentId ? classStudents.find(s => s.id === currentStudentId) : null) || classStudents[0] || null;
@@ -1776,6 +1841,33 @@ class OLAGApp {
         <h2>Enter Weekly Assessment Scores</h2>
         <p>Select the week interval, class, evaluator and student to enter scores.</p>
       </div>
+
+      ${isWeekClosed ? `
+        <!-- Prominent Admin Closed Scoring Enforcement Notice -->
+        <div class="scoring-locked-banner" style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.6rem;">🔒</span>
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: #991b1b;">
+                Scoring is Closed (Results Sealed by Administrator)
+              </div>
+              <div style="font-size: 0.82rem; color: #7f1d1d; margin-top: 0.15rem;">
+                The assessment window for <strong>${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})</strong> has ended. Committee member scoring is locked. Scores are in Read-Only view.
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="btn-navy-action" style="background: #991b1b; color: #fff; height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('rankings')">
+              🏆 View Sealed Rankings
+            </button>
+            ${isCurrentlyAdmin ? `
+              <button type="button" class="btn-demo-pill" style="border: 1px solid #dc2626; color: #991b1b; height: 32px; background: #fff;" onclick="app.quickToggleWeekStatus('${currentWeekObj.id}')">
+                🔓 Re-Open Scoring
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
 
       <!-- Interactive Evaluator & Week Interval Status Banner -->
       <div class="evaluator-banner">
@@ -1795,8 +1887,8 @@ class OLAGApp {
             <span style="font-size: 0.8rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
               📅 ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
             </span>
-            <span style="font-size: 0.8rem; font-weight: 700; background: #dcfce7; color: #15803d; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
-              ${currentWeekObj.status === 'Closed' ? '🔒 Closed' : '🟢 Open for Scoring'}
+            <span style="font-size: 0.8rem; font-weight: 700; background: ${isWeekClosed ? '#fee2e2' : (isWeekUpcoming ? '#fef3c7' : '#dcfce7')}; color: ${isWeekClosed ? '#991b1b' : (isWeekUpcoming ? '#92400e' : '#15803d')}; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill); border: 1px solid ${isWeekClosed ? '#fca5a5' : (isWeekUpcoming ? '#fde68a' : '#86efac')};">
+              ${isWeekClosed ? '🔒 Closed (Results Sealed)' : (isWeekUpcoming ? '⏳ Upcoming (Scheduled)' : '🟢 Open for Scoring')}
             </span>
             ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal('${currentWeekObj.id}')">⚙️ Set Interval</button>` : ''}
           ` : `
@@ -1812,7 +1904,7 @@ class OLAGApp {
         <div class="filter-field">
           <label>Week Interval</label>
           <select id="assessWeekSelect" class="form-select">
-            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${w.status === 'Closed' ? ' [🔒 Closed]' : ''}</option>`).join('')}
           </select>
         </div>
 
@@ -1888,6 +1980,7 @@ class OLAGApp {
                           value="${val}" 
                           class="score-input-number criteria-score-input" 
                           data-crit-id="${c.id}" 
+                          ${isScoringLocked ? 'disabled readonly style="background: #f1f5f9; cursor: not-allowed; opacity: 0.85; font-weight: 700;"' : ''} 
                           required />
                       </td>
                     </tr>
@@ -1900,11 +1993,21 @@ class OLAGApp {
               <div class="scoring-tally-text">
                 Live Total: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / 80</strong> &nbsp;•&nbsp; 
                 Percentage: <strong id="livePctDisplay" style="color: var(--accent-gold);">${studentScoreData.pct || 0}%</strong>
+                ${isWeekClosed ? '<span style="color: #991b1b; font-weight: 800; margin-left: 0.5rem;">🔒 Sealed</span>' : ''}
               </div>
 
-              <button type="submit" class="btn-navy-action" style="padding: 0 2rem;">
-                Submit Scores
-              </button>
+              ${isScoringLocked ? `
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <span style="font-size: 0.8rem; color: #991b1b; font-weight: 700;">● Scoring Closed by Admin</span>
+                  <button type="button" class="btn-navy-action" disabled style="padding: 0 1.5rem; background: #94a3b8; cursor: not-allowed; opacity: 0.65;">
+                    🔒 Scoring Locked
+                  </button>
+                </div>
+              ` : `
+                <button type="submit" class="btn-navy-action" style="padding: 0 2rem;">
+                  Submit Scores
+                </button>
+              `}
             </div>
           </form>
         </div>
@@ -1982,6 +2085,10 @@ class OLAGApp {
     if (formSubmit && selectedStudent) {
       formSubmit.addEventListener('submit', (e) => {
         e.preventDefault();
+        if (isScoringLocked) {
+          alert(`Scoring for ${currentWeekObj.name} has been closed by the Administrator. Evaluations cannot be submitted or changed.`);
+          return;
+        }
         const scoresObj = {};
         let total = 0;
         inputs.forEach(inp => {
@@ -1995,6 +2102,7 @@ class OLAGApp {
         if (!this.store.state.scores[currentWeekId]) this.store.state.scores[currentWeekId] = {};
         this.store.state.scores[currentWeekId][selectedStudent.id] = { ...scoresObj, total, pct };
 
+        this.recalculateWeekResults(currentWeekId);
         this.store.save();
         this.showToast(`✓ Scores submitted for ${selectedStudent.name}: ${total}/80 (${pct}%)`);
         this.renderAssessment();
@@ -2197,7 +2305,7 @@ class OLAGApp {
                   <td>${escapeHtml(w.dateRange)}</td>
                   <td>
                     <span class="status-badge-${w.status === 'Closed' ? 'closed' : 'active'}" style="font-size: 0.75rem;">
-                      ● ${escapeHtml(w.status || 'Open')}
+                      ${w.status === 'Closed' ? '🔒 Closed (Sealed)' : (w.status === 'Upcoming' ? '⏳ Upcoming' : '🟢 Open')}
                     </span>
                   </td>
                   <td>
@@ -2213,6 +2321,9 @@ class OLAGApp {
                         View
                       </button>
                       ${isCurrentlyAdmin ? `
+                        <button class="action-icon-btn" title="${w.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal Results)'}" style="width: 30px; height: 30px;" onclick="app.quickToggleWeekStatus('${w.id}')">
+                          ${w.status === 'Closed' ? '🔓' : '🔒'}
+                        </button>
                         <button class="action-icon-btn" title="Edit Week Interval" style="width: 30px; height: 30px;" onclick="app.openSetWeekIntervalModal('${w.id}')">
                           ✏️
                         </button>
@@ -3472,7 +3583,12 @@ on conflict (id) do nothing;`;
         newWeek.isCurrent = true;
         this.store.state.selectedWeekId = newWeek.id;
       }
-      this.showToast(`✓ Created new week interval: ${weekName} (${dateRange})`);
+      this.recalculateWeekResults(newWeek.id);
+      if (status === 'Closed') {
+        this.showToast(`🔒 Created ${weekName} [CLOSED]: Scoring is sealed for all committee members.`);
+      } else {
+        this.showToast(`✓ Created new week interval: ${weekName} (${dateRange})`);
+      }
     } else {
       const existing = (this.store.state.weeks || []).find(w => w.id === targetVal);
       if (existing) {
@@ -3488,7 +3604,12 @@ on conflict (id) do nothing;`;
           this.store.state.weeks[0].isCurrent = true;
           this.store.state.selectedWeekId = this.store.state.weeks[0].id;
         }
-        this.showToast(`✓ Updated week interval: ${weekName} (${dateRange})`);
+        this.recalculateWeekResults(existing.id);
+        if (status === 'Closed') {
+          this.showToast(`🔒 Scoring for ${weekName} is now CLOSED (Results Sealed). Committee scoring is locked.`);
+        } else {
+          this.showToast(`✓ Updated week interval: ${weekName} (${dateRange}) — ${status}`);
+        }
       }
     }
 
@@ -3518,6 +3639,51 @@ on conflict (id) do nothing;`;
       this.showToast(`Deleted week interval: ${week.name}`);
       this.render();
     }
+  }
+
+  recalculateWeekResults(weekId) {
+    if (!weekId) return;
+    const week = (this.store.state.weeks || []).find(w => w.id === weekId);
+    if (!week) return;
+    const weekScores = this.store.state.scores[weekId] || {};
+    let highestTotal = -1;
+    let topStudentName = null;
+    let highestPct = null;
+
+    Object.entries(weekScores).forEach(([studentId, data]) => {
+      if (data && typeof data.total === 'number') {
+        if (data.total > highestTotal) {
+          highestTotal = data.total;
+          highestPct = data.pct;
+          const s = (this.store.state.students || []).find(std => std.id === studentId);
+          if (s) topStudentName = s.name;
+        }
+      }
+    });
+
+    if (topStudentName) {
+      week.topStudent = topStudentName;
+      week.totalScore = highestTotal;
+      week.percentage = highestPct;
+    }
+  }
+
+  quickToggleWeekStatus(weekId) {
+    if (!weekId) return;
+    const week = (this.store.state.weeks || []).find(w => w.id === weekId);
+    if (!week) return;
+
+    const newStatus = week.status === 'Closed' ? 'Open' : 'Closed';
+    week.status = newStatus;
+    this.recalculateWeekResults(weekId);
+    this.store.save();
+
+    if (newStatus === 'Closed') {
+      this.showToast(`🔒 Scoring for ${week.name} is now CLOSED. Committee member scoring is locked.`);
+    } else {
+      this.showToast(`🟢 Scoring for ${week.name} is now OPEN for all committee members.`);
+    }
+    this.render();
   }
 
   // =========================================================================
