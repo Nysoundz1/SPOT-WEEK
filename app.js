@@ -550,9 +550,21 @@ class OLAGApp {
     const weekStartDate = document.getElementById('weekStartDate');
     const weekEndDate = document.getElementById('weekEndDate');
     const weekNameInput = document.getElementById('weekNameInput');
+    const weekStatusSelect = document.getElementById('weekStatusSelect');
     if (weekStartDate) weekStartDate.addEventListener('input', () => this.updateWeekIntervalPreview());
     if (weekEndDate) weekEndDate.addEventListener('input', () => this.updateWeekIntervalPreview());
     if (weekNameInput) weekNameInput.addEventListener('input', () => this.updateWeekIntervalPreview());
+    if (weekStatusSelect) {
+      weekStatusSelect.addEventListener('change', () => {
+        const isCurrentChk = document.getElementById('weekIsCurrentCheckbox');
+        if (weekStatusSelect.value === 'Upcoming' && isCurrentChk) {
+          isCurrentChk.checked = false;
+        } else if (weekStatusSelect.value === 'Open' && isCurrentChk && !this.store.state.weeks.some(w => w.isCurrent && w.status === 'Open')) {
+          isCurrentChk.checked = true;
+        }
+        this.updateWeekStatusHint();
+      });
+    }
 
     // Form Add / Edit Member
     const formAddMember = document.getElementById('formAddMember');
@@ -1045,11 +1057,9 @@ class OLAGApp {
 
   renderTopHeader() {
     const user = this.store.state.currentUser;
-    const weeks = this.store.state.weeks || [];
-    const currentWeek = weeks.find(w => w.id === this.store.state.selectedWeekId) 
-                     || weeks.find(w => w.isCurrent) 
-                     || weeks[0] 
-                     || null;
+    const activeWeek = this.getActiveWeek();
+    const upcomingWeek = this.getUpcomingWeek();
+    const currentWeek = activeWeek;
 
     const userNameEl = document.getElementById('headerProfileName');
     const userRoleEl = document.getElementById('headerProfileRole');
@@ -1070,18 +1080,22 @@ class OLAGApp {
     const weekPillEl = document.querySelector('.header-week-pill');
 
     if (weekIntervalEl) {
-      if (currentWeek) {
-        if (isCurrentlyAdmin) {
-          weekIntervalEl.innerHTML = `${escapeHtml(currentWeek.name)} (${escapeHtml(currentWeek.dateRange)}) <span class="header-week-edit-badge">✏️ Set</span>`;
-        } else {
-          weekIntervalEl.textContent = `${currentWeek.name} (${currentWeek.dateRange})`;
+      let intervalHtml = '';
+      if (activeWeek) {
+        intervalHtml = `${escapeHtml(activeWeek.name)} (${escapeHtml(activeWeek.dateRange)})`;
+        if (upcomingWeek) {
+          intervalHtml += ` <span style="font-size: 0.74rem; font-weight: 700; color: #2563eb; margin-left: 0.35rem;">[⏳ Next: ${escapeHtml(upcomingWeek.name)}]</span>`;
         }
+      } else if (upcomingWeek) {
+        intervalHtml = `<span style="color: #2563eb; font-weight: 700;">⏳ Next: ${escapeHtml(upcomingWeek.name)} (${escapeHtml(upcomingWeek.dateRange)})</span>`;
       } else {
-        if (isCurrentlyAdmin) {
-          weekIntervalEl.innerHTML = `No active week interval <span class="header-week-edit-badge">✏️ Set</span>`;
-        } else {
-          weekIntervalEl.textContent = `No active week interval`;
-        }
+        intervalHtml = 'No active week interval';
+      }
+
+      if (isCurrentlyAdmin) {
+        weekIntervalEl.innerHTML = `${intervalHtml} <span class="header-week-edit-badge">✏️ Set</span>`;
+      } else {
+        weekIntervalEl.innerHTML = intervalHtml;
       }
     }
 
@@ -1202,10 +1216,8 @@ class OLAGApp {
     if (!container) return;
 
     const weeks = this.store.state.weeks || [];
-    const currentWeek = weeks.find(w => w.isCurrent) 
-                     || (this.store.state.selectedWeekId ? weeks.find(w => w.id === this.store.state.selectedWeekId) : null) 
-                     || weeks[0] 
-                     || null;
+    const currentWeek = this.getActiveWeek();
+    const upcomingWeek = this.getUpcomingWeek();
 
     let topStudent = null;
     let topTotalScore = currentWeek ? currentWeek.totalScore : null;
@@ -1326,6 +1338,56 @@ class OLAGApp {
             </div>
           `}
         </div>
+
+        <!-- Upcoming Assessment Cycle Info Card (Admin) -->
+        ${upcomingWeek ? `
+          <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px solid #bfdbfe; border-radius: var(--radius-lg); padding: 1.15rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.9rem;">
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
+                ⏳
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <span style="font-size: 0.74rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">Upcoming Assessment Cycle</span>
+                  <span class="status-badge-upcoming">⏳ Scheduled for Next Assessment</span>
+                </div>
+                <div style="font-size: 1.12rem; font-weight: 800; color: var(--navy-primary); margin-top: 0.15rem;">
+                  ${escapeHtml(upcomingWeek.name)} &nbsp;•&nbsp; <span style="font-weight: 600; font-size: 0.96rem; color: #334155;">${escapeHtml(upcomingWeek.dateRange)}</span>
+                </div>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.15rem;">
+                  Scheduled for next evaluation round. Active cycle <strong>(${escapeHtml(currentWeek ? currentWeek.name : 'None')})</strong> remains open for scoring until you activate this upcoming week.
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn-navy-action" style="background: #2563eb; color: #fff; height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="app.activateUpcomingWeek('${upcomingWeek.id}')">
+                🚀 Activate Now (Make Active)
+              </button>
+              <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 36px; padding: 0 0.85rem; font-size: 0.82rem;" onclick="app.openSetWeekIntervalModal('${upcomingWeek.id}')">
+                ✏️ Edit Schedule
+              </button>
+            </div>
+          </div>
+        ` : `
+          <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: var(--bg-card); border: 1.5px dashed #cbd5e1; border-radius: var(--radius-lg); padding: 1rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                ⏳
+              </div>
+              <div>
+                <div style="font-weight: 700; font-size: 0.92rem; color: var(--navy-primary);">
+                  Next Assessment Cycle: <span style="color: var(--text-muted); font-weight: normal;">Not Scheduled</span>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                  Schedule the upcoming week interval in advance so committee members know what cycle is next.
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn-demo-pill" style="border: 1.5px solid #3b82f6; color: #1d4ed8; font-weight: 700; background: #eff6ff; padding: 0.45rem 0.9rem;" onclick="app.scheduleNextWeekInterval()">
+              + Schedule Next Week Interval
+            </button>
+          </div>
+        `}
       </div>
 
       <div class="quick-actions-section">
@@ -1334,6 +1396,11 @@ class OLAGApp {
           <div class="quick-action-card" onclick="app.openSetWeekIntervalModal(${currentWeek ? `'${currentWeek.id}'` : ''})">
             <div class="quick-action-icon">📅</div>
             <div class="quick-action-label">Set Week Interval</div>
+          </div>
+
+          <div class="quick-action-card" onclick="app.scheduleNextWeekInterval()">
+            <div class="quick-action-icon">⏳</div>
+            <div class="quick-action-label">${upcomingWeek ? `Next: ${escapeHtml(upcomingWeek.name)}` : 'Schedule Next Week'}</div>
           </div>
 
           ${currentWeek ? `
@@ -1377,12 +1444,14 @@ class OLAGApp {
     if (!container) return;
 
     const weeks = this.store.state.weeks || [];
+    const activeWeek = this.getActiveWeek();
+    const upcomingWeek = this.getUpcomingWeek();
     let currentWeek = null;
     if (this.store.state.selectedWeekId) {
       currentWeek = weeks.find(w => w.id === this.store.state.selectedWeekId);
     }
     if (!currentWeek) {
-      currentWeek = weeks.find(w => w.isCurrent) || weeks[0] || null;
+      currentWeek = activeWeek || weeks[0] || null;
       if (currentWeek) this.store.state.selectedWeekId = currentWeek.id;
     }
 
@@ -1444,13 +1513,13 @@ class OLAGApp {
       <!-- Prominent Active Assessment Interval Banner for Committee Members -->
       <div class="evaluator-banner" style="margin-bottom: 1.25rem;">
         <div class="evaluator-banner-left">
-          <div class="evaluator-avatar" style="background: ${isWeekClosed ? '#991b1b' : 'var(--stat-green)'}; font-size: 1.25rem;">${isWeekClosed ? '🔒' : '📅'}</div>
+          <div class="evaluator-avatar" style="background: ${isWeekClosed ? '#991b1b' : (isWeekUpcoming ? '#2563eb' : 'var(--stat-green)')}; font-size: 1.25rem;">${isWeekClosed ? '🔒' : (isWeekUpcoming ? '⏳' : '📅')}</div>
           <div>
             <div style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <span>Assessment Interval: <strong>${currentWeek ? escapeHtml(currentWeek.name) : 'No Active Interval'}</strong></span>
               ${currentWeek ? `
-                <span class="status-badge-${currentWeek.status === 'Closed' ? 'closed' : 'active'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; ${currentWeek.status === 'Closed' ? 'background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;' : ''}">
-                  ● ${currentWeek.status === 'Closed' ? '🔒 Closed (Results Sealed)' : (currentWeek.status === 'Upcoming' ? '⏳ Upcoming' : '🟢 Open for Scoring')}
+                <span class="${currentWeek.status === 'Closed' ? 'status-badge-closed' : (currentWeek.status === 'Upcoming' ? 'status-badge-upcoming' : 'status-badge-active')}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; ${currentWeek.status === 'Closed' ? 'background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;' : ''}">
+                  ● ${currentWeek.status === 'Closed' ? '🔒 Closed (Results Sealed)' : (currentWeek.status === 'Upcoming' ? '⏳ Upcoming (Scheduled)' : '🟢 Open for Scoring')}
                 </span>
                 ${currentWeek.isCurrent ? '<span style="font-size: 0.68rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.45rem; border-radius: 999px;">★ Current Cycle</span>' : ''}
               ` : `
@@ -1469,18 +1538,47 @@ class OLAGApp {
             <div style="display: flex; align-items: center; gap: 0.4rem;">
               <label for="committeeDashWeekSelect" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Interval:</label>
               <select id="committeeDashWeekSelect" class="form-select" style="font-size: 0.82rem; height: 34px; min-width: 170px;" onchange="app.changeCommitteeDashboardWeek(this.value)">
-                ${weeks.map(w => `<option value="${w.id}" ${currentWeek && w.id === currentWeek.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${w.status === 'Closed' ? ' [🔒 Closed]' : ''}${w.isCurrent ? ' ★' : ''}</option>`).join('')}
+                ${weeks.map(w => {
+                  let tag = '';
+                  if (w.status === 'Closed') tag = ' [🔒 Closed]';
+                  else if (w.status === 'Upcoming') tag = ' [⏳ Upcoming]';
+                  else if (w.isCurrent) tag = ' [🟢 Active ★]';
+                  return `<option value="${w.id}" ${currentWeek && w.id === currentWeek.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${tag}</option>`;
+                }).join('')}
               </select>
             </div>
           ` : ''}
           <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
-            ${isWeekClosed ? '👁️ View Sealed Scores' : '📝 Enter Scores'}
+            ${isWeekClosed ? '👁️ View Sealed Scores' : (isWeekUpcoming ? '👁️ Preview Criteria' : '📝 Enter Scores')}
           </button>
           <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
             📅 View All Intervals
           </button>
         </div>
       </div>
+
+      ${upcomingWeek ? `
+        <!-- Prominent Upcoming Assessment Cycle Notice for Committee Members -->
+        <div class="upcoming-assessment-card" style="margin-bottom: 1.25rem; background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); border: 1.5px solid #bfdbfe; border-radius: var(--radius-md); padding: 0.95rem 1.15rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.45rem;">⏳</span>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                <span style="font-weight: 800; font-size: 0.92rem; color: #1e40af;">
+                  Upcoming Assessment Cycle: <strong>${escapeHtml(upcomingWeek.name)} (${escapeHtml(upcomingWeek.dateRange)})</strong>
+                </span>
+                <span class="status-badge-upcoming">Scheduled for Next Cycle</span>
+              </div>
+              <div style="font-size: 0.78rem; color: #1e3a8a; margin-top: 0.15rem;">
+                Scheduled for next evaluation round. Evaluations will open once activated by the administrator. Current active interval (${escapeHtml(activeWeek ? activeWeek.name : 'Active')}) is open for submissions.
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-demo-pill" style="border: 1px solid #93c5fa; color: #1e40af; height: 30px; font-size: 0.76rem; background: #fff;" onclick="app.previewUpcomingWeek('${upcomingWeek.id}')">
+            🔍 Preview Next Schedule
+          </button>
+        </div>
+      ` : ''}
 
       <div class="dashboard-info-collapsible ${isHidden ? 'is-collapsed' : ''}" id="committeeDashboardInfoWrap">
         <!-- Committee Progress Hero Banner -->
@@ -1869,6 +1967,33 @@ class OLAGApp {
         </div>
       ` : ''}
 
+      ${isWeekUpcoming ? `
+        <!-- Prominent Upcoming Week Interval Notice -->
+        <div class="scoring-locked-banner" style="background: #eff6ff; border: 1.5px solid #60a5fa; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.6rem;">⏳</span>
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: #1e40af;">
+                Upcoming Assessment Cycle: ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
+              </div>
+              <div style="font-size: 0.82rem; color: #1e3a8a; margin-top: 0.15rem;">
+                This interval is scheduled for the upcoming evaluation cycle. Scoring will open once activated by the administrator.
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            ${isCurrentlyAdmin ? `
+              <button type="button" class="btn-navy-action" style="background: #2563eb; color: #fff; height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.activateUpcomingWeek('${currentWeekObj.id}')">
+                🚀 Activate for Scoring Now
+              </button>
+            ` : ''}
+            <button type="button" class="btn-demo-pill" style="border: 1px solid #93c5fa; color: #1e40af; height: 32px; background: #fff;" onclick="app.switchToActiveWeek()">
+              Switch to Active Week
+            </button>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Interactive Evaluator & Week Interval Status Banner -->
       <div class="evaluator-banner">
         <div class="evaluator-banner-left">
@@ -1887,7 +2012,7 @@ class OLAGApp {
             <span style="font-size: 0.8rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
               📅 ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
             </span>
-            <span style="font-size: 0.8rem; font-weight: 700; background: ${isWeekClosed ? '#fee2e2' : (isWeekUpcoming ? '#fef3c7' : '#dcfce7')}; color: ${isWeekClosed ? '#991b1b' : (isWeekUpcoming ? '#92400e' : '#15803d')}; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill); border: 1px solid ${isWeekClosed ? '#fca5a5' : (isWeekUpcoming ? '#fde68a' : '#86efac')};">
+            <span style="font-size: 0.8rem; font-weight: 700; background: ${isWeekClosed ? '#fee2e2' : (isWeekUpcoming ? '#eff6ff' : '#dcfce7')}; color: ${isWeekClosed ? '#991b1b' : (isWeekUpcoming ? '#1d4ed8' : '#15803d')}; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill); border: 1px solid ${isWeekClosed ? '#fca5a5' : (isWeekUpcoming ? '#bfdbfe' : '#86efac')};">
               ${isWeekClosed ? '🔒 Closed (Results Sealed)' : (isWeekUpcoming ? '⏳ Upcoming (Scheduled)' : '🟢 Open for Scoring')}
             </span>
             ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal('${currentWeekObj.id}')">⚙️ Set Interval</button>` : ''}
@@ -1904,7 +2029,13 @@ class OLAGApp {
         <div class="filter-field">
           <label>Week Interval</label>
           <select id="assessWeekSelect" class="form-select">
-            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${w.status === 'Closed' ? ' [🔒 Closed]' : ''}</option>`).join('')}
+            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => {
+              let label = `${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})`;
+              if (w.status === 'Closed') label += ' [🔒 Closed]';
+              else if (w.status === 'Upcoming') label += ' [⏳ Upcoming]';
+              else if (w.isCurrent) label += ' [🟢 Active ★]';
+              return `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${label}</option>`;
+            }).join('')}
           </select>
         </div>
 
@@ -1998,9 +2129,11 @@ class OLAGApp {
 
               ${isScoringLocked ? `
                 <div style="display: flex; align-items: center; gap: 0.65rem;">
-                  <span style="font-size: 0.8rem; color: #991b1b; font-weight: 700;">● Scoring Closed by Admin</span>
+                  <span style="font-size: 0.8rem; color: ${isWeekClosed ? '#991b1b' : '#2563eb'}; font-weight: 700;">
+                    ${isWeekClosed ? '● Scoring Closed by Admin' : '● Scheduled for Upcoming Cycle'}
+                  </span>
                   <button type="button" class="btn-navy-action" disabled style="padding: 0 1.5rem; background: #94a3b8; cursor: not-allowed; opacity: 0.65;">
-                    🔒 Scoring Locked
+                    ${isWeekClosed ? '🔒 Scoring Locked' : '⏳ Scoring Scheduled'}
                   </button>
                 </div>
               ` : `
@@ -2086,7 +2219,11 @@ class OLAGApp {
       formSubmit.addEventListener('submit', (e) => {
         e.preventDefault();
         if (isScoringLocked) {
-          alert(`Scoring for ${currentWeekObj.name} has been closed by the Administrator. Evaluations cannot be submitted or changed.`);
+          if (isWeekClosed) {
+            alert(`Scoring for ${currentWeekObj.name} has been closed by the Administrator. Evaluations cannot be submitted or changed.`);
+          } else {
+            alert(`${currentWeekObj.name} is scheduled as an Upcoming cycle. Scoring will open once activated by the Administrator.`);
+          }
           return;
         }
         const scoresObj = {};
@@ -2304,7 +2441,7 @@ class OLAGApp {
                   </td>
                   <td>${escapeHtml(w.dateRange)}</td>
                   <td>
-                    <span class="status-badge-${w.status === 'Closed' ? 'closed' : 'active'}" style="font-size: 0.75rem;">
+                    <span class="${w.status === 'Closed' ? 'status-badge-closed' : (w.status === 'Upcoming' ? 'status-badge-upcoming' : 'status-badge-active')}" style="font-size: 0.75rem;">
                       ${w.status === 'Closed' ? '🔒 Closed (Sealed)' : (w.status === 'Upcoming' ? '⏳ Upcoming' : '🟢 Open')}
                     </span>
                   </td>
@@ -2321,9 +2458,15 @@ class OLAGApp {
                         View
                       </button>
                       ${isCurrentlyAdmin ? `
-                        <button class="action-icon-btn" title="${w.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal Results)'}" style="width: 30px; height: 30px;" onclick="app.quickToggleWeekStatus('${w.id}')">
-                          ${w.status === 'Closed' ? '🔓' : '🔒'}
-                        </button>
+                        ${w.status === 'Upcoming' ? `
+                          <button class="action-icon-btn" title="Activate this week for scoring now" style="width: 30px; height: 30px; color: #2563eb; background: #eff6ff;" onclick="app.activateUpcomingWeek('${w.id}')">
+                            🚀
+                          </button>
+                        ` : `
+                          <button class="action-icon-btn" title="${w.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal Results)'}" style="width: 30px; height: 30px;" onclick="app.quickToggleWeekStatus('${w.id}')">
+                            ${w.status === 'Closed' ? '🔓' : '🔒'}
+                          </button>
+                        `}
                         <button class="action-icon-btn" title="Edit Week Interval" style="width: 30px; height: 30px;" onclick="app.openSetWeekIntervalModal('${w.id}')">
                           ✏️
                         </button>
@@ -3416,8 +3559,141 @@ on conflict (id) do nothing;`;
   }
 
   // =========================================================================
-  // WEEK INTERVAL MANAGEMENT (ADMIN)
+  // WEEK INTERVAL MANAGEMENT & HELPERS
   // =========================================================================
+  getActiveWeek() {
+    const weeks = this.store.state.weeks || [];
+    const current = weeks.find(w => w.isCurrent && w.status !== 'Upcoming');
+    if (current) return current;
+    const openWeek = weeks.find(w => w.status === 'Open');
+    if (openWeek) return openWeek;
+    const anyCurrent = weeks.find(w => w.isCurrent);
+    if (anyCurrent) return anyCurrent;
+    return weeks.find(w => w.status !== 'Upcoming') || weeks[0] || null;
+  }
+
+  getUpcomingWeek() {
+    const weeks = this.store.state.weeks || [];
+    return weeks.find(w => w.status === 'Upcoming') || null;
+  }
+
+  activateUpcomingWeek(weekId) {
+    const week = (this.store.state.weeks || []).find(w => w.id === weekId);
+    if (!week) return;
+
+    this.store.state.weeks.forEach(w => {
+      if (w.id === weekId) {
+        w.isCurrent = true;
+        w.status = 'Open';
+      } else {
+        w.isCurrent = false;
+      }
+    });
+
+    this.store.state.selectedWeekId = week.id;
+    this.store.save();
+    this.showToast(`🚀 ${week.name} (${week.dateRange}) is now ACTIVE! Committee members can now enter scores.`, 'success');
+    this.render();
+  }
+
+  scheduleNextWeekInterval() {
+    this.openSetWeekIntervalModal('new');
+    this.applyUpcomingPreset();
+  }
+
+  applyUpcomingPreset() {
+    const nameInp = document.getElementById('weekNameInput');
+    const statusSelect = document.getElementById('weekStatusSelect');
+    const startInp = document.getElementById('weekStartDate');
+    const endInp = document.getElementById('weekEndDate');
+    const isCurrentChk = document.getElementById('weekIsCurrentCheckbox');
+
+    const weeks = this.store.state.weeks || [];
+    const activeWeek = this.getActiveWeek();
+    let nextStart = null;
+    let nextEnd = null;
+
+    if (activeWeek && activeWeek.endDate) {
+      const endActive = new Date(activeWeek.endDate + 'T00:00:00');
+      if (!isNaN(endActive.getTime())) {
+        const nextDay = new Date(endActive);
+        nextDay.setDate(endActive.getDate() + 1);
+        const nextWeekEnd = new Date(nextDay);
+        nextWeekEnd.setDate(nextDay.getDate() + 6);
+        nextStart = toYmd(nextDay);
+        nextEnd = toYmd(nextWeekEnd);
+      }
+    }
+
+    if (!nextStart || !nextEnd) {
+      const today = new Date();
+      const day = today.getDay();
+      const diffToMon = (day === 0 ? -6 : 1) - day;
+      const mon = new Date(today);
+      mon.setDate(today.getDate() + diffToMon);
+      const nextMon = new Date(mon);
+      nextMon.setDate(mon.getDate() + 7);
+      const nextSun = new Date(nextMon);
+      nextSun.setDate(nextMon.getDate() + 6);
+      nextStart = toYmd(nextMon);
+      nextEnd = toYmd(nextSun);
+    }
+
+    if (startInp) startInp.value = nextStart;
+    if (endInp) endInp.value = nextEnd;
+    if (statusSelect) statusSelect.value = 'Upcoming';
+    if (isCurrentChk) isCurrentChk.checked = false;
+
+    if (nameInp && (!nameInp.value || nameInp.value.startsWith('Week'))) {
+      let maxNum = 0;
+      weeks.forEach(w => {
+        const match = (w.name || '').match(/(\d+)/);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (n > maxNum) maxNum = n;
+        }
+      });
+      nameInp.value = maxNum > 0 ? `Week ${maxNum + 1}` : `Week ${weeks.length + 1}`;
+    }
+
+    this.updateWeekStatusHint();
+    this.updateWeekIntervalPreview();
+  }
+
+  updateWeekStatusHint() {
+    const statusSelect = document.getElementById('weekStatusSelect');
+    const hintEl = document.getElementById('weekStatusHint');
+    if (!statusSelect || !hintEl) return;
+    const val = statusSelect.value;
+    if (val === 'Upcoming') {
+      hintEl.innerHTML = '⏳ <strong>Upcoming:</strong> Scheduled for next assessment. Active week remains open for ongoing evaluations.';
+      hintEl.style.color = '#2563eb';
+    } else if (val === 'Open') {
+      hintEl.innerHTML = '🟢 <strong>Open:</strong> Active for scoring. Committee members can enter and submit scores.';
+      hintEl.style.color = '#15803d';
+    } else if (val === 'Closed') {
+      hintEl.innerHTML = '🔒 <strong>Closed:</strong> Results sealed. Scoring forms locked in read-only mode.';
+      hintEl.style.color = '#b91c1c';
+    }
+  }
+
+  previewUpcomingWeek(weekId) {
+    const week = (this.store.state.weeks || []).find(w => w.id === weekId);
+    if (!week) return;
+    this.store.state.selectedWeekId = week.id;
+    this.showToast(`⏳ Showing upcoming schedule for ${week.name} (${week.dateRange})`);
+    this.navigateTo('assessment');
+  }
+
+  switchToActiveWeek() {
+    const active = this.getActiveWeek();
+    if (active) {
+      this.store.state.selectedWeekId = active.id;
+      this.showToast(`🟢 Switched to active assessment interval: ${active.name}`);
+      this.render();
+    }
+  }
+
   openSetWeekIntervalModal(targetWeekId = null) {
     const modal = document.getElementById('modalSetWeekInterval');
     if (!modal) return;
@@ -3458,7 +3734,7 @@ on conflict (id) do nothing;`;
       if (statusSelect) statusSelect.value = 'Open';
       if (startInp) startInp.value = '';
       if (endInp) endInp.value = '';
-      if (isCurrentChk) isCurrentChk.checked = true;
+      if (isCurrentChk) isCurrentChk.checked = !this.store.state.weeks.some(w => w.isCurrent);
       if (btnDelete) btnDelete.style.display = 'none';
     } else {
       const week = (this.store.state.weeks || []).find(w => w.id === weekId);
@@ -3477,6 +3753,7 @@ on conflict (id) do nothing;`;
       if (endInp) endInp.value = week.endDate || '';
       if (btnDelete) btnDelete.style.display = 'inline-flex';
     }
+    this.updateWeekStatusHint();
     this.updateWeekIntervalPreview();
   }
 
@@ -3550,7 +3827,11 @@ on conflict (id) do nothing;`;
     const status = statusSelect ? statusSelect.value : 'Open';
     const startDate = startInp ? startInp.value : '';
     const endDate = endInp ? endInp.value : '';
-    const isCurrent = isCurrentChk ? isCurrentChk.checked : false;
+    let isCurrent = isCurrentChk ? isCurrentChk.checked : false;
+
+    if (status === 'Upcoming' && !isCurrentChk.checked) {
+      isCurrent = false;
+    }
 
     if (!weekName || !startDate || !endDate) {
       this.showToast('Please fill in all week interval fields.');
@@ -3579,12 +3860,17 @@ on conflict (id) do nothing;`;
         isCurrent: isCurrent
       };
       this.store.state.weeks.push(newWeek);
-      if (isCurrent || this.store.state.weeks.length === 1 || !this.store.state.weeks.some(w => w.isCurrent)) {
+      if (isCurrent) {
+        newWeek.isCurrent = true;
+        this.store.state.selectedWeekId = newWeek.id;
+      } else if (status !== 'Upcoming' && (!this.store.state.weeks.some(w => w.isCurrent) || this.store.state.weeks.length === 1)) {
         newWeek.isCurrent = true;
         this.store.state.selectedWeekId = newWeek.id;
       }
       this.recalculateWeekResults(newWeek.id);
-      if (status === 'Closed') {
+      if (status === 'Upcoming') {
+        this.showToast(`⏳ Scheduled upcoming assessment cycle: ${weekName} (${dateRange})`);
+      } else if (status === 'Closed') {
         this.showToast(`🔒 Created ${weekName} [CLOSED]: Scoring is sealed for all committee members.`);
       } else {
         this.showToast(`✓ Created new week interval: ${weekName} (${dateRange})`);
@@ -3601,11 +3887,14 @@ on conflict (id) do nothing;`;
         if (isCurrent) {
           this.store.state.selectedWeekId = existing.id;
         } else if (!this.store.state.weeks.some(w => w.isCurrent) && this.store.state.weeks.length > 0) {
-          this.store.state.weeks[0].isCurrent = true;
-          this.store.state.selectedWeekId = this.store.state.weeks[0].id;
+          const firstActive = this.store.state.weeks.find(w => w.status !== 'Upcoming') || this.store.state.weeks[0];
+          firstActive.isCurrent = true;
+          this.store.state.selectedWeekId = firstActive.id;
         }
         this.recalculateWeekResults(existing.id);
-        if (status === 'Closed') {
+        if (status === 'Upcoming') {
+          this.showToast(`⏳ Updated upcoming week schedule: ${weekName} (${dateRange})`);
+        } else if (status === 'Closed') {
           this.showToast(`🔒 Scoring for ${weekName} is now CLOSED (Results Sealed). Committee scoring is locked.`);
         } else {
           this.showToast(`✓ Updated week interval: ${weekName} (${dateRange}) — ${status}`);

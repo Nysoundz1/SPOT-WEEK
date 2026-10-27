@@ -744,6 +744,39 @@ a {
   border-color: rgba(239, 68, 68, 0.35);
 }
 
+.status-badge-upcoming {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .status-badge-upcoming {
+  background: rgba(29, 78, 216, 0.25);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.upcoming-assessment-card {
+  transition: all 0.25s ease;
+}
+
+[data-theme="dark"] .upcoming-assessment-card {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.25) 0%, rgba(6, 78, 59, 0.2) 100%) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+[data-theme="dark"] .upcoming-assessment-card div,
+[data-theme="dark"] .upcoming-assessment-card span {
+  color: #e2e8f0 !important;
+}
+
 .scoring-locked-banner {
   animation: fadeIn 0.3s ease;
 }

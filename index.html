@@ -369,6 +369,7 @@
               <option value="Closed">🔒 Closed (Results Sealed)</option>
               <option value="Upcoming">⏳ Upcoming (Scheduled)</option>
             </select>
+            <span id="weekStatusHint" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem; display: block;"></span>
           </div>
         </div>
 
@@ -381,6 +382,7 @@
             <button type="button" class="btn-demo-pill" onclick="app.applyWeekDatePreset('this-week')">📅 Current 7-Day Cycle</button>
             <button type="button" class="btn-demo-pill" onclick="app.applyWeekDatePreset('next-week')">⏩ Next Week</button>
             <button type="button" class="btn-demo-pill" onclick="app.applyWeekDatePreset('bi-week')">📆 14-Day Cycle</button>
+            <button type="button" class="btn-demo-pill" style="border: 1.5px solid #3b82f6; color: #1d4ed8; font-weight: 700; background: #eff6ff;" onclick="app.applyUpcomingPreset()">⏳ Schedule Next Assessment Cycle</button>
           </div>
         </div>
 
