@@ -763,6 +763,64 @@ a {
   border-color: rgba(59, 130, 246, 0.4);
 }
 
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: var(--text-dark, #1e293b);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.action-icon-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.action-icon-btn.delete {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.action-icon-btn.delete:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .action-icon-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .action-icon-btn:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .action-icon-btn.delete {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .action-icon-btn.delete:hover {
+  background: rgba(220, 38, 38, 0.35);
+  border-color: #f87171;
+  color: #ffffff;
+}
+
 .upcoming-assessment-card {
   transition: all 0.25s ease;
 }

@@ -1427,6 +1427,11 @@ class OLAGApp {
             <div class="quick-action-label">Add Student</div>
           </div>
 
+          <div class="quick-action-card" onclick="app.navigateTo('committee')">
+            <div class="quick-action-icon">👥</div>
+            <div class="quick-action-label">Committee Members (${this.store.state.members.length})</div>
+          </div>
+
           <div class="quick-action-card" onclick="app.navigateTo('reports')">
             <div class="quick-action-icon">📥</div>
             <div class="quick-action-label">Export Report</div>
@@ -2578,12 +2583,14 @@ class OLAGApp {
                     </span>
                   </td>
                   <td style="text-align: center;">
-                    <button class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
-                      ✏️
-                    </button>
-                    <button class="action-icon-btn delete" title="Delete Member" onclick="app.deleteMember('${m.id}')">
-                      🗑️
-                    </button>
+                    <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                      <button type="button" class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
+                        ✏️
+                      </button>
+                      <button type="button" class="action-icon-btn delete" title="Delete Committee Member" onclick="app.deleteMember('${m.id}')">
+                        🗑️
+                      </button>
+                    </div>
                   </td>
                 </tr>
               `).join('')}
@@ -2619,11 +2626,20 @@ class OLAGApp {
   }
 
   deleteMember(memberId) {
-    if (confirm('Are you sure you want to remove this committee member?')) {
+    const member = this.store.state.members.find(m => m.id === memberId);
+    if (!member) {
+      this.showToast('Committee member not found.', 'error');
+      return;
+    }
+
+    if (confirm(`Are you sure you want to remove committee member "${member.name}" (${member.role})? This will delete their evaluator credentials.`)) {
       this.store.state.members = this.store.state.members.filter(m => m.id !== memberId);
+      if (this.store.state.selectedEvaluatorId === memberId) {
+        this.store.state.selectedEvaluatorId = this.store.state.members.length > 0 ? this.store.state.members[0].id : null;
+      }
       this.store.save();
-      this.showToast('Committee member removed.');
-      this.renderCommittee();
+      this.showToast(`🗑️ Removed committee member: ${member.name}`);
+      this.render();
     }
   }
 
@@ -3989,6 +4005,7 @@ on conflict (id) do nothing;`;
     const scopeSelect = document.getElementById('addMemberScope');
     const usernameInp = document.getElementById('addMemberUsername');
     const statusSelect = document.getElementById('addMemberStatus');
+    const btnDelete = document.getElementById('btnDeleteMember');
 
     if (titleEl) titleEl.textContent = '👥 + Add Committee Member';
     if (editIdEl) editIdEl.value = '';
@@ -3997,6 +4014,7 @@ on conflict (id) do nothing;`;
     if (scopeSelect) scopeSelect.value = 'All Houses & Classes';
     if (usernameInp) usernameInp.value = '';
     if (statusSelect) statusSelect.value = 'Active';
+    if (btnDelete) btnDelete.style.display = 'none';
 
     this.updateMemberPreview();
     modal.classList.add('active');
@@ -4016,6 +4034,7 @@ on conflict (id) do nothing;`;
     const scopeSelect = document.getElementById('addMemberScope');
     const usernameInp = document.getElementById('addMemberUsername');
     const statusSelect = document.getElementById('addMemberStatus');
+    const btnDelete = document.getElementById('btnDeleteMember');
 
     if (titleEl) titleEl.textContent = `✏️ Edit Committee Member: ${member.name}`;
     if (editIdEl) editIdEl.value = member.id;
@@ -4024,9 +4043,18 @@ on conflict (id) do nothing;`;
     if (scopeSelect) scopeSelect.value = member.scope || 'All Houses & Classes';
     if (usernameInp) usernameInp.value = member.username || '';
     if (statusSelect) statusSelect.value = member.status || 'Active';
+    if (btnDelete) btnDelete.style.display = 'inline-flex';
 
     this.updateMemberPreview();
     modal.classList.add('active');
+  }
+
+  deleteCurrentMember() {
+    const editIdEl = document.getElementById('editMemberId');
+    const memberId = editIdEl ? editIdEl.value : '';
+    if (!memberId) return;
+    this.closeModals();
+    this.deleteMember(memberId);
   }
 
   updateMemberPreview() {

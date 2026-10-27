@@ -507,9 +507,12 @@
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Cancel</button>
-          <button type="submit" class="btn-navy-action" id="btnSaveMember">Save Member</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+          <button type="button" class="btn-navy-action" id="btnDeleteMember" style="background: #fee2e2; color: #dc2626; display: none;" onclick="app.deleteCurrentMember()">🗑️ Delete Member</button>
+          <div style="display: flex; gap: 0.75rem; margin-left: auto;">
+            <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Cancel</button>
+            <button type="submit" class="btn-navy-action" id="btnSaveMember">Save Member</button>
+          </div>
         </div>
       </form>
     </div>
