@@ -630,6 +630,12 @@ a {
   color: #15803d;
 }
 
+.header-db-pill.pending-setup {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
 [data-theme="dark"] .header-db-pill {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.15);
@@ -645,6 +651,12 @@ a {
   background: rgba(22, 101, 52, 0.35);
   border-color: #22c55e;
   color: #86efac;
+}
+
+[data-theme="dark"] .header-db-pill.pending-setup {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+  color: #fde68a;
 }
 
 .db-status-dot {

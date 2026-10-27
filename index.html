@@ -544,22 +544,22 @@
         <div style="background: #f8fafc; border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 0.9rem 1.15rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: var(--text-dark);">
           <div style="font-weight: 800; color: var(--navy-primary); margin-bottom: 0.45rem;">Quick Setup (3 Simple Steps):</div>
           <ol style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem;">
-            <li>Create a free project at <a href="https://supabase.com" target="_blank" rel="noopener" style="color: var(--navy-accent); font-weight: 700; text-decoration: underline;">supabase.com</a>.</li>
-            <li>Run the SQL Schema: Click <button type="button" class="btn-text-action" style="font-size: 0.8rem; font-weight: 700; text-decoration: underline;" onclick="if(window.app) window.app.copySupabaseSchema()">📋 Copy SQL Schema</button> and paste it into the <strong>Supabase SQL Editor</strong>.</li>
-            <li>Paste your <strong>Project URL</strong> &amp; <strong>Anon Public Key</strong> below and click <strong>Connect</strong>.</li>
+            <li>Supabase Project linked: <code>https://apygtjveliipzjbzmiyn.supabase.co</code></li>
+            <li>Run SQL Schema: Click <button type="button" class="btn-text-action" style="font-size: 0.8rem; font-weight: 700; text-decoration: underline;" onclick="if(window.app) window.app.copySupabaseSchema()">📋 Copy SQL Schema</button>, then open the <a href="https://supabase.com/dashboard/project/apygtjveliipzjbzmiyn/sql/new" target="_blank" rel="noopener" style="color: #0284c7; font-weight: 800; text-decoration: underline;">🚀 Supabase SQL Editor</a>, paste and click <strong>Run</strong>.</li>
+            <li>Click <strong>Connect &amp; Sync</strong> below to activate real-time synchronization.</li>
           </ol>
         </div>
 
         <form id="formDatabaseConfig" onsubmit="event.preventDefault(); if(window.app) window.app.handleSaveDatabaseConfig(); return false;">
           <div class="filter-field" style="margin-bottom: 1rem;">
             <label for="dbInputUrl" style="font-weight: 700; font-size: 0.85rem; color: var(--navy-primary);">Supabase Project URL *</label>
-            <input type="url" id="dbInputUrl" class="form-input" placeholder="https://your-project-id.supabase.co" required />
+            <input type="url" id="dbInputUrl" class="form-input" placeholder="https://your-project-id.supabase.co" value="https://apygtjveliipzjbzmiyn.supabase.co" required />
             <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Found in your Supabase Dashboard under Project Settings &gt; API.</span>
           </div>
 
           <div class="filter-field" style="margin-bottom: 1.25rem;">
             <label for="dbInputKey" style="font-weight: 700; font-size: 0.85rem; color: var(--navy-primary);">Supabase Anon Public API Key *</label>
-            <textarea id="dbInputKey" class="form-input" rows="2" style="font-family: monospace; font-size: 0.78rem; resize: vertical;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required></textarea>
+            <textarea id="dbInputKey" class="form-input" rows="2" style="font-family: monospace; font-size: 0.78rem; resize: vertical;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFweWd0anZlbGlpcHpqYnptaXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMzI5ODUsImV4cCI6MjEwODcwODk4NX0.iEsM-9BcHkTrRTuovx8nxcaL5GOgO4ZmBQSY9VXq558</textarea>
             <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; display: block;">Public anon key (safe for browser client connections).</span>
           </div>
 

@@ -55,6 +55,14 @@ const COMMITTEE_MEMBERS = [];
 const INITIAL_STUDENTS = [];
 const INITIAL_SCORES = {};
 
+// Default Cloud Database Configuration (Supabase PostgreSQL)
+const DEFAULT_SUPABASE_CONFIG = {
+  url: 'https://apygtjveliipzjbzmiyn.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFweWd0anZlbGlpcHpqYnptaXluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMzI5ODUsImV4cCI6MjEwODcwODk4NX0.iEsM-9BcHkTrRTuovx8nxcaL5GOgO4ZmBQSY9VXq558',
+  connected: true,
+  lastSyncedAt: null
+};
+
 // --- Store ---
 class OLAGStore {
   constructor() {
@@ -65,15 +73,25 @@ class OLAGStore {
     this.realtimeSubscribed = false;
     this.syncTimeout = null;
     this.onStateUpdatedCallback = null;
+    this.tableNeedsSetup = false;
     this.state = this.loadState();
   }
 
   getDbConfig() {
     try {
       const saved = localStorage.getItem(this.dbConfigKey);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.connected === 'boolean') {
+          if (!parsed.url || !parsed.anonKey) {
+            parsed.url = DEFAULT_SUPABASE_CONFIG.url;
+            parsed.anonKey = DEFAULT_SUPABASE_CONFIG.anonKey;
+          }
+          return parsed;
+        }
+      }
     } catch (e) {}
-    return { url: '', anonKey: '', connected: false, lastSyncedAt: null };
+    return { ...DEFAULT_SUPABASE_CONFIG };
   }
 
   saveDbConfig(config) {
@@ -110,12 +128,18 @@ class OLAGStore {
       if (error) {
         if (error.code === 'PGRST116') {
           // Table exists but row 'current' not found -> upload local state
+          this.tableNeedsSetup = false;
           await this.syncToSupabase(true);
+        } else if (error.code === 'PGRST205') {
+          // Table not yet created in Supabase
+          this.tableNeedsSetup = true;
+          if (this.onStateUpdatedCallback) this.onStateUpdatedCallback();
         }
         return;
       }
 
       if (data && data.state) {
+        this.tableNeedsSetup = false;
         this.applyRemoteState(data.state);
         const config = this.getDbConfig();
         config.connected = true;
@@ -196,10 +220,14 @@ class OLAGStore {
         .upsert({ id: 'current', state: snapshot, updated_at: nowIso });
 
       if (!error) {
+        this.tableNeedsSetup = false;
         const config = this.getDbConfig();
         config.connected = true;
         config.lastSyncedAt = nowIso;
         this.saveDbConfig(config);
+      } else if (error.code === 'PGRST205') {
+        this.tableNeedsSetup = true;
+        if (this.onStateUpdatedCallback) this.onStateUpdatedCallback();
       }
     } catch (e) {
       console.warn('Supabase sync error:', e);
@@ -2681,19 +2709,21 @@ class OLAGApp {
 
       <div class="stat-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-bottom: 2rem;">
         <!-- Cloud Database Configuration Card -->
-        <div class="scoring-table-card" style="border: 1.5px solid ${dbConfig.connected ? '#86efac' : 'var(--card-border)'};">
+        <div class="scoring-table-card" style="border: 1.5px solid ${dbConfig.connected ? (this.store.tableNeedsSetup ? '#fde68a' : '#86efac') : 'var(--card-border)'};">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span style="font-size: 1.3rem;">⚡</span>
               <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin: 0;">Cloud Database (Supabase)</h3>
             </div>
-            <span class="status-badge-${dbConfig.connected ? 'active' : 'pending'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem;">
-              ${dbConfig.connected ? '🟢 Connected Live' : '🟡 Local Storage Mode'}
+            <span class="status-badge-${dbConfig.connected ? (this.store.tableNeedsSetup ? 'pending' : 'active') : 'pending'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; ${this.store.tableNeedsSetup ? 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;' : ''}">
+              ${dbConfig.connected ? (this.store.tableNeedsSetup ? '🟡 SQL Setup Pending' : '🟢 Connected Live') : '⚪ Local Storage Mode'}
             </span>
           </div>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.45;">
             ${dbConfig.connected 
-              ? `Connected to <code>${escapeHtml(dbConfig.url)}</code>.<br><span style="font-size: 0.78rem;">Last synchronized: <strong>${dbConfig.lastSyncedAt ? new Date(dbConfig.lastSyncedAt).toLocaleTimeString() : 'Active'}</strong></span>` 
+              ? (this.store.tableNeedsSetup 
+                  ? `Connected to <code>${escapeHtml(dbConfig.url)}</code>.<br><span style="color: #b45309; font-weight: 700;">⚠️ Tables need to be created in Supabase. Click "Open SQL Editor" below, paste the schema, and click Run.</span>`
+                  : `Connected to <code>${escapeHtml(dbConfig.url)}</code>.<br><span style="font-size: 0.78rem;">Last synchronized: <strong>${dbConfig.lastSyncedAt ? new Date(dbConfig.lastSyncedAt).toLocaleTimeString() : 'Active'}</strong></span>`)
               : 'Connect Supabase Cloud PostgreSQL to synchronize all students, week intervals, and scores in real-time across phones, tablets, and computers.'}
           </p>
 
@@ -2704,6 +2734,9 @@ class OLAGApp {
             <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" onclick="app.copySupabaseSchema()">
               📋 Copy SQL Schema
             </button>
+            <a href="https://supabase.com/dashboard/project/${this.getSupabaseProjectRef(dbConfig.url)}/sql/new" target="_blank" rel="noopener" class="btn-navy-action" style="background: #0284c7; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
+              🚀 Open SQL Editor
+            </a>
             ${dbConfig.connected ? `
               <button type="button" class="btn-navy-action" style="background: #e0f2fe; color: #0369a1;" onclick="app.syncDatabaseNow()">
                 🔄 Sync Now
@@ -2752,22 +2785,48 @@ class OLAGApp {
     `;
   }
 
+  getSupabaseProjectRef(url) {
+    if (!url) return 'apygtjveliipzjbzmiyn';
+    try {
+      const parsed = new URL(url);
+      const hostParts = parsed.hostname.split('.');
+      return hostParts[0] || 'apygtjveliipzjbzmiyn';
+    } catch (e) {
+      return 'apygtjveliipzjbzmiyn';
+    }
+  }
+
   // --- Supabase Cloud Database Management Methods ---
   updateDatabaseStatusUI() {
     const config = this.store.getDbConfig();
     const isConn = !!config.connected && !!this.store.supabase;
+    const needsSetup = !!this.store.tableNeedsSetup;
     const btn = document.getElementById('headerDbStatusBtn');
     const dot = document.getElementById('headerDbStatusDot');
     const text = document.getElementById('headerDbStatusText');
 
-    if (dot) dot.textContent = isConn ? '🟢' : '🟡';
-    if (text) text.textContent = isConn ? 'Cloud Synced' : 'Local Storage';
+    if (dot) dot.textContent = isConn ? (needsSetup ? '🟡' : '🟢') : '⚪';
+    if (text) {
+      if (!isConn) {
+        text.textContent = 'Local Storage';
+      } else if (needsSetup) {
+        text.textContent = 'DB Linked (Run SQL)';
+      } else {
+        text.textContent = 'Cloud Synced';
+      }
+    }
     if (btn) {
-      if (isConn) {
+      if (isConn && !needsSetup) {
         btn.classList.add('connected');
+        btn.classList.remove('pending-setup');
         btn.title = `Supabase Cloud Connected • Live Sync Active (${config.url})`;
+      } else if (isConn && needsSetup) {
+        btn.classList.add('connected');
+        btn.classList.add('pending-setup');
+        btn.title = `Supabase Connected (${config.url}) • Run SQL Schema to activate live sync`;
       } else {
         btn.classList.remove('connected');
+        btn.classList.remove('pending-setup');
         btn.title = 'Local Storage Mode • Click to Connect Supabase Cloud Database';
       }
     }
@@ -2788,25 +2847,40 @@ class OLAGApp {
     const statusSub = document.getElementById('dbModalStatusSub');
     const btnConnect = document.getElementById('btnDbSaveConnect');
 
-    if (inpUrl) inpUrl.value = config.url || '';
-    if (inpKey) inpKey.value = config.anonKey || '';
+    if (inpUrl) inpUrl.value = config.url || DEFAULT_SUPABASE_CONFIG.url;
+    if (inpKey) inpKey.value = config.anonKey || DEFAULT_SUPABASE_CONFIG.anonKey;
 
     const isConn = !!config.connected && !!this.store.supabase;
+    const needsSetup = !!this.store.tableNeedsSetup;
 
     if (banner) {
-      banner.style.background = isConn ? '#dcfce7' : '#fef3c7';
-      banner.style.borderColor = isConn ? '#86efac' : '#fde68a';
+      banner.style.background = isConn ? (needsSetup ? '#fef3c7' : '#dcfce7') : '#f8fafc';
+      banner.style.borderColor = isConn ? (needsSetup ? '#fde68a' : '#86efac') : 'var(--card-border)';
     }
-    if (statusIcon) statusIcon.textContent = isConn ? '🟢' : '🟡';
+    if (statusIcon) statusIcon.textContent = isConn ? (needsSetup ? '⚠️' : '🟢') : '🟡';
     if (statusTitle) {
-      statusTitle.textContent = isConn ? 'Cloud Database Connected (Supabase)' : 'Database Mode: Local Browser Storage';
-      statusTitle.style.color = isConn ? '#166534' : '#92400e';
+      if (!isConn) {
+        statusTitle.textContent = 'Database Mode: Local Browser Storage';
+        statusTitle.style.color = '#92400e';
+      } else if (needsSetup) {
+        statusTitle.textContent = 'Supabase Project Connected (SQL Schema Pending)';
+        statusTitle.style.color = '#b45309';
+      } else {
+        statusTitle.textContent = 'Cloud Database Connected (Supabase)';
+        statusTitle.style.color = '#166534';
+      }
     }
     if (statusSub) {
-      statusSub.textContent = isConn 
-        ? `Realtime synchronization active with ${config.url}. All devices receive instant updates.` 
-        : 'Connect Supabase to enable live synchronization across all phones, tablets, and computers.';
-      statusSub.style.color = isConn ? '#14532d' : '#78350f';
+      if (!isConn) {
+        statusSub.textContent = 'Connect Supabase to enable live synchronization across all phones, tablets, and computers.';
+        statusSub.style.color = '#78350f';
+      } else if (needsSetup) {
+        statusSub.innerHTML = `Project <code>${escapeHtml(config.url)}</code> is connected. Tables need to be created: Click <strong>"Open SQL Editor"</strong> below, paste the schema, and click Run.`;
+        statusSub.style.color = '#92400e';
+      } else {
+        statusSub.textContent = `Realtime synchronization active with ${config.url}. All devices receive instant updates.`;
+        statusSub.style.color = '#14532d';
+      }
     }
 
     if (btnDisconnect) btnDisconnect.style.display = isConn ? 'inline-flex' : 'none';
@@ -2845,11 +2919,38 @@ class OLAGApp {
       const client = window.supabase.createClient(url, key);
       const { data, error } = await client.from('spot_app_state').select('id, updated_at').limit(1);
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code === 'PGRST205') {
+        // Table spot_app_state not found in schema cache yet
+        this.store.supabase = client;
+        this.store.tableNeedsSetup = true;
+        this.store.saveDbConfig({
+          url: url,
+          anonKey: key,
+          connected: true,
+          lastSyncedAt: null
+        });
+
+        this.updateDatabaseStatusUI();
+        this.render();
+
+        const sqlUrl = `https://supabase.com/dashboard/project/${this.getSupabaseProjectRef(url)}/sql/new`;
+        this.copySupabaseSchema();
+
+        alert(
+          "⚡ Connected to Supabase Project!\n\n" +
+          "Your database credentials are valid, but the tables have not been created yet.\n\n" +
+          "We have copied the SQL Schema to your clipboard.\n\n" +
+          "1. Open your Supabase SQL Editor:\n" + sqlUrl + "\n\n" +
+          "2. Paste the schema and click 'Run'.\n\n" +
+          "Once you click Run, click 'Sync Now' in SPOT WEEK to complete live synchronization!"
+        );
+        return;
+      } else if (error && error.code !== 'PGRST116') {
         throw new Error(error.message || 'Could not query spot_app_state table');
       }
 
       this.store.supabase = client;
+      this.store.tableNeedsSetup = false;
       this.store.saveDbConfig({
         url: url,
         anonKey: key,
