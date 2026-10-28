@@ -164,6 +164,8 @@ class OLAGStore {
     if (Array.isArray(remoteState.members)) this.state.members = remoteState.members;
     if (Array.isArray(remoteState.classes)) this.state.classes = remoteState.classes;
     if (Array.isArray(remoteState.houses)) this.state.houses = remoteState.houses;
+    if (Array.isArray(remoteState.notifications)) this.state.notifications = remoteState.notifications;
+    if (Array.isArray(remoteState.dismissedNotificationIds)) this.state.dismissedNotificationIds = remoteState.dismissedNotificationIds;
     if (remoteState.selectedWeekId) this.state.selectedWeekId = remoteState.selectedWeekId;
 
     const isLegacyCriteria = !Array.isArray(remoteState.criteria) ||
@@ -218,6 +220,78 @@ class OLAGStore {
         s.id = candidate;
       }
       seenIds.add(s.id);
+    });
+
+    this.syncDerivedNotifications(stateObj);
+  }
+
+  syncDerivedNotifications(stateObj) {
+    if (!stateObj || typeof stateObj !== 'object') return;
+    if (!Array.isArray(stateObj.notifications)) stateObj.notifications = [];
+    if (!Array.isArray(stateObj.dismissedNotificationIds)) stateObj.dismissedNotificationIds = [];
+
+    const dismissed = new Set(stateObj.dismissedNotificationIds);
+    const existingIds = new Set(stateObj.notifications.map(n => n && n.id));
+
+    // 1. Ensure notification exists for each registered committee member
+    const members = Array.isArray(stateObj.members) ? stateObj.members : [];
+    members.forEach(m => {
+      if (!m || !m.id) return;
+      const notifId = `notif-member-${m.id}`;
+      if (!existingIds.has(notifId) && !dismissed.has(notifId)) {
+        stateObj.notifications.push({
+          id: notifId,
+          type: 'member',
+          icon: '👥',
+          title: `Committee Member Registered: ${m.name}`,
+          message: `${m.name} (${m.role || 'Evaluator'}) is registered (${m.status || 'Active'}) under scope "${m.scope || 'All Houses & Classes'}" with username "${m.username}".`,
+          actionLabel: 'View in Directory ➜',
+          actionView: 'committee',
+          unread: true,
+          createdAt: m.createdAt || new Date().toISOString()
+        });
+        existingIds.add(notifId);
+      }
+    });
+
+    // 2. Ensure notification exists for submitted weekly student scores
+    const scores = (stateObj.scores && typeof stateObj.scores === 'object') ? stateObj.scores : {};
+    const weeks = Array.isArray(stateObj.weeks) ? stateObj.weeks : [];
+    const students = Array.isArray(stateObj.students) ? stateObj.students : [];
+    Object.entries(scores).forEach(([weekId, weekMap]) => {
+      if (!weekMap || typeof weekMap !== 'object') return;
+      const weekObj = weeks.find(w => w.id === weekId);
+      const weekLabel = weekObj ? weekObj.name : 'Weekly Assessment';
+      const maxScore = (weekObj && weekObj.maxScore) ? weekObj.maxScore : 70;
+      Object.entries(weekMap).forEach(([studentId, sc]) => {
+        if (!sc || typeof sc.total !== 'number') return;
+        const notifId = `notif-score-${weekId}-${studentId}`;
+        if (!existingIds.has(notifId) && !dismissed.has(notifId)) {
+          const st = students.find(s => s.id === studentId);
+          const studentName = st ? `${st.name} (${st.class})` : studentId;
+          const evalName = sc.evaluatorName || 'Committee Evaluator';
+          stateObj.notifications.unshift({
+            id: notifId,
+            type: 'score',
+            icon: '📝',
+            title: `Assessment Scores Submitted (${weekLabel})`,
+            message: `${evalName} submitted scores for ${studentName}: ${sc.total}/${maxScore} (${sc.pct}%).`,
+            actionLabel: 'View Rankings ➜',
+            actionView: 'rankings',
+            unread: true,
+            createdAt: sc.submittedAt || new Date().toISOString()
+          });
+          existingIds.add(notifId);
+        }
+      });
+    });
+
+    // Filter out any notification that was dismissed or whose member was deleted
+    const activeMemberIds = new Set(members.map(m => `notif-member-${m.id}`));
+    stateObj.notifications = stateObj.notifications.filter(n => {
+      if (!n || !n.id || dismissed.has(n.id)) return false;
+      if (n.id.startsWith('notif-member-') && !activeMemberIds.has(n.id)) return false;
+      return true;
     });
   }
 
@@ -285,6 +359,8 @@ class OLAGStore {
       classes: this.state.classes || [],
       houses: this.state.houses || [],
       criteria: this.state.criteria || [],
+      notifications: this.state.notifications || [],
+      dismissedNotificationIds: this.state.dismissedNotificationIds || [],
       selectedWeekId: this.state.selectedWeekId
     };
 
@@ -364,6 +440,8 @@ class OLAGStore {
       committeeSearchQuery: '',
       committeeRoleFilter: 'All',
       committeeStatusFilter: 'All',
+      notifications: [],
+      dismissedNotificationIds: [],
       theme: localStorage.getItem('olag_theme') || 'light',
       sidebarCollapsed: false,
       dashInfoHidden: false
@@ -966,6 +1044,15 @@ class OLAGApp {
     };
 
     this.store.state.members.push(newMember);
+    this.addNotification({
+      id: `notif-member-${newMember.id}`,
+      type: 'member',
+      icon: '👥',
+      title: `Committee Member Registered: ${newMember.name}`,
+      message: `${newMember.name} (${newMember.role}) registered with username "${newMember.username}" and is Active for student assessments.`,
+      actionLabel: 'View in Directory ➜',
+      actionView: 'committee'
+    });
 
     const roleObj = {
       id: newMember.id,
@@ -1128,6 +1215,11 @@ class OLAGApp {
       this.store.state.studentClassFilter = 'All Classes';
       this.store.state.studentHouseFilter = 'All Houses';
       this.store.state.studentSearchQuery = '';
+    }
+    if (viewId === 'committee' && !(payload && payload.preserveFilters)) {
+      this.store.state.committeeSearchQuery = '';
+      this.store.state.committeeRoleFilter = 'All';
+      this.store.state.committeeStatusFilter = 'All';
     }
     if (payload && payload.studentId) {
       this.store.state.selectedStudentId = payload.studentId;
@@ -1328,11 +1420,15 @@ class OLAGApp {
     const container = document.getElementById('view-dashboard-admin');
     if (!container) return;
 
+    this.store.syncDerivedNotifications(this.store.state);
+
     const weeks = this.store.state.weeks || [];
     const currentWeek = this.getActiveWeek();
     const upcomingWeek = this.getUpcomingWeek();
     const members = this.store.state.members || [];
     const allStudents = this.store.state.students || [];
+    const notifications = this.store.state.notifications || [];
+    const unreadCount = notifications.filter(n => n.unread).length;
 
     let topStudent = null;
     let topTotalScore = currentWeek ? currentWeek.totalScore : null;
@@ -1395,7 +1491,7 @@ class OLAGApp {
             <div class="stat-card-icon">📅</div>
           </div>
 
-          <div class="stat-card card-purple" style="cursor: pointer;" onclick="document.getElementById('adminDashboardCommitteeSection')?.scrollIntoView({behavior: 'smooth'})" title="Click to view committee members">
+          <div class="stat-card card-purple" style="cursor: pointer;" onclick="app.navigateTo('committee')" title="Click to open Committee Members Directory">
             <div class="stat-card-text">
               <span class="stat-card-title">Evaluators</span>
               <span class="stat-card-value">${members.length}</span>
@@ -1567,103 +1663,164 @@ class OLAGApp {
       </div>
 
       <!-- =========================================================================
-           ADMIN DASHBOARD: REGISTERED COMMITTEE MEMBERS & EVALUATORS
+           ADMIN DASHBOARD: NOTIFICATIONS & ACTIVITY ALERTS
            ========================================================================= -->
-      <div class="scoring-table-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;" id="adminDashboardCommitteeSection">
-        <div class="scoring-table-title" style="padding: 1.1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div class="scoring-table-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;" id="adminDashboardNotificationsSection">
+        <div class="scoring-table-title" style="padding: 1.1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid #e2e8f0;">
           <div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span style="font-size: 1.25rem;">👥</span>
-              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">Registered Committee Members &amp; Evaluators</span>
-              <span style="background: #e0f2fe; color: #0369a1; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
-                ${members.length} Registered Member${members.length === 1 ? '' : 's'}
+              <span style="font-size: 1.25rem;">🔔</span>
+              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">Notifications</span>
+              <span style="background: ${unreadCount > 0 ? '#dbeafe' : '#f1f5f9'}; color: ${unreadCount > 0 ? '#1d4ed8' : 'var(--navy-primary)'}; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                ${unreadCount > 0 ? `${unreadCount} Unread` : `${notifications.length} Notification${notifications.length === 1 ? '' : 's'}`}
               </span>
             </div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-              Official faculty and staff evaluators authorized to submit weekly student assessments.
+              Real-time alerts for committee member registrations, score submissions, and assessment updates.
             </div>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddMemberModal()">
-              👥 + Add Member
-            </button>
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #e2e8f0; color: #1e293b;" onclick="app.navigateTo('committee')">
-              Full Directory ➜
-            </button>
+            ${unreadCount > 0 ? `
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;" onclick="app.markAllNotificationsRead()">
+                ✓ Mark All Read
+              </button>
+            ` : ''}
+            ${notifications.length > 0 ? `
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #f1f5f9; color: #475569;" onclick="app.clearAllNotifications()">
+                🗑️ Clear Notifications
+              </button>
+            ` : ''}
           </div>
         </div>
 
-        <div style="overflow-x: auto;">
-          <table class="table-standard">
-            <thead>
-              <tr>
-                <th style="width: 50px;">No.</th>
-                <th>Member / Evaluator</th>
-                <th>Role / Designation</th>
-                <th>Assigned Scope</th>
-                <th>Username</th>
-                <th>Status</th>
-                <th style="text-align: center; width: 150px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${members.length === 0 ? `
-                <tr>
-                  <td colspan="7" style="text-align: center; padding: 2.25rem 1rem; color: var(--text-muted);">
-                    <div style="font-size: 1.85rem; margin-bottom: 0.4rem;">👥</div>
-                    <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">No Committee Members Registered Yet</div>
-                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
-                      Register committee evaluators so faculty members can log in, access rubric criteria, and evaluate students.
+        <div style="padding: 0.85rem 1.25rem; display: flex; flex-direction: column; gap: 0.65rem;">
+          ${notifications.length === 0 ? `
+            <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+              <div style="font-size: 1.85rem; margin-bottom: 0.35rem;">🔕</div>
+              <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.2rem;">No Notifications Right Now</div>
+              <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto;">
+                New committee member registrations, student evaluations, and interval updates will appear here automatically.
+              </div>
+            </div>
+          ` : notifications.map(n => {
+            const bgMap = {
+              member: { bg: '#ecfdf5', border: '#a7f3d0', iconBg: '#059669' },
+              score: { bg: '#eff6ff', border: '#bfdbfe', iconBg: '#2563eb' },
+              student: { bg: '#f8fafc', border: '#cbd5e1', iconBg: '#0c2340' },
+              interval: { bg: '#fefce8', border: '#fde047', iconBg: '#ca8a04' }
+            };
+            const palette = bgMap[n.type] || bgMap.score;
+            return `
+              <div class="admin-notification-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; padding: 0.85rem 1rem; border-radius: 10px; background: ${n.unread ? palette.bg : 'var(--bg-card)'}; border: 1px solid ${n.unread ? palette.border : '#e2e8f0'}; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 220px;">
+                  <div style="width: 38px; height: 38px; border-radius: 10px; background: ${palette.iconBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+                    ${n.icon || '🔔'}
+                  </div>
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                      <span style="font-weight: 800; font-size: 0.9rem; color: var(--navy-primary);">${escapeHtml(n.title)}</span>
+                      ${n.unread ? `<span style="background: #2563eb; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; text-transform: uppercase;">New</span>` : ''}
                     </div>
-                    <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddMemberModal()">
-                      👥 + Register First Committee Member
+                    <div style="font-size: 0.81rem; color: #475569; margin-top: 0.15rem;">
+                      ${escapeHtml(n.message)}
+                    </div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  ${n.actionView ? `
+                    <button type="button" class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.76rem;" onclick="app.openNotificationTarget('${escapeHtml(n.id)}', '${escapeHtml(n.actionView)}')">
+                      ${escapeHtml(n.actionLabel || 'View ➜')}
                     </button>
-                  </td>
-                </tr>
-              ` : members.map((m, idx) => {
-                const initials = m.name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
-                return `
-                  <tr>
-                    <td>${idx + 1}</td>
-                    <td>
-                      <div style="display: flex; align-items: center; gap: 0.65rem;">
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 800; flex-shrink: 0;">
-                          ${initials}
-                        </div>
-                        <div>
-                          <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(m.name)}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>${escapeHtml(m.role || 'Evaluator')}</td>
-                    <td><span style="font-size: 0.78rem; color: #475569;">${escapeHtml(m.scope || 'All Houses & Classes')}</span></td>
-                    <td><code>${escapeHtml(m.username)}</code></td>
-                    <td>
-                      <span class="status-badge-${m.status === 'Active' ? 'active' : 'closed'}" style="font-size: 0.72rem;">
-                        ● ${escapeHtml(m.status || 'Active')}
-                      </span>
-                    </td>
-                    <td style="text-align: center;">
-                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
-                        <button type="button" class="action-icon-btn" title="Evaluate as this Member" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
-                          📝
-                        </button>
-                        <button type="button" class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
-                          ✏️
-                        </button>
-                        <button type="button" class="action-icon-btn delete" title="Delete Member" onclick="app.deleteMember('${m.id}')">
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
+                  ` : ''}
+                  <button type="button" class="action-icon-btn" title="Dismiss Notification" onclick="app.dismissNotification('${escapeHtml(n.id)}')" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
+  }
+
+  addNotification({ id, type = 'info', icon = '🔔', title, message, actionLabel = '', actionView = '' }) {
+    if (!Array.isArray(this.store.state.notifications)) {
+      this.store.state.notifications = [];
+    }
+    if (!Array.isArray(this.store.state.dismissedNotificationIds)) {
+      this.store.state.dismissedNotificationIds = [];
+    }
+    const notifId = id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    this.store.state.dismissedNotificationIds = this.store.state.dismissedNotificationIds.filter(d => d !== notifId);
+    this.store.state.notifications = this.store.state.notifications.filter(n => n && n.id !== notifId);
+    this.store.state.notifications.unshift({
+      id: notifId,
+      type,
+      icon,
+      title,
+      message,
+      actionLabel,
+      actionView,
+      unread: true,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  openNotificationTarget(notifId, targetView) {
+    if (Array.isArray(this.store.state.notifications)) {
+      const item = this.store.state.notifications.find(n => n && n.id === notifId);
+      if (item) item.unread = false;
+    }
+    this.store.save();
+    if (targetView) {
+      this.navigateTo(targetView);
+    } else {
+      this.render();
+    }
+  }
+
+  dismissNotification(notifId) {
+    if (!notifId) return;
+    if (!Array.isArray(this.store.state.dismissedNotificationIds)) {
+      this.store.state.dismissedNotificationIds = [];
+    }
+    if (!this.store.state.dismissedNotificationIds.includes(notifId)) {
+      this.store.state.dismissedNotificationIds.push(notifId);
+    }
+    if (Array.isArray(this.store.state.notifications)) {
+      this.store.state.notifications = this.store.state.notifications.filter(n => n && n.id !== notifId);
+    }
+    this.store.save();
+    this.render();
+  }
+
+  markAllNotificationsRead() {
+    if (Array.isArray(this.store.state.notifications)) {
+      this.store.state.notifications.forEach(n => {
+        if (n) n.unread = false;
+      });
+    }
+    this.store.save();
+    this.render();
+    this.showToast('✓ All notifications marked as read.');
+  }
+
+  clearAllNotifications() {
+    if (!Array.isArray(this.store.state.dismissedNotificationIds)) {
+      this.store.state.dismissedNotificationIds = [];
+    }
+    if (Array.isArray(this.store.state.notifications)) {
+      this.store.state.notifications.forEach(n => {
+        if (n && n.id && !this.store.state.dismissedNotificationIds.includes(n.id)) {
+          this.store.state.dismissedNotificationIds.push(n.id);
+        }
+      });
+      this.store.state.notifications = [];
+    }
+    this.store.save();
+    this.render();
+    this.showToast('🗑️ Cleared all notifications.');
   }
 
   // =========================================================================
@@ -2589,6 +2746,15 @@ class OLAGApp {
         };
 
         this.recalculateWeekResults(currentWeekId);
+        this.addNotification({
+          id: `notif-score-${currentWeekId}-${selectedStudent.id}`,
+          type: 'score',
+          icon: '📝',
+          title: `Assessment Scores Submitted (${currentWeekObj ? currentWeekObj.name : 'Weekly'})`,
+          message: `${evaluator.name} submitted scores for ${selectedStudent.name} (${selectedStudent.class}): ${total}/${maxTotalScore} (${pct}%).`,
+          actionLabel: 'View Rankings ➜',
+          actionView: 'rankings'
+        });
         this.store.save();
         this.showToast(`✓ Scores submitted for ${selectedStudent.name} by ${evaluator.name}: ${total}/${maxTotalScore} (${pct}%)`);
         this.renderAssessment();
@@ -2840,21 +3006,22 @@ class OLAGApp {
     const container = document.getElementById('view-committee');
     if (!container) return;
 
+    const allMembers = this.store.state.members || [];
     const searchQuery = (this.store.state.committeeSearchQuery || '').toLowerCase().trim();
     const roleFilter = this.store.state.committeeRoleFilter || 'All';
     const statusFilter = this.store.state.committeeStatusFilter || 'All';
 
-    let filtered = this.store.state.members.filter(m => {
-      const matchSearch = !searchQuery || 
-        m.name.toLowerCase().includes(searchQuery) || 
-        m.username.toLowerCase().includes(searchQuery) ||
-        m.role.toLowerCase().includes(searchQuery);
+    let filtered = allMembers.filter(m => {
+      const matchSearch = !searchQuery ||
+        (m.name || '').toLowerCase().includes(searchQuery) ||
+        (m.username || '').toLowerCase().includes(searchQuery) ||
+        (m.role || '').toLowerCase().includes(searchQuery);
 
       let matchRole = true;
-      if (roleFilter === 'Discipline') matchRole = m.role.includes('Discipline') || m.role.includes('Principal');
-      else if (roleFilter === 'Teacher') matchRole = m.role.includes('Teacher');
-      else if (roleFilter === 'House') matchRole = m.role.includes('House');
-      else if (roleFilter === 'Support') matchRole = m.role.includes('Parent') || m.role.includes('Counselor') || m.role.includes('Sports');
+      if (roleFilter === 'Discipline') matchRole = (m.role || '').includes('Discipline') || (m.role || '').includes('Principal');
+      else if (roleFilter === 'Teacher') matchRole = (m.role || '').includes('Teacher');
+      else if (roleFilter === 'House') matchRole = (m.role || '').includes('House');
+      else if (roleFilter === 'Support') matchRole = (m.role || '').includes('Parent') || (m.role || '').includes('Counselor') || (m.role || '').includes('Sports');
 
       let matchStatus = true;
       if (statusFilter !== 'All') matchStatus = m.status === statusFilter;
@@ -2862,82 +3029,132 @@ class OLAGApp {
       return matchSearch && matchRole && matchStatus;
     });
 
+    const hasActiveFilter = !!searchQuery || roleFilter !== 'All' || statusFilter !== 'All';
+
     container.innerHTML = `
-      <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <h2>Manage Committee Members</h2>
-          <p>Add, edit, or manage faculty and committee members who enter weekly assessments.</p>
+      <div class="view-header">
+        <h2>Committee Members Directory</h2>
+        <p>Add, edit, or manage faculty and committee members authorized to submit weekly assessments.</p>
+      </div>
+
+      <div class="scoring-table-card" style="padding: 0; overflow: hidden;" id="committeeDirectorySection">
+        <div class="scoring-table-title" style="padding: 1.15rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-size: 1.25rem;">👥</span>
+              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">Registered Committee Members &amp; Evaluators</span>
+              <span style="background: #e0f2fe; color: #0369a1; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                ${hasActiveFilter ? `${filtered.length} of ${allMembers.length} Members` : `${allMembers.length} Registered Member${allMembers.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Official faculty and staff evaluators authorized to submit weekly student assessments.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="committeeSearchInput" class="form-input"
+              placeholder="🔍 Search member..."
+              value="${escapeHtml(this.store.state.committeeSearchQuery || '')}"
+              style="height: 32px; font-size: 0.78rem; width: 175px; padding: 0 0.65rem;" />
+
+            <select id="committeeRoleFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 155px; padding: 0 1.6rem 0 0.55rem; font-weight: 600;">
+              <option value="All" ${roleFilter === 'All' ? 'selected' : ''}>🎭 All Roles</option>
+              <option value="Discipline" ${roleFilter === 'Discipline' ? 'selected' : ''}>🛡️ Discipline &amp; Exec</option>
+              <option value="Teacher" ${roleFilter === 'Teacher' ? 'selected' : ''}>👨‍🏫 Teacher Reps</option>
+              <option value="House" ${roleFilter === 'House' ? 'selected' : ''}>🏠 House Masters</option>
+              <option value="Support" ${roleFilter === 'Support' ? 'selected' : ''}>🤝 Support &amp; PTA</option>
+            </select>
+
+            <select id="committeeStatusFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 135px; padding: 0 1.6rem 0 0.55rem; font-weight: 600;">
+              <option value="All" ${statusFilter === 'All' ? 'selected' : ''}>All Status</option>
+              <option value="Active" ${statusFilter === 'Active' ? 'selected' : ''}>🟢 Active</option>
+              <option value="Observer" ${statusFilter === 'Observer' ? 'selected' : ''}>🟡 Observer</option>
+              <option value="On Leave" ${statusFilter === 'On Leave' ? 'selected' : ''}>⚪ On Leave</option>
+            </select>
+
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddMemberModal()">
+              👥 + Add Member
+            </button>
+          </div>
         </div>
-        <button type="button" class="btn-navy-action" onclick="app.openAddMemberModal()">
-          👥 + Add Member
-        </button>
-      </div>
 
-      <!-- Interactive Committee Search & Dropdown Filters Bar -->
-      <div class="committee-filter-bar">
-        <input type="text" id="committeeSearchInput" class="form-input" placeholder="🔍 Search committee member by name, role or username..." value="${escapeHtml(this.store.state.committeeSearchQuery || '')}" style="flex: 1; min-width: 220px;" />
-        
-        <select id="committeeRoleFilterSelect" class="form-select" style="max-width: 190px; font-weight: 600;">
-          <option value="All" ${roleFilter === 'All' ? 'selected' : ''}>🎭 All Roles</option>
-          <option value="Discipline" ${roleFilter === 'Discipline' ? 'selected' : ''}>🛡️ Discipline & Exec</option>
-          <option value="Teacher" ${roleFilter === 'Teacher' ? 'selected' : ''}>👨‍🏫 Teacher Reps</option>
-          <option value="House" ${roleFilter === 'House' ? 'selected' : ''}>🏠 House Masters</option>
-          <option value="Support" ${roleFilter === 'Support' ? 'selected' : ''}>🤝 Support & PTA</option>
-        </select>
-
-        <select id="committeeStatusFilterSelect" class="form-select" style="max-width: 150px; font-weight: 600;">
-          <option value="All" ${statusFilter === 'All' ? 'selected' : ''}>All Status</option>
-          <option value="Active" ${statusFilter === 'Active' ? 'selected' : ''}>🟢 Active</option>
-          <option value="Observer" ${statusFilter === 'Observer' ? 'selected' : ''}>🟡 Observer</option>
-          <option value="On Leave" ${statusFilter === 'On Leave' ? 'selected' : ''}>⚪ On Leave</option>
-        </select>
-      </div>
-
-      <div class="scoring-table-card" style="padding: 0; overflow: hidden;">
         <div style="overflow-x: auto;">
           <table class="table-standard">
             <thead>
               <tr>
                 <th style="width: 50px;">No.</th>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Scope</th>
+                <th>Member / Evaluator</th>
+                <th>Role / Designation</th>
+                <th>Assigned Scope</th>
                 <th>Username</th>
                 <th>Status</th>
-                <th style="text-align: center; width: 110px;">Action</th>
+                <th style="text-align: center; width: 150px;">Actions</th>
               </tr>
             </thead>
             <tbody>
               ${filtered.length === 0 ? `
                 <tr>
-                  <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                    No committee members match your filters.
-                  </td>
-                </tr>
-              ` : filtered.map((m, idx) => `
-                <tr>
-                  <td>${idx + 1}</td>
-                  <td><strong>${escapeHtml(m.name)}</strong></td>
-                  <td>${escapeHtml(m.role)}</td>
-                  <td><span style="font-size: 0.76rem; color: #475569;">${escapeHtml(m.scope || 'All Houses & Classes')}</span></td>
-                  <td><code>${escapeHtml(m.username)}</code></td>
-                  <td>
-                    <span class="status-badge-${m.status === 'Active' ? 'active' : 'closed'}">
-                      ● ${escapeHtml(m.status)}
-                    </span>
-                  </td>
-                  <td style="text-align: center;">
-                    <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
-                      <button type="button" class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
-                        ✏️
-                      </button>
-                      <button type="button" class="action-icon-btn delete" title="Delete Committee Member" onclick="app.deleteMember('${m.id}')">
-                        🗑️
-                      </button>
+                  <td colspan="7" style="text-align: center; padding: 2.25rem 1rem; color: var(--text-muted);">
+                    <div style="font-size: 1.85rem; margin-bottom: 0.4rem;">👥</div>
+                    <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">
+                      ${allMembers.length === 0 ? 'No Committee Members Registered Yet' : 'No Matching Committee Members'}
                     </div>
+                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
+                      ${allMembers.length === 0
+                        ? 'Register committee evaluators so faculty members can log in, access rubric criteria, and evaluate students.'
+                        : 'Try clearing your search or role/status filter to see all registered members.'}
+                    </div>
+                    ${allMembers.length === 0 ? `
+                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddMemberModal()">
+                        👥 + Register First Committee Member
+                      </button>
+                    ` : `
+                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('committee')">
+                        Clear Filters (Show All ${allMembers.length})
+                      </button>
+                    `}
                   </td>
                 </tr>
-              `).join('')}
+              ` : filtered.map((m, idx) => {
+                const initials = (m.name || '').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+                return `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 0.65rem;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 800; flex-shrink: 0;">
+                          ${initials}
+                        </div>
+                        <div>
+                          <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(m.name)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>${escapeHtml(m.role || 'Evaluator')}</td>
+                    <td><span style="font-size: 0.78rem; color: #475569;">${escapeHtml(m.scope || 'All Houses & Classes')}</span></td>
+                    <td><code>${escapeHtml(m.username)}</code></td>
+                    <td>
+                      <span class="status-badge-${m.status === 'Active' ? 'active' : 'closed'}" style="font-size: 0.72rem;">
+                        ● ${escapeHtml(m.status || 'Active')}
+                      </span>
+                    </td>
+                    <td style="text-align: center;">
+                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                        <button type="button" class="action-icon-btn" title="Evaluate as this Member" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
+                          📝
+                        </button>
+                        <button type="button" class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
+                          ✏️
+                        </button>
+                        <button type="button" class="action-icon-btn delete" title="Delete Committee Member" onclick="app.deleteMember('${m.id}')">
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
@@ -2947,8 +3164,16 @@ class OLAGApp {
     const searchInp = document.getElementById('committeeSearchInput');
     if (searchInp) {
       searchInp.addEventListener('input', (e) => {
+        const cursorPos = e.target.selectionStart;
         this.store.state.committeeSearchQuery = e.target.value;
         this.renderCommittee();
+        const refreshedInput = document.getElementById('committeeSearchInput');
+        if (refreshedInput) {
+          refreshedInput.focus();
+          if (typeof cursorPos === 'number') {
+            try { refreshedInput.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
+          }
+        }
       });
     }
 
@@ -4488,6 +4713,15 @@ on conflict (id) do nothing;`;
         status: status
       };
       this.store.state.members.push(newMember);
+    this.addNotification({
+      id: `notif-member-${newMember.id}`,
+      type: 'member',
+      icon: '👥',
+      title: `Committee Member Registered: ${newMember.name}`,
+      message: `${newMember.name} (${newMember.role}) registered with username "${newMember.username}" and is Active for student assessments.`,
+      actionLabel: 'View in Directory ➜',
+      actionView: 'committee'
+    });
       this.showToast(`Added committee member: ${name}`);
     }
 
@@ -4606,6 +4840,15 @@ function initOLAGApp() {
       };
 
       app.store.state.students.push(newStudent);
+      app.addNotification({
+        id: `notif-student-${newStudent.id}`,
+        type: 'student',
+        icon: '🎓',
+        title: `New Student Enrolled: ${newStudent.name}`,
+        message: `${newStudent.name} (${newStudent.id}) enrolled in ${newStudent.class}, ${newStudent.house}.`,
+        actionLabel: 'View Students ➜',
+        actionView: 'students'
+      });
       app.store.state.totalStudentsCount = app.store.state.students.length;
       app.store.state.selectedStudentId = newId;
       app.store.state.studentClassFilter = 'All Classes';
