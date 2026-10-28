@@ -176,8 +176,8 @@ a {
 }
 
 .auth-brand-logo-wrap {
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -210,6 +210,15 @@ a {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-top: 2px;
+}
+
+.auth-brand-motto {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #b45309;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 3px;
 }
 
 /* Serif Display Heading & Subtitle */
@@ -385,6 +394,10 @@ a {
 
 [data-theme="dark"] .auth-brand-sub {
   color: #94a3b8;
+}
+
+[data-theme="dark"] .auth-brand-motto {
+  color: #ffc72c;
 }
 
 [data-theme="dark"] .auth-main-heading {
