@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Create Committee Member Account</title>
+  <meta name="description" content="Create an official Committee Member & Head Prefect Evaluator account for Student Personality of the Week at Our Lady of Grace Senior High School (OLAG SHS).">
+  
+  <!-- Modern Google Fonts: Plus Jakarta Sans & Playfair Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Official School Favicon -->
+  <link rel="icon" type="image/png" href="olag_logo.png">
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=8">
+</head>
+<body data-portal-role="committee">
+
+  <!-- Floating Dark/Light Mode Toggle -->
+  <div style="position: fixed; top: 1.25rem; right: 1.25rem; z-index: 100;">
+    <button type="button" class="header-theme-toggle btn-auth-theme-toggle" id="btnAuthThemeToggle" onclick="toggleAuthTheme()" title="Toggle Dark / Light Mode" style="background: rgba(12, 35, 64, 0.08); color: var(--navy-primary); border: 1px solid rgba(12, 35, 64, 0.15);">
+      <span id="authThemeIcon">🌙</span>
+      <span id="authThemeLabel" style="font-size: 0.78rem;">Dark Mode</span>
+    </button>
+  </div>
+
+  <div id="screenLoginWrapper" class="login-split-container">
+    <!-- LEFT HALF: Create Committee Member Account Form -->
+    <div class="auth-panel-form">
+      <div class="auth-form-inner">
+
+        <!-- Brand Logo at top -->
+        <div class="auth-brand-header">
+          <div class="auth-brand-logo-wrap">
+            <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Crest" />
+          </div>
+          <div class="auth-brand-text-wrap">
+            <div class="auth-brand-name">OUR LADY OF GRACE</div>
+            <div class="auth-brand-sub">SENIOR HIGH SCHOOL</div>
+          </div>
+        </div>
+
+        <!-- Mode Switcher Tabs: Create Account / Sign In -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; background: #f1f5f9; padding: 0.3rem; border-radius: 10px; margin-bottom: 1.5rem;">
+          <a href="committee-login.html" style="text-decoration: none; text-align: center; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: transparent; color: #475569; transition: all 0.2s;">
+            🔑 Sign In
+          </a>
+          <button type="button" id="tabCommitteeRegister" style="border: none; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: #059669; color: #ffffff; transition: all 0.2s;">
+            ✨ Create Account
+          </button>
+        </div>
+
+        <!-- Committee Create Account / Registration Form -->
+        <div id="panelCommitteeRegister">
+          <h1 class="auth-main-heading">Create Committee Account</h1>
+          <p class="auth-sub-heading">Register as an official head prefect or committee evaluator</p>
+
+          <form id="registerFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); registerCommitteeAccount(); return false;">
+            <div class="auth-form-group">
+              <label for="regCommitteeName">Full Name</label>
+              <div class="auth-input-container">
+                <input type="text" id="regCommitteeName" class="auth-input-field" placeholder="e.g. Nicole Mills" required />
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteeRole">Role / Designation</label>
+              <div class="auth-input-container">
+                <input type="text" id="regCommitteeRole" class="auth-input-field" placeholder="e.g. Head Boys' Prefect, Assistant Girls' Prefect" list="committeeRoleList" autocomplete="off" required />
+                <datalist id="committeeRoleList">
+                  <option value="Head Boys' Prefect"></option>
+                  <option value="Head Girls' Prefect"></option>
+                  <option value="Assistant Boys' Prefect"></option>
+                  <option value="Assistant Girls' Prefect"></option>
+                  <option value="Compound Prefect"></option>
+                  <option value="Dining Hall Prefect"></option>
+                  <option value="Chapel Prefect"></option>
+                  <option value="Prep / Academic Prefect"></option>
+                  <option value="Entertainment Prefect"></option>
+                  <option value="Sports Prefect"></option>
+                  <option value="House Prefect"></option>
+                  <option value="Discipline Committee Member"></option>
+                  <option value="Committee Member / Evaluator"></option>
+                </datalist>
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteeUsername">Username</label>
+              <div class="auth-input-container">
+                <input type="text" id="regCommitteeUsername" class="auth-input-field" placeholder="Choose a username (min. 3 characters)" autocomplete="username" required />
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteePassword">Password</label>
+              <div class="auth-input-container">
+                <input type="password" id="regCommitteePassword" class="auth-input-field" placeholder="Create a password (min. 3 characters)" autocomplete="new-password" required />
+                <button type="button" id="btnToggleRegPassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="togglePwd('regCommitteePassword', 'btnToggleRegPassword')">👁️</button>
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteeConfirmPassword">Confirm Password</label>
+              <div class="auth-input-container">
+                <input type="password" id="regCommitteeConfirmPassword" class="auth-input-field" placeholder="Re-enter your password" autocomplete="new-password" required onkeydown="if(event.key==='Enter'){event.preventDefault(); registerCommitteeAccount();}" />
+              </div>
+            </div>
+
+            <button type="button" class="auth-submit-btn committee-green-btn" id="btnRegisterSubmitCommittee" onclick="registerCommitteeAccount()">
+              <span>Create Committee Member Account</span>
+            </button>
+
+            <div class="auth-bottom-switch">
+              Already have an account? <a href="committee-login.html" class="auth-green-link">Sign in here</a>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT HALF: Lush Atmospheric Green Gradient Showcase -->
+    <div class="auth-panel-showcase committee-showcase">
+      <div class="auth-showcase-inner">
+        <h2 class="auth-showcase-title">Assess Student Character</h2>
+        <p class="auth-showcase-desc">Official head prefects and committee evaluators portal for weekly student assessments at Our Lady of Grace Senior High School.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toastStack" class="toast-stack"></div>
+
+  <!-- JavaScript Application Bundle (Dedicated Committee Member Portal) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>window.OLAG_PORTAL_ROLE = 'committee';</script>
+  <script src="committee.js?v=1"></script>
+  <script src="app.js?v=10"></script>
+  <script>
+    function updateAuthThemeUI(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const icon = document.getElementById('authThemeIcon');
+      const label = document.getElementById('authThemeLabel');
+      if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      if (label) label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    }
+
+    function toggleAuthTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('olag_theme', next);
+      updateAuthThemeUI(next);
+      if (window.app && window.app.store) {
+        window.app.store.state.theme = next;
+        window.app.store.save();
+      }
+    }
+
+    (function() {
+      const savedTheme = localStorage.getItem('olag_theme') || 'light';
+      updateAuthThemeUI(savedTheme);
+    })();
+
+    function togglePwd(inputId, btnId) {
+      if (window.app && window.app.togglePasswordVisibility) {
+        window.app.togglePasswordVisibility(inputId, btnId);
+        return;
+      }
+      const inp = document.getElementById(inputId);
+      const btn = document.getElementById(btnId);
+      if (!inp) return;
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        if (btn) btn.textContent = '🙈';
+      } else {
+        inp.type = 'password';
+        if (btn) btn.textContent = '👁️';
+      }
+    }
+
+    function registerCommitteeAccount() {
+      if (window.app && window.app.handleCommitteeRegister) {
+        window.app.handleCommitteeRegister();
+        return;
+      }
+      const nameInp = document.getElementById('regCommitteeName');
+      const roleInp = document.getElementById('regCommitteeRole');
+      const userInp = document.getElementById('regCommitteeUsername');
+      const passInp = document.getElementById('regCommitteePassword');
+      const confirmInp = document.getElementById('regCommitteeConfirmPassword');
+
+      const name = nameInp ? nameInp.value.trim() : '';
+      const role = roleInp ? roleInp.value.trim() : 'Committee Member / Evaluator';
+      const username = userInp ? userInp.value.trim().toLowerCase() : '';
+      const password = passInp ? passInp.value.trim() : '';
+      const confirmPassword = confirmInp ? confirmInp.value.trim() : '';
+
+      if (!name) { alert('Please enter your full name.'); if (nameInp) nameInp.focus(); return; }
+      if (!role) { alert('Please enter your role or designation.'); if (roleInp) roleInp.focus(); return; }
+      if (!username || username.length < 3) { alert('Username must be at least 3 characters.'); if (userInp) userInp.focus(); return; }
+      if (!password || password.length < 3) { alert('Password must be at least 3 characters.'); if (passInp) passInp.focus(); return; }
+      if (password !== confirmPassword) { alert('Passwords do not match.'); if (confirmInp) confirmInp.focus(); return; }
+
+      try {
+        const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+        let state = { members: [], notifications: [] };
+        const saved = localStorage.getItem(storageKey);
+        if (saved) state = JSON.parse(saved);
+        if (!Array.isArray(state.members)) state.members = [];
+        if (!Array.isArray(state.notifications)) state.notifications = [];
+
+        const newId = 'mem-' + Date.now();
+        const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+        const newMember = {
+          id: newId,
+          no: state.members.length + 1,
+          name: name,
+          role: role,
+          username: username,
+          password: password,
+          status: 'Active'
+        };
+        state.members.push(newMember);
+        state.notifications.unshift({
+          id: 'notif-member-' + newId,
+          type: 'member',
+          icon: '👥',
+          title: 'Committee Member Registered: ' + name,
+          message: name + ' (' + role + ') registered with username "' + username + '".',
+          actionLabel: 'View in Directory ➜',
+          actionView: 'committee',
+          unread: true,
+          createdAt: new Date().toISOString()
+        });
+        const roleObj = {
+          id: newId,
+          key: 'committee',
+          name: name,
+          title: role,
+          roleTag: role,
+          username: username,
+          avatar: initials,
+          avatarBg: '#059669',
+          dashboardView: 'dashboard-committee',
+          description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
+        };
+        state.currentRoleKey = 'committee';
+        state.currentUser = roleObj;
+        state.currentView = 'dashboard-committee';
+        state.selectedEvaluatorId = newId;
+        state.isLoggedIn = true;
+        localStorage.setItem(storageKey, JSON.stringify(state));
+        localStorage.setItem('OLAG_SHS_COMMITTEE_SESSION', JSON.stringify({
+          isLoggedIn: true,
+          currentRoleKey: 'committee',
+          currentView: 'dashboard-committee',
+          currentUser: roleObj,
+          selectedEvaluatorId: newId
+        }));
+      } catch (e) {}
+      window.location.href = 'committee-dashboard.html';
+    }
+  </script>
+</body>
+</html>

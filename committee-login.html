@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Student Personality of the Week (Committee Portal)</title>
-  <meta name="description" content="Official Student Personality of the Week Committee Member and Evaluator Login Portal for Our Lady of Grace Senior High School (OLAG SHS).">
+  <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Committee Member Login &amp; Create Account</title>
+  <meta name="description" content="Official Student Personality of the Week Committee Member Login and Create Account Portal for Our Lady of Grace Senior High School (OLAG SHS).">
   
-  <!-- Modern Google Fonts: Plus Jakarta Sans & Playfair Display for exact Serif Match -->
+  <!-- Modern Google Fonts: Plus Jakarta Sans & Playfair Display -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -28,11 +28,11 @@
   </div>
 
   <div id="screenLoginWrapper" class="login-split-container">
-    <!-- LEFT HALF: Pristine White Minimalist Form matching screenshot -->
+    <!-- LEFT HALF: Committee Member Login & Create Account Form -->
     <div class="auth-panel-form">
       <div class="auth-form-inner">
 
-        <!-- Brand Logo at top (matching FestiveGh logo placement) -->
+        <!-- Brand Logo at top -->
         <div class="auth-brand-header">
           <div class="auth-brand-logo-wrap">
             <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Crest" />
@@ -43,20 +43,30 @@
           </div>
         </div>
 
+        <!-- Mode Switcher Tabs: Sign In / Create Account -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; background: #f1f5f9; padding: 0.3rem; border-radius: 10px; margin-bottom: 1.5rem;">
+          <button type="button" id="tabCommitteeLogin" onclick="switchCommitteeAuthMode('login')" style="border: none; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: #059669; color: #ffffff; transition: all 0.2s;">
+            🔑 Sign In
+          </button>
+          <button type="button" id="tabCommitteeRegister" onclick="switchCommitteeAuthMode('register')" style="border: none; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: transparent; color: #475569; transition: all 0.2s;">
+            ✨ Create Account
+          </button>
+        </div>
+
         <!-- 2A: Committee Sign In Form -->
         <div id="panelCommitteeLogin">
-          <h1 class="auth-main-heading" id="committeeCardTitle">Welcome back</h1>
-          <p class="auth-sub-heading" id="committeeCardSubtitle">Sign in to your account to continue</p>
+          <h1 class="auth-main-heading" id="committeeCardTitle">Committee Member Login</h1>
+          <p class="auth-sub-heading" id="committeeCardSubtitle">Sign in with your committee member account to evaluate students</p>
 
           <form id="loginFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); signInCommittee(); return false;">
             <div class="auth-form-group">
-              <label for="loginCommitteeUsername">Username or Staff ID</label>
+              <label for="loginCommitteeUsername">Username</label>
               <div class="auth-input-container">
                 <input 
                   type="text" 
                   id="loginCommitteeUsername" 
                   class="auth-input-field" 
-                  placeholder="e.g. akosua.d" 
+                  placeholder="Enter your committee username" 
                   autocomplete="username" 
                   required 
                   onkeydown="if(event.key==='Enter'){event.preventDefault(); signInCommittee();}" 
@@ -71,84 +81,88 @@
                   type="password" 
                   id="loginCommitteePassword" 
                   class="auth-input-field" 
-                  placeholder="••••••••" 
+                  placeholder="Enter your password" 
                   autocomplete="current-password" 
                   required 
                   onkeydown="if(event.key==='Enter'){event.preventDefault(); signInCommittee();}" 
                 />
-                <button type="button" id="btnToggleCommitteePassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginCommitteePassword', 'btnToggleCommitteePassword')">👁️</button>
+                <button type="button" id="btnToggleCommitteePassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="togglePwd('loginCommitteePassword', 'btnToggleCommitteePassword')">👁️</button>
               </div>
             </div>
 
             <button type="button" class="auth-submit-btn committee-green-btn" id="btnLoginSubmitCommittee" onclick="signInCommittee()">
-              <span>Sign in</span>
+              <span>Sign In to Committee Portal</span>
             </button>
 
             <div class="auth-bottom-switch">
-              Don't have an account? <a href="javascript:void(0)" class="auth-green-link" onclick="if(window.app) window.app.switchCommitteeForm('register')">Register as a committee member</a>
+              Don't have an account yet? <a href="javascript:void(0)" class="auth-green-link" onclick="switchCommitteeAuthMode('register')">Create a committee member account</a>
             </div>
           </form>
         </div>
 
-        <!-- 2B: Committee Registration Form -->
+        <!-- 2B: Committee Create Account / Registration Form -->
         <div id="panelCommitteeRegister" style="display: none;">
-          <h1 class="auth-main-heading">Create your account</h1>
-          <p class="auth-sub-heading">Register as a committee member to evaluate students</p>
+          <h1 class="auth-main-heading">Create Committee Account</h1>
+          <p class="auth-sub-heading">Register as an official head prefect or committee evaluator</p>
 
-          <form id="registerFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleCommitteeRegister(); return false;">
+          <form id="registerFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); registerCommitteeAccount(); return false;">
             <div class="auth-form-group">
               <label for="regCommitteeName">Full Name</label>
               <div class="auth-input-container">
-                <input type="text" id="regCommitteeName" class="auth-input-field" placeholder="e.g. Mrs. Akosua Dankwa" required />
+                <input type="text" id="regCommitteeName" class="auth-input-field" placeholder="e.g. Nicole Mills" required />
               </div>
             </div>
 
             <div class="auth-form-group">
               <label for="regCommitteeRole">Role / Designation</label>
               <div class="auth-input-container">
-                <input type="text" id="regCommitteeRole" class="auth-input-field" placeholder="e.g. Discipline Member, House Master" list="committeeRoleList" autocomplete="off" required />
+                <input type="text" id="regCommitteeRole" class="auth-input-field" placeholder="e.g. Head Boys' Prefect, Assistant Girls' Prefect" list="committeeRoleList" autocomplete="off" required />
                 <datalist id="committeeRoleList">
+                  <option value="Head Boys' Prefect"></option>
+                  <option value="Head Girls' Prefect"></option>
+                  <option value="Assistant Boys' Prefect"></option>
+                  <option value="Assistant Girls' Prefect"></option>
+                  <option value="Compound Prefect"></option>
+                  <option value="Dining Hall Prefect"></option>
+                  <option value="Chapel Prefect"></option>
+                  <option value="Prep / Academic Prefect"></option>
+                  <option value="Entertainment Prefect"></option>
+                  <option value="Sports Prefect"></option>
+                  <option value="House Prefect"></option>
                   <option value="Discipline Committee Member"></option>
-                  <option value="Teacher Representative"></option>
-                  <option value="House Master / Mistress"></option>
-                  <option value="Head of Department"></option>
-                  <option value="Guidance Counselor"></option>
-                  <option value="Sports Coordinator"></option>
-                  <option value="Parent Representative (PTA)"></option>
-                  <option value="Chaplaincy Representative"></option>
                   <option value="Committee Member / Evaluator"></option>
                 </datalist>
               </div>
             </div>
 
             <div class="auth-form-group">
-              <label for="regCommitteeUsername">Username / Staff ID</label>
+              <label for="regCommitteeUsername">Username</label>
               <div class="auth-input-container">
-                <input type="text" id="regCommitteeUsername" class="auth-input-field" placeholder="Choose username (e.g. akosua.d)" autocomplete="username" required />
+                <input type="text" id="regCommitteeUsername" class="auth-input-field" placeholder="Choose a username (min. 3 characters)" autocomplete="username" required />
               </div>
             </div>
 
             <div class="auth-form-group">
               <label for="regCommitteePassword">Password</label>
               <div class="auth-input-container">
-                <input type="password" id="regCommitteePassword" class="auth-input-field" placeholder="Create a password" autocomplete="new-password" required />
-                <button type="button" id="btnToggleRegPassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('regCommitteePassword', 'btnToggleRegPassword')">👁️</button>
+                <input type="password" id="regCommitteePassword" class="auth-input-field" placeholder="Create a password (min. 3 characters)" autocomplete="new-password" required />
+                <button type="button" id="btnToggleRegPassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="togglePwd('regCommitteePassword', 'btnToggleRegPassword')">👁️</button>
               </div>
             </div>
 
             <div class="auth-form-group">
               <label for="regCommitteeConfirmPassword">Confirm Password</label>
               <div class="auth-input-container">
-                <input type="password" id="regCommitteeConfirmPassword" class="auth-input-field" placeholder="Re-enter password" autocomplete="new-password" required />
+                <input type="password" id="regCommitteeConfirmPassword" class="auth-input-field" placeholder="Re-enter your password" autocomplete="new-password" required onkeydown="if(event.key==='Enter'){event.preventDefault(); registerCommitteeAccount();}" />
               </div>
             </div>
 
-            <button type="button" class="auth-submit-btn committee-green-btn" id="btnRegisterSubmitCommittee" onclick="if(window.app) window.app.handleCommitteeRegister()">
-              <span>Register as a Committee Member</span>
+            <button type="button" class="auth-submit-btn committee-green-btn" id="btnRegisterSubmitCommittee" onclick="registerCommitteeAccount()">
+              <span>Create Committee Member Account</span>
             </button>
 
             <div class="auth-bottom-switch">
-              Already have an account? <a href="javascript:void(0)" class="auth-green-link" onclick="if(window.app) window.app.switchCommitteeForm('login')">Sign in</a>
+              Already have an account? <a href="javascript:void(0)" class="auth-green-link" onclick="switchCommitteeAuthMode('login')">Sign in here</a>
             </div>
           </form>
         </div>
@@ -156,11 +170,11 @@
       </div>
     </div>
 
-    <!-- RIGHT HALF: Lush Atmospheric Green Gradient Showcase matching FestiveGh -->
+    <!-- RIGHT HALF: Lush Atmospheric Green Gradient Showcase -->
     <div class="auth-panel-showcase committee-showcase">
       <div class="auth-showcase-inner">
         <h2 class="auth-showcase-title">Assess Student Character</h2>
-        <p class="auth-showcase-desc">Evaluate weekly nominees across moral character, academic discipline, and leadership values at Our Lady of Grace Senior High School.</p>
+        <p class="auth-showcase-desc">Official head prefects and committee evaluators portal for weekly student assessments at Our Lady of Grace Senior High School.</p>
       </div>
     </div>
   </div>
@@ -193,80 +207,212 @@
       }
     }
 
-    // Apply saved theme immediately
     (function() {
       const savedTheme = localStorage.getItem('olag_theme') || 'light';
       updateAuthThemeUI(savedTheme);
     })();
 
+    function togglePwd(inputId, btnId) {
+      if (window.app && window.app.togglePasswordVisibility) {
+        window.app.togglePasswordVisibility(inputId, btnId);
+        return;
+      }
+      const inp = document.getElementById(inputId);
+      const btn = document.getElementById(btnId);
+      if (!inp) return;
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        if (btn) btn.textContent = '🙈';
+      } else {
+        inp.type = 'password';
+        if (btn) btn.textContent = '👁️';
+      }
+    }
+
+    function switchCommitteeAuthMode(mode) {
+      const panelLogin = document.getElementById('panelCommitteeLogin');
+      const panelRegister = document.getElementById('panelCommitteeRegister');
+      const tabLogin = document.getElementById('tabCommitteeLogin');
+      const tabRegister = document.getElementById('tabCommitteeRegister');
+
+      if (mode === 'register') {
+        if (panelLogin) panelLogin.style.display = 'none';
+        if (panelRegister) panelRegister.style.display = 'block';
+        if (tabRegister) {
+          tabRegister.style.background = '#059669';
+          tabRegister.style.color = '#ffffff';
+        }
+        if (tabLogin) {
+          tabLogin.style.background = 'transparent';
+          tabLogin.style.color = '#475569';
+        }
+        const nameInp = document.getElementById('regCommitteeName');
+        if (nameInp) nameInp.focus();
+      } else {
+        if (panelLogin) panelLogin.style.display = 'block';
+        if (panelRegister) panelRegister.style.display = 'none';
+        if (tabLogin) {
+          tabLogin.style.background = '#059669';
+          tabLogin.style.color = '#ffffff';
+        }
+        if (tabRegister) {
+          tabRegister.style.background = 'transparent';
+          tabRegister.style.color = '#475569';
+        }
+        const userInp = document.getElementById('loginCommitteeUsername');
+        if (userInp) userInp.focus();
+      }
+    }
+
     function checkRegisterHash() {
       if (window.location.hash === '#register' || window.location.search.includes('register')) {
-        if (window.app && window.app.switchCommitteeForm) {
-          window.app.switchCommitteeForm('register');
-        }
+        switchCommitteeAuthMode('register');
       }
     }
 
     function signInCommittee() {
       if (window.app && window.app.handleCommitteeLogin) {
         window.app.handleCommitteeLogin();
-      } else {
-        const userInp = document.getElementById('loginCommitteeUsername');
-        const passInp = document.getElementById('loginCommitteePassword');
-        const username = userInp ? userInp.value.trim().toLowerCase() : '';
-        const password = passInp ? passInp.value.trim() : '';
-
-        if (!username) {
-          alert('Please enter your committee username.');
-          if (userInp) userInp.focus();
-          return;
-        }
-        if (!password) {
-          alert('Please enter your committee password.');
-          if (passInp) passInp.focus();
-          return;
-        }
-
-        try {
-          const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
-          let state = {};
-          const saved = localStorage.getItem(storageKey);
-          if (saved) state = JSON.parse(saved);
-          state.isLoggedIn = true;
-          state.currentRoleKey = 'committee';
-          state.currentView = 'dashboard-committee';
-          const member = (state.members || []).find(m =>
-            (m.username && m.username.toLowerCase() === username) ||
-            (m.name && m.name.toLowerCase() === username) ||
-            (m.name && m.name.toLowerCase().includes(username))
-          );
-          const name = member ? member.name : (username === 'committee' ? 'Committee Member' : username);
-          const title = member ? (member.role || 'Evaluator') : 'Evaluator';
-          const evalId = member ? member.id : 'role-committee';
-          state.currentUser = {
-            id: evalId,
-            key: 'committee',
-            name: name,
-            title: title,
-            roleTag: title,
-            username: member ? member.username : username,
-            avatar: name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM',
-            avatarBg: '#059669',
-            dashboardView: 'dashboard-committee',
-            description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
-          };
-          state.selectedEvaluatorId = evalId;
-          localStorage.setItem(storageKey, JSON.stringify(state));
-          localStorage.setItem('OLAG_SHS_COMMITTEE_SESSION', JSON.stringify({
-            isLoggedIn: true,
-            currentRoleKey: 'committee',
-            currentView: 'dashboard-committee',
-            currentUser: state.currentUser,
-            selectedEvaluatorId: state.selectedEvaluatorId
-          }));
-        } catch (e) {}
-        window.location.href = 'committee-dashboard.html';
+        return;
       }
+      const userInp = document.getElementById('loginCommitteeUsername');
+      const passInp = document.getElementById('loginCommitteePassword');
+      const username = userInp ? userInp.value.trim().toLowerCase() : '';
+      const password = passInp ? passInp.value.trim() : '';
+
+      if (!username) {
+        alert('Please enter your committee username.');
+        if (userInp) userInp.focus();
+        return;
+      }
+      if (!password) {
+        alert('Please enter your committee password.');
+        if (passInp) passInp.focus();
+        return;
+      }
+
+      try {
+        const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+        let state = {};
+        const saved = localStorage.getItem(storageKey);
+        if (saved) state = JSON.parse(saved);
+        state.isLoggedIn = true;
+        state.currentRoleKey = 'committee';
+        state.currentView = 'dashboard-committee';
+        const member = (state.members || []).find(m =>
+          (m.username && m.username.toLowerCase() === username) ||
+          (m.name && m.name.toLowerCase() === username) ||
+          (m.name && m.name.toLowerCase().includes(username))
+        );
+        const name = member ? member.name : (username === 'committee' ? 'Committee Member' : username);
+        const title = member ? (member.role || 'Evaluator') : 'Evaluator';
+        const evalId = member ? member.id : 'role-committee';
+        state.currentUser = {
+          id: evalId,
+          key: 'committee',
+          name: name,
+          title: title,
+          roleTag: title,
+          username: member ? member.username : username,
+          avatar: name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM',
+          avatarBg: '#059669',
+          dashboardView: 'dashboard-committee',
+          description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
+        };
+        state.selectedEvaluatorId = evalId;
+        localStorage.setItem(storageKey, JSON.stringify(state));
+        localStorage.setItem('OLAG_SHS_COMMITTEE_SESSION', JSON.stringify({
+          isLoggedIn: true,
+          currentRoleKey: 'committee',
+          currentView: 'dashboard-committee',
+          currentUser: state.currentUser,
+          selectedEvaluatorId: state.selectedEvaluatorId
+        }));
+      } catch (e) {}
+      window.location.href = 'committee-dashboard.html';
+    }
+
+    function registerCommitteeAccount() {
+      if (window.app && window.app.handleCommitteeRegister) {
+        window.app.handleCommitteeRegister();
+        return;
+      }
+      const nameInp = document.getElementById('regCommitteeName');
+      const roleInp = document.getElementById('regCommitteeRole');
+      const userInp = document.getElementById('regCommitteeUsername');
+      const passInp = document.getElementById('regCommitteePassword');
+      const confirmInp = document.getElementById('regCommitteeConfirmPassword');
+
+      const name = nameInp ? nameInp.value.trim() : '';
+      const role = roleInp ? roleInp.value.trim() : 'Committee Member / Evaluator';
+      const username = userInp ? userInp.value.trim().toLowerCase() : '';
+      const password = passInp ? passInp.value.trim() : '';
+      const confirmPassword = confirmInp ? confirmInp.value.trim() : '';
+
+      if (!name) { alert('Please enter your full name.'); if (nameInp) nameInp.focus(); return; }
+      if (!role) { alert('Please enter your role or designation.'); if (roleInp) roleInp.focus(); return; }
+      if (!username || username.length < 3) { alert('Username must be at least 3 characters.'); if (userInp) userInp.focus(); return; }
+      if (!password || password.length < 3) { alert('Password must be at least 3 characters.'); if (passInp) passInp.focus(); return; }
+      if (password !== confirmPassword) { alert('Passwords do not match.'); if (confirmInp) confirmInp.focus(); return; }
+
+      try {
+        const storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+        let state = { members: [], notifications: [] };
+        const saved = localStorage.getItem(storageKey);
+        if (saved) state = JSON.parse(saved);
+        if (!Array.isArray(state.members)) state.members = [];
+        if (!Array.isArray(state.notifications)) state.notifications = [];
+
+        const newId = 'mem-' + Date.now();
+        const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+        const newMember = {
+          id: newId,
+          no: state.members.length + 1,
+          name: name,
+          role: role,
+          username: username,
+          password: password,
+          status: 'Active'
+        };
+        state.members.push(newMember);
+        state.notifications.unshift({
+          id: 'notif-member-' + newId,
+          type: 'member',
+          icon: '👥',
+          title: 'Committee Member Registered: ' + name,
+          message: name + ' (' + role + ') registered with username "' + username + '".',
+          actionLabel: 'View in Directory ➜',
+          actionView: 'committee',
+          unread: true,
+          createdAt: new Date().toISOString()
+        });
+        const roleObj = {
+          id: newId,
+          key: 'committee',
+          name: name,
+          title: role,
+          roleTag: role,
+          username: username,
+          avatar: initials,
+          avatarBg: '#059669',
+          dashboardView: 'dashboard-committee',
+          description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
+        };
+        state.currentRoleKey = 'committee';
+        state.currentUser = roleObj;
+        state.currentView = 'dashboard-committee';
+        state.selectedEvaluatorId = newId;
+        state.isLoggedIn = true;
+        localStorage.setItem(storageKey, JSON.stringify(state));
+        localStorage.setItem('OLAG_SHS_COMMITTEE_SESSION', JSON.stringify({
+          isLoggedIn: true,
+          currentRoleKey: 'committee',
+          currentView: 'dashboard-committee',
+          currentUser: roleObj,
+          selectedEvaluatorId: newId
+        }));
+      } catch (e) {}
+      window.location.href = 'committee-dashboard.html';
     }
 
     window.addEventListener('DOMContentLoaded', () => {

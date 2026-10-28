@@ -1128,7 +1128,7 @@ class OLAGApp {
       if (typeof window !== 'undefined' && window.location) {
         const href = (window.location.href || '').toLowerCase();
         const pathname = (window.location.pathname || '').toLowerCase();
-        if (href.includes('committee-login') || pathname.includes('committee-login')) {
+        if (href.includes('committee-login') || pathname.includes('committee-login') || href.includes('committee-register') || pathname.includes('committee-register')) {
           window.location.href = 'committee-dashboard.html';
           return;
         }
@@ -1255,7 +1255,7 @@ class OLAGApp {
     if (typeof window !== 'undefined' && window.location) {
       const href = (window.location.href || '').toLowerCase();
       const pathname = (window.location.pathname || '').toLowerCase();
-      if (href.includes('committee-login') || pathname.includes('committee-login')) {
+      if (href.includes('committee-login') || pathname.includes('committee-login') || href.includes('committee-register') || pathname.includes('committee-register')) {
         window.location.href = 'committee-dashboard.html';
         return;
       }
@@ -1299,7 +1299,7 @@ class OLAGApp {
         window.location.href = 'admin-dashboard.html';
         return;
       }
-      if (href.includes('committee-login') || pathname.includes('committee-login')) {
+      if (href.includes('committee-login') || pathname.includes('committee-login') || href.includes('committee-register') || pathname.includes('committee-register')) {
         window.location.href = 'committee-dashboard.html';
         return;
       }
@@ -1420,19 +1420,23 @@ class OLAGApp {
     const loginWrapper = document.getElementById('screenLoginWrapper');
     const appShell = document.getElementById('screenAppShell');
 
+    // Guard for standalone login/register pages (committee-login.html, committee-register.html, admin-login.html)
+    if (!appShell) {
+      if (loginWrapper) loginWrapper.style.display = 'flex';
+      return;
+    }
+
     if (!isLoggedIn) {
       if (loginWrapper) {
         loginWrapper.style.display = 'flex';
-        if (appShell) appShell.style.display = 'none';
+        appShell.style.display = 'none';
         return;
       }
       // On standalone dashboard pages without #screenLoginWrapper, keep the portal session active
       this.store.state.isLoggedIn = true;
     }
     if (loginWrapper) loginWrapper.style.display = 'none';
-    if (appShell) appShell.style.display = 'flex';
-
-    if (!appShell) return; // Guard for standalone pages like committee-login.html
+    appShell.style.display = 'flex';
 
     this.renderTopHeader();
     this.renderSidebar();
