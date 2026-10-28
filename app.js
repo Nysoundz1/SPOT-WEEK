@@ -3198,10 +3198,9 @@ class OLAGApp {
         (m.role || '').toLowerCase().includes(searchQuery);
 
       let matchRole = true;
-      if (roleFilter === 'Discipline') matchRole = (m.role || '').includes('Discipline') || (m.role || '').includes('Principal');
-      else if (roleFilter === 'Teacher') matchRole = (m.role || '').includes('Teacher');
-      else if (roleFilter === 'House') matchRole = (m.role || '').includes('House');
-      else if (roleFilter === 'Support') matchRole = (m.role || '').includes('Parent') || (m.role || '').includes('Counselor') || (m.role || '').includes('Sports');
+      if (roleFilter === 'HeadPrefect') matchRole = (m.role || '').includes('Prefect') && !(m.role || '').includes('Protocol');
+      else if (roleFilter === 'ProtocolPrefect') matchRole = (m.role || '').includes('Protocol');
+      else if (roleFilter !== 'All') matchRole = (m.role || '') === roleFilter;
 
       let matchStatus = true;
       if (statusFilter !== 'All') matchStatus = m.status === statusFilter;
@@ -3238,12 +3237,10 @@ class OLAGApp {
               value="${escapeHtml(this.store.state.committeeSearchQuery || '')}"
               style="height: 32px; font-size: 0.78rem; width: 175px; padding: 0 0.65rem;" />
 
-            <select id="committeeRoleFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 155px; padding: 0 1.6rem 0 0.55rem; font-weight: 600;">
-              <option value="All" ${roleFilter === 'All' ? 'selected' : ''}>🎭 All Roles</option>
-              <option value="Discipline" ${roleFilter === 'Discipline' ? 'selected' : ''}>🛡️ Discipline &amp; Exec</option>
-              <option value="Teacher" ${roleFilter === 'Teacher' ? 'selected' : ''}>👨‍🏫 Teacher Reps</option>
-              <option value="House" ${roleFilter === 'House' ? 'selected' : ''}>🏠 House Masters</option>
-              <option value="Support" ${roleFilter === 'Support' ? 'selected' : ''}>🤝 Support &amp; PTA</option>
+            <select id="committeeRoleFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 175px; padding: 0 1.6rem 0 0.55rem; font-weight: 600;">
+              <option value="All" ${roleFilter === 'All' ? 'selected' : ''}>All Roles</option>
+              <option value="HeadPrefect" ${roleFilter === 'HeadPrefect' ? 'selected' : ''}>Head Prefects (4)</option>
+              <option value="ProtocolPrefect" ${roleFilter === 'ProtocolPrefect' ? 'selected' : ''}>Head Protocol Prefects (4)</option>
             </select>
 
             <select id="committeeStatusFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 135px; padding: 0 1.6rem 0 0.55rem; font-weight: 600;">
@@ -4765,10 +4762,10 @@ on conflict (id) do nothing;`;
     const statusSelect = document.getElementById('addMemberStatus');
     const btnDelete = document.getElementById('btnDeleteMember');
 
-    if (titleEl) titleEl.textContent = '👥 + Add Committee Member';
+    if (titleEl) titleEl.textContent = '+ Add Committee Member';
     if (editIdEl) editIdEl.value = '';
     if (nameInp) nameInp.value = '';
-    if (roleSelect) roleSelect.value = 'Teacher Rep (SHS 2)';
+    if (roleSelect) roleSelect.value = "Head Boys' Prefect";
     if (scopeSelect) scopeSelect.value = 'All Houses & Classes';
     if (usernameInp) usernameInp.value = '';
     if (passInp) passInp.value = '';
@@ -4796,10 +4793,10 @@ on conflict (id) do nothing;`;
     const statusSelect = document.getElementById('addMemberStatus');
     const btnDelete = document.getElementById('btnDeleteMember');
 
-    if (titleEl) titleEl.textContent = `✏️ Edit Committee Member: ${member.name}`;
+    if (titleEl) titleEl.textContent = `Edit Committee Member: ${member.name}`;
     if (editIdEl) editIdEl.value = member.id;
     if (nameInp) nameInp.value = member.name;
-    if (roleSelect) roleSelect.value = member.role || 'Teacher Rep (SHS 2)';
+    if (roleSelect) roleSelect.value = member.role || "Head Boys' Prefect";
     if (scopeSelect) scopeSelect.value = member.scope || 'All Houses & Classes';
     if (usernameInp) usernameInp.value = member.username || '';
     if (passInp) passInp.value = member.password || '';
