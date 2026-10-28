@@ -251,6 +251,7 @@
             dashboardView: 'dashboard-committee',
             description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
           };
+          state.selectedEvaluatorId = member ? member.id : 'committee-default';
           localStorage.setItem(storageKey, JSON.stringify(state));
         } catch (e) {}
         window.location.href = 'index.html';

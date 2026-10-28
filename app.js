@@ -1246,6 +1246,8 @@ class OLAGApp {
     const weeks = this.store.state.weeks || [];
     const currentWeek = this.getActiveWeek();
     const upcomingWeek = this.getUpcomingWeek();
+    const members = this.store.state.members || [];
+    const allStudents = this.store.state.students || [];
 
     let topStudent = null;
     let topTotalScore = currentWeek ? currentWeek.totalScore : null;
@@ -1275,7 +1277,7 @@ class OLAGApp {
       <div class="view-header view-header-with-toggle">
         <div>
           <h2>Administrator Dashboard</h2>
-          <p>Welcome, ${escapeHtml(this.store.state.currentUser.name)}. Full system management and assessment control.</p>
+          <p>Welcome, ${escapeHtml(this.store.state.currentUser.name)}. Full system management, committee evaluators, and student records.</p>
         </div>
         <button type="button" class="btn-toggle-dash-info ${isHidden ? 'is-collapsed' : ''}" id="btnToggleAdminDashInfo" onclick="app.toggleDashboardInfo()" title="Toggle Dashboard Info Cards">
           <span class="dash-toggle-arrow">${isHidden ? '▼' : '▲'}</span>
@@ -1284,11 +1286,12 @@ class OLAGApp {
       </div>
 
       <div class="dashboard-info-collapsible ${isHidden ? 'is-collapsed' : ''}" id="adminDashboardInfoWrap">
-        <div class="stat-cards-grid">
-          <div class="stat-card card-blue">
+        <div class="stat-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.15rem; margin-bottom: 1.5rem;">
+          <div class="stat-card card-blue" style="cursor: pointer;" onclick="document.getElementById('adminDashboardStudentsSection')?.scrollIntoView({behavior: 'smooth'})" title="Click to view all enrolled students">
             <div class="stat-card-text">
               <span class="stat-card-title">Total Students</span>
-              <span class="stat-card-value">${this.store.state.students.length}</span>
+              <span class="stat-card-value">${allStudents.length}</span>
+              <span class="stat-card-sub">Enrolled for assessment</span>
             </div>
             <div class="stat-card-icon">👥</div>
           </div>
@@ -1307,10 +1310,20 @@ class OLAGApp {
             <div class="stat-card-icon">📅</div>
           </div>
 
-          <div class="stat-card card-purple">
+          <div class="stat-card card-purple" style="cursor: pointer;" onclick="document.getElementById('adminDashboardCommitteeSection')?.scrollIntoView({behavior: 'smooth'})" title="Click to view committee members">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Evaluators</span>
+              <span class="stat-card-value">${members.length}</span>
+              <span class="stat-card-sub">Registered committee</span>
+            </div>
+            <div class="stat-card-icon">🛡️</div>
+          </div>
+
+          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.openAddClassModal()" title="Click to manage classes">
             <div class="stat-card-text">
               <span class="stat-card-title">Total Classes</span>
               <span class="stat-card-value">${this.store.state.classes.length}</span>
+              <span class="stat-card-sub">Academic cohorts</span>
             </div>
             <div class="stat-card-icon">🎓</div>
           </div>
@@ -1319,6 +1332,7 @@ class OLAGApp {
             <div class="stat-card-text">
               <span class="stat-card-title">Total Houses</span>
               <span class="stat-card-value">${this.store.state.houses.length}</span>
+              <span class="stat-card-sub">School houses</span>
             </div>
             <div class="stat-card-icon">🏠</div>
           </div>
@@ -1455,9 +1469,9 @@ class OLAGApp {
             <div class="quick-action-label">Add Student</div>
           </div>
 
-          <div class="quick-action-card" onclick="app.navigateTo('committee')">
-            <div class="quick-action-icon">👥</div>
-            <div class="quick-action-label">Committee Members (${this.store.state.members.length})</div>
+          <div class="quick-action-card" onclick="app.openAddMemberModal()">
+            <div class="quick-action-icon">👥➕</div>
+            <div class="quick-action-label">Add Committee Member</div>
           </div>
 
           <div class="quick-action-card" onclick="app.navigateTo('reports')">
@@ -1466,7 +1480,234 @@ class OLAGApp {
           </div>
         </div>
       </div>
+
+      <!-- =========================================================================
+           ADMIN DASHBOARD: REGISTERED COMMITTEE MEMBERS & EVALUATORS
+           ========================================================================= -->
+      <div class="scoring-table-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;" id="adminDashboardCommitteeSection">
+        <div class="scoring-table-title" style="padding: 1.1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-size: 1.25rem;">👥</span>
+              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">Registered Committee Members &amp; Evaluators</span>
+              <span style="background: #e0f2fe; color: #0369a1; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                ${members.length} Registered Member${members.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Official faculty and staff evaluators authorized to submit weekly student assessments.
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddMemberModal()">
+              👥 + Add Member
+            </button>
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #e2e8f0; color: #1e293b;" onclick="app.navigateTo('committee')">
+              Full Directory ➜
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="table-standard">
+            <thead>
+              <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Member / Evaluator</th>
+                <th>Role / Designation</th>
+                <th>Assigned Scope</th>
+                <th>Username</th>
+                <th>Status</th>
+                <th style="text-align: center; width: 150px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${members.length === 0 ? `
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2.25rem 1rem; color: var(--text-muted);">
+                    <div style="font-size: 1.85rem; margin-bottom: 0.4rem;">👥</div>
+                    <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">No Committee Members Registered Yet</div>
+                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
+                      Register committee evaluators so faculty members can log in, access rubric criteria, and evaluate students.
+                    </div>
+                    <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddMemberModal()">
+                      👥 + Register First Committee Member
+                    </button>
+                  </td>
+                </tr>
+              ` : members.map((m, idx) => {
+                const initials = m.name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+                return `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 0.65rem;">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 800; flex-shrink: 0;">
+                          ${initials}
+                        </div>
+                        <div>
+                          <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(m.name)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>${escapeHtml(m.role || 'Evaluator')}</td>
+                    <td><span style="font-size: 0.78rem; color: #475569;">${escapeHtml(m.scope || 'All Houses & Classes')}</span></td>
+                    <td><code>${escapeHtml(m.username)}</code></td>
+                    <td>
+                      <span class="status-badge-${m.status === 'Active' ? 'active' : 'closed'}" style="font-size: 0.72rem;">
+                        ● ${escapeHtml(m.status || 'Active')}
+                      </span>
+                    </td>
+                    <td style="text-align: center;">
+                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                        <button type="button" class="action-icon-btn" title="Evaluate as this Member" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
+                          📝
+                        </button>
+                        <button type="button" class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
+                          ✏️
+                        </button>
+                        <button type="button" class="action-icon-btn delete" title="Delete Member" onclick="app.deleteMember('${m.id}')">
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- =========================================================================
+           ADMIN DASHBOARD: ALL ENROLLED STUDENTS DIRECTORY
+           ========================================================================= -->
+      <div class="scoring-table-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;" id="adminDashboardStudentsSection">
+        <div class="scoring-table-title" style="padding: 1.1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-size: 1.25rem;">🎓</span>
+              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">All Enrolled Students Directory</span>
+              <span id="dashStudentCountBadge" style="background: #f1f5f9; color: var(--navy-primary); font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                ${allStudents.length} Student${allStudents.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Directory of all added students across all classes and houses at Our Lady of Grace SHS.
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="dashStudentSearchInput" class="form-input" placeholder="🔍 Search students..." style="height: 32px; font-size: 0.78rem; width: 170px; padding: 0 0.65rem;" />
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddStudentModal()">
+              👤 + Add Student
+            </button>
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #334155;" onclick="app.openAddClassModal()">
+              🏫 Classes (${this.store.state.classes.length})
+            </button>
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #e2e8f0; color: #1e293b;" onclick="app.navigateTo('students')">
+              Students View ➜
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="table-standard">
+            <thead>
+              <tr>
+                <th style="width: 50px;">No.</th>
+                <th>Student ID</th>
+                <th>Student Name</th>
+                <th>Class</th>
+                <th>House</th>
+                <th>Gender</th>
+                <th>${currentWeek ? escapeHtml(currentWeek.name) : 'Weekly'} Status</th>
+                <th style="text-align: center; width: 150px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allStudents.length === 0 ? `
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+                    <div style="font-size: 2rem; margin-bottom: 0.4rem;">👥</div>
+                    <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">No Students Enrolled Yet</div>
+                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
+                      Add students to the database to begin weekly personality evaluations.
+                    </div>
+                    <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
+                      👤 + Add First Student
+                    </button>
+                  </td>
+                </tr>
+              ` : allStudents.map((s, idx) => {
+                const scoreData = currentWeek && this.store.state.scores[currentWeek.id] ? this.store.state.scores[currentWeek.id][s.id] : null;
+                const isEvaluated = scoreData && typeof scoreData.total === 'number';
+                return `
+                  <tr class="dash-student-row">
+                    <td>${idx + 1}</td>
+                    <td><strong>${escapeHtml(s.id)}</strong></td>
+                    <td>
+                      <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 700; color: var(--navy-primary);">
+                        ${escapeHtml(s.name)}
+                      </a>
+                    </td>
+                    <td>${escapeHtml(s.class)}</td>
+                    <td>${escapeHtml(s.house)}</td>
+                    <td>${escapeHtml(s.gender || '—')}</td>
+                    <td>
+                      ${isEvaluated ? `
+                        <span class="status-badge-active" style="font-size: 0.72rem;">
+                          ✓ Scored: <strong>${scoreData.total}/${currentWeek.maxScore || this.getMaxCriteriaScore()}</strong> (${scoreData.pct}%)
+                        </span>
+                        ${scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : ''}
+                      ` : `
+                        <span class="status-badge-pending" style="font-size: 0.72rem;">
+                          ⏳ Pending Scoring
+                        </span>
+                      `}
+                    </td>
+                    <td style="text-align: center;">
+                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                        <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
+                          👁️
+                        </button>
+                        <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
+                          ✏️
+                        </button>
+                        <button type="button" class="action-icon-btn" title="Enter Scores for Student" onclick="app.scoreStudent('${s.id}')" style="color: #1d4ed8; background: #eff6ff;">
+                          📝
+                        </button>
+                        <button type="button" class="action-icon-btn delete" title="Delete Student" onclick="app.deleteStudent('${s.id}')">
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
     `;
+
+    const adminStudentSearch = document.getElementById('dashStudentSearchInput');
+    if (adminStudentSearch) {
+      adminStudentSearch.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        const rows = container.querySelectorAll('.dash-student-row');
+        let visibleCount = 0;
+        rows.forEach(r => {
+          const text = r.textContent.toLowerCase();
+          const match = !q || text.includes(q);
+          r.style.display = match ? '' : 'none';
+          if (match) visibleCount++;
+        });
+        const countBadge = document.getElementById('dashStudentCountBadge');
+        if (countBadge) {
+          countBadge.textContent = q ? `${visibleCount} of ${allStudents.length} Students` : `${allStudents.length} Students`;
+        }
+      });
+    }
   }
 
   // =========================================================================
@@ -1716,7 +1957,7 @@ class OLAGApp {
                   <strong>All caught up!</strong> All ${totalAssigned} students have been evaluated for ${escapeHtml(weekLabel)}.
                 </td>
               </tr>
-            ` : pendingStudents.slice(0, 5).map(s => `
+            ` : pendingStudents.map(s => `
               <tr>
                 <td><strong>${escapeHtml(s.id)}</strong></td>
                 <td>${escapeHtml(s.name)}</td>
@@ -1754,7 +1995,27 @@ class OLAGApp {
   }
 
   scoreStudentFromQueue(studentId) {
-    this.store.state.selectedStudentId = studentId;
+    const student = this.store.state.students.find(s => s.id === studentId);
+    if (student) {
+      this.store.state.selectedClass = student.class;
+      this.store.state.selectedStudentId = student.id;
+    } else {
+      this.store.state.selectedStudentId = studentId;
+    }
+    this.store.save();
+    this.navigateTo('assessment');
+  }
+
+  scoreStudent(studentId) {
+    this.scoreStudentFromQueue(studentId);
+  }
+
+  evaluateAsMember(memberId) {
+    const member = this.store.state.members.find(m => m.id === memberId);
+    if (!member) return;
+    this.store.state.selectedEvaluatorId = member.id;
+    this.store.save();
+    this.showToast(`Switched active evaluator to ${member.name}`);
     this.navigateTo('assessment');
   }
 
@@ -1950,18 +2211,44 @@ class OLAGApp {
     const classes = this.store.state.classes || [];
     const members = this.store.state.members || [];
     const currentWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
-    const currentClass = this.store.state.selectedClass || classes[0] || '';
+    const currentClass = this.store.state.selectedClass || 'All Classes';
     const currentStudentId = this.store.state.selectedStudentId;
-    const currentEvaluatorId = this.store.state.selectedEvaluatorId || (members[0] ? members[0].id : (this.store.state.currentUser.id || 'committee-default'));
-    const evaluator = members.find(m => m.id === currentEvaluatorId) || members[0] || (this.store.state.currentUser || { name: 'Committee Member', role: 'Evaluator' });
-    const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
+    const isCommitteeUser = this.store.state.currentRoleKey === 'committee';
+    const currentUser = this.store.state.currentUser;
+
+    let currentEvaluatorId = this.store.state.selectedEvaluatorId;
+    if (isCommitteeUser && currentUser && currentUser.id) {
+      currentEvaluatorId = currentUser.id;
+      this.store.state.selectedEvaluatorId = currentEvaluatorId;
+    } else if (!currentEvaluatorId && members.length > 0) {
+      currentEvaluatorId = members[0].id;
+      this.store.state.selectedEvaluatorId = currentEvaluatorId;
+    }
+
+    let evaluator = members.find(m => m.id === currentEvaluatorId);
+    if (!evaluator && currentUser && (currentUser.id === currentEvaluatorId || isCommitteeUser)) {
+      evaluator = {
+        id: currentUser.id || 'committee-default',
+        name: currentUser.name || 'Committee Member',
+        role: currentUser.title || currentUser.roleTag || 'Evaluator',
+        username: currentUser.username || 'committee',
+        status: 'Active'
+      };
+    }
+    if (!evaluator) {
+      evaluator = members[0] || { id: 'committee-default', name: 'Committee Member', role: 'Evaluator', username: 'committee' };
+    }
+
+    const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const isWeekClosed = currentWeekObj && currentWeekObj.status === 'Closed';
     const isWeekUpcoming = currentWeekObj && currentWeekObj.status === 'Upcoming';
     const isScoringLocked = isWeekClosed || isWeekUpcoming;
 
-    const classStudents = this.store.state.students.filter(s => s.class === currentClass);
-    const selectedStudent = (currentStudentId ? classStudents.find(s => s.id === currentStudentId) : null) || classStudents[0] || null;
+    const classStudents = (currentClass === 'All Classes' || !currentClass)
+      ? this.store.state.students
+      : this.store.state.students.filter(s => s.class === currentClass);
+    let selectedStudent = (currentStudentId ? this.store.state.students.find(s => s.id === currentStudentId) : null) || classStudents[0] || null;
 
     const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
     const studentScoreData = selectedStudent ? (weekScores[selectedStudent.id] || {}) : {};
@@ -2076,24 +2363,33 @@ class OLAGApp {
         <div class="filter-field">
           <label>Class</label>
           <select id="assessClassSelect" class="form-select">
+            <option value="All Classes" ${currentClass === 'All Classes' ? 'selected' : ''}>All Classes (${this.store.state.students.length})</option>
             ${classes.map(c => `<option value="${c}" ${c === currentClass ? 'selected' : ''}>${c}</option>`).join('')}
           </select>
         </div>
 
-        <!-- Interactive Committee Evaluator Dropdown -->
+        <!-- Interactive Committee Evaluator Field -->
         <div class="filter-field">
           <label>Committee Evaluator</label>
-          <select id="assessMemberSelect" class="form-select" style="font-weight: 600;">
-            ${members.length === 0 ? `
-              <option value="committee-default">
-                👤 ${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})
-              </option>
-            ` : members.map(m => `
-              <option value="${m.id}" ${m.id === currentEvaluatorId ? 'selected' : ''}>
-                👤 ${escapeHtml(m.name)} (${escapeHtml(m.role)})
-              </option>
-            `).join('')}
-          </select>
+          ${isCurrentlyAdmin ? `
+            <select id="assessMemberSelect" class="form-select" style="font-weight: 600;">
+              ${members.length === 0 ? `
+                <option value="${evaluator.id}">
+                  👤 ${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})
+                </option>
+              ` : members.map(m => `
+                <option value="${m.id}" ${m.id === currentEvaluatorId ? 'selected' : ''}>
+                  👤 ${escapeHtml(m.name)} (${escapeHtml(m.role)})
+                </option>
+              `).join('')}
+            </select>
+          ` : `
+            <div style="font-size: 0.88rem; font-weight: 700; color: var(--navy-primary); padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem; height: 38px;">
+              <span>👤</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})</span>
+              <span style="font-size: 0.7rem; color: #15803d; font-weight: 800; margin-left: auto; white-space: nowrap;">● Active</span>
+            </div>
+          `}
         </div>
 
         <div class="filter-field">
@@ -2212,7 +2508,9 @@ class OLAGApp {
     if (classSelect) {
       classSelect.addEventListener('change', (e) => {
         this.store.state.selectedClass = e.target.value;
-        const matching = this.store.state.students.filter(s => s.class === e.target.value);
+        const matching = e.target.value === 'All Classes'
+          ? this.store.state.students
+          : this.store.state.students.filter(s => s.class === e.target.value);
         this.store.state.selectedStudentId = matching.length > 0 ? matching[0].id : null;
         this.renderAssessment();
       });
@@ -2271,11 +2569,20 @@ class OLAGApp {
         const pct = Number(((total / maxTotalScore) * 100).toFixed(1));
 
         if (!this.store.state.scores[currentWeekId]) this.store.state.scores[currentWeekId] = {};
-        this.store.state.scores[currentWeekId][selectedStudent.id] = { ...scoresObj, total, pct };
+        this.store.state.scores[currentWeekId][selectedStudent.id] = {
+          ...scoresObj,
+          total,
+          pct,
+          evaluatorId: evaluator.id,
+          evaluatorName: evaluator.name,
+          evaluatorRole: evaluator.role,
+          evaluatorUsername: evaluator.username,
+          submittedAt: new Date().toISOString()
+        };
 
         this.recalculateWeekResults(currentWeekId);
         this.store.save();
-        this.showToast(`✓ Scores submitted for ${selectedStudent.name}: ${total}/${maxTotalScore} (${pct}%)`);
+        this.showToast(`✓ Scores submitted for ${selectedStudent.name} by ${evaluator.name}: ${total}/${maxTotalScore} (${pct}%)`);
         this.renderAssessment();
       });
     }
@@ -4041,6 +4348,7 @@ on conflict (id) do nothing;`;
     const roleSelect = document.getElementById('addMemberRole');
     const scopeSelect = document.getElementById('addMemberScope');
     const usernameInp = document.getElementById('addMemberUsername');
+    const passInp = document.getElementById('addMemberPassword');
     const statusSelect = document.getElementById('addMemberStatus');
     const btnDelete = document.getElementById('btnDeleteMember');
 
@@ -4050,6 +4358,7 @@ on conflict (id) do nothing;`;
     if (roleSelect) roleSelect.value = 'Teacher Rep (SHS 2)';
     if (scopeSelect) scopeSelect.value = 'All Houses & Classes';
     if (usernameInp) usernameInp.value = '';
+    if (passInp) passInp.value = '';
     if (statusSelect) statusSelect.value = 'Active';
     if (btnDelete) btnDelete.style.display = 'none';
 
@@ -4070,6 +4379,7 @@ on conflict (id) do nothing;`;
     const roleSelect = document.getElementById('addMemberRole');
     const scopeSelect = document.getElementById('addMemberScope');
     const usernameInp = document.getElementById('addMemberUsername');
+    const passInp = document.getElementById('addMemberPassword');
     const statusSelect = document.getElementById('addMemberStatus');
     const btnDelete = document.getElementById('btnDeleteMember');
 
@@ -4079,6 +4389,7 @@ on conflict (id) do nothing;`;
     if (roleSelect) roleSelect.value = member.role || 'Teacher Rep (SHS 2)';
     if (scopeSelect) scopeSelect.value = member.scope || 'All Houses & Classes';
     if (usernameInp) usernameInp.value = member.username || '';
+    if (passInp) passInp.value = member.password || '';
     if (statusSelect) statusSelect.value = member.status || 'Active';
     if (btnDelete) btnDelete.style.display = 'inline-flex';
 
@@ -4130,13 +4441,15 @@ on conflict (id) do nothing;`;
     const roleSelect = document.getElementById('addMemberRole');
     const scopeSelect = document.getElementById('addMemberScope');
     const usernameInp = document.getElementById('addMemberUsername');
+    const passInp = document.getElementById('addMemberPassword');
     const statusSelect = document.getElementById('addMemberStatus');
 
     const editId = editIdEl ? editIdEl.value : '';
     const name = nameInp ? nameInp.value.trim() : '';
     const role = roleSelect ? roleSelect.value : 'Teacher Rep (SHS 2)';
     const scope = scopeSelect ? scopeSelect.value : 'All Houses & Classes';
-    const username = usernameInp ? usernameInp.value.trim() : 'user';
+    const username = usernameInp ? usernameInp.value.trim().toLowerCase() : '';
+    const password = passInp && passInp.value.trim() ? passInp.value.trim() : (username || '123456');
     const status = statusSelect ? statusSelect.value : 'Active';
 
     if (!name || !username) {
@@ -4151,6 +4464,7 @@ on conflict (id) do nothing;`;
         existing.role = role;
         existing.scope = scope;
         existing.username = username;
+        existing.password = password;
         existing.status = status;
         this.showToast(`Updated committee member: ${name}`);
       }
@@ -4162,6 +4476,7 @@ on conflict (id) do nothing;`;
         role: role,
         scope: scope,
         username: username,
+        password: password,
         status: status
       };
       this.store.state.members.push(newMember);
@@ -4284,9 +4599,9 @@ function initOLAGApp() {
 
       app.store.state.students.push(newStudent);
       app.store.state.totalStudentsCount = app.store.state.students.length;
-      if (!app.store.state.selectedStudentId) {
-        app.store.state.selectedStudentId = newId;
-      }
+      app.store.state.selectedStudentId = newId;
+      app.store.state.studentClassFilter = 'All Classes';
+      app.store.state.studentSearchQuery = '';
       app.store.save();
 
       app.closeModals();
