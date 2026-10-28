@@ -176,9 +176,69 @@ class OLAGStore {
       this.state.criteria = remoteState.criteria;
     }
 
+    this.normalizeStudentsAndClasses(this.state);
+
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.state));
     } catch (e) {}
+  }
+
+  normalizeStudentsAndClasses(stateObj) {
+    if (!stateObj || typeof stateObj !== 'object') return;
+    if (!Array.isArray(stateObj.students)) stateObj.students = [];
+    if (!Array.isArray(stateObj.classes)) stateObj.classes = [...CLASSES_LIST];
+
+    // Ensure every student class exists in stateObj.classes
+    stateObj.students.forEach(s => {
+      if (s && s.class && !stateObj.classes.includes(s.class)) {
+        stateObj.classes.push(s.class);
+      }
+    });
+
+    // Deduplicate student IDs if any collision occurred (e.g. two OLAG003 entries)
+    const seenIds = new Set();
+    let maxNum = 0;
+    stateObj.students.forEach(s => {
+      const m = s && s.id ? String(s.id).match(/^OLAG(\d+)$/i) : null;
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n > maxNum) maxNum = n;
+      }
+    });
+
+    stateObj.students.forEach((s, idx) => {
+      if (!s) return;
+      if (!s.id || seenIds.has(s.id)) {
+        maxNum = Math.max(maxNum + 1, idx + 1);
+        let candidate = `OLAG${String(maxNum).padStart(3, '0')}`;
+        while (seenIds.has(candidate)) {
+          maxNum++;
+          candidate = `OLAG${String(maxNum).padStart(3, '0')}`;
+        }
+        s.id = candidate;
+      }
+      seenIds.add(s.id);
+    });
+  }
+
+  getNextStudentId() {
+    const students = (this.state && Array.isArray(this.state.students)) ? this.state.students : [];
+    const existingIds = new Set(students.map(s => s.id));
+    let maxNum = 0;
+    students.forEach(s => {
+      const m = s && s.id ? String(s.id).match(/^OLAG(\d+)$/i) : null;
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n > maxNum) maxNum = n;
+      }
+    });
+    let nextNum = Math.max(maxNum + 1, students.length + 1);
+    let candidate = `OLAG${String(nextNum).padStart(3, '0')}`;
+    while (existingIds.has(candidate)) {
+      nextNum++;
+      candidate = `OLAG${String(nextNum).padStart(3, '0')}`;
+    }
+    return candidate;
   }
 
   subscribeToRealtime() {
@@ -270,6 +330,7 @@ class OLAGStore {
             });
           }
         }
+        this.normalizeStudentsAndClasses(parsed);
         return parsed;
       }
     } catch (e) {
@@ -1054,6 +1115,11 @@ class OLAGApp {
   navigateTo(viewId, payload = null) {
     this.closeMobileSidebar();
     this.store.state.currentView = viewId;
+    if (viewId === 'students' && !(payload && payload.preserveFilters)) {
+      this.store.state.studentClassFilter = 'All Classes';
+      this.store.state.studentHouseFilter = 'All Houses';
+      this.store.state.studentSearchQuery = '';
+    }
     if (payload && payload.studentId) {
       this.store.state.selectedStudentId = payload.studentId;
     }
@@ -1287,7 +1353,7 @@ class OLAGApp {
 
       <div class="dashboard-info-collapsible ${isHidden ? 'is-collapsed' : ''}" id="adminDashboardInfoWrap">
         <div class="stat-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.15rem; margin-bottom: 1.5rem;">
-          <div class="stat-card card-blue" style="cursor: pointer;" onclick="document.getElementById('adminDashboardStudentsSection')?.scrollIntoView({behavior: 'smooth'})" title="Click to view all enrolled students">
+          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.navigateTo('students')" title="Click to open Students Dashboard">
             <div class="stat-card-text">
               <span class="stat-card-title">Total Students</span>
               <span class="stat-card-value">${allStudents.length}</span>
@@ -1578,136 +1644,7 @@ class OLAGApp {
           </table>
         </div>
       </div>
-
-      <!-- =========================================================================
-           ADMIN DASHBOARD: ALL ENROLLED STUDENTS DIRECTORY
-           ========================================================================= -->
-      <div class="scoring-table-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;" id="adminDashboardStudentsSection">
-        <div class="scoring-table-title" style="padding: 1.1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span style="font-size: 1.25rem;">🎓</span>
-              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">All Enrolled Students Directory</span>
-              <span id="dashStudentCountBadge" style="background: #f1f5f9; color: var(--navy-primary); font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
-                ${allStudents.length} Student${allStudents.length === 1 ? '' : 's'}
-              </span>
-            </div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-              Directory of all added students across all classes and houses at Our Lady of Grace SHS.
-            </div>
-          </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="dashStudentSearchInput" class="form-input" placeholder="🔍 Search students..." style="height: 32px; font-size: 0.78rem; width: 170px; padding: 0 0.65rem;" />
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddStudentModal()">
-              👤 + Add Student
-            </button>
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #334155;" onclick="app.openAddClassModal()">
-              🏫 Classes (${this.store.state.classes.length})
-            </button>
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #e2e8f0; color: #1e293b;" onclick="app.navigateTo('students')">
-              Students View ➜
-            </button>
-          </div>
-        </div>
-
-        <div style="overflow-x: auto;">
-          <table class="table-standard">
-            <thead>
-              <tr>
-                <th style="width: 50px;">No.</th>
-                <th>Student ID</th>
-                <th>Student Name</th>
-                <th>Class</th>
-                <th>House</th>
-                <th>Gender</th>
-                <th>${currentWeek ? escapeHtml(currentWeek.name) : 'Weekly'} Status</th>
-                <th style="text-align: center; width: 150px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${allStudents.length === 0 ? `
-                <tr>
-                  <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-                    <div style="font-size: 2rem; margin-bottom: 0.4rem;">👥</div>
-                    <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">No Students Enrolled Yet</div>
-                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
-                      Add students to the database to begin weekly personality evaluations.
-                    </div>
-                    <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
-                      👤 + Add First Student
-                    </button>
-                  </td>
-                </tr>
-              ` : allStudents.map((s, idx) => {
-                const scoreData = currentWeek && this.store.state.scores[currentWeek.id] ? this.store.state.scores[currentWeek.id][s.id] : null;
-                const isEvaluated = scoreData && typeof scoreData.total === 'number';
-                return `
-                  <tr class="dash-student-row">
-                    <td>${idx + 1}</td>
-                    <td><strong>${escapeHtml(s.id)}</strong></td>
-                    <td>
-                      <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 700; color: var(--navy-primary);">
-                        ${escapeHtml(s.name)}
-                      </a>
-                    </td>
-                    <td>${escapeHtml(s.class)}</td>
-                    <td>${escapeHtml(s.house)}</td>
-                    <td>${escapeHtml(s.gender || '—')}</td>
-                    <td>
-                      ${isEvaluated ? `
-                        <span class="status-badge-active" style="font-size: 0.72rem;">
-                          ✓ Scored: <strong>${scoreData.total}/${currentWeek.maxScore || this.getMaxCriteriaScore()}</strong> (${scoreData.pct}%)
-                        </span>
-                        ${scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : ''}
-                      ` : `
-                        <span class="status-badge-pending" style="font-size: 0.72rem;">
-                          ⏳ Pending Scoring
-                        </span>
-                      `}
-                    </td>
-                    <td style="text-align: center;">
-                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
-                        <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
-                          👁️
-                        </button>
-                        <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
-                          ✏️
-                        </button>
-                        <button type="button" class="action-icon-btn" title="Enter Scores for Student" onclick="app.scoreStudent('${s.id}')" style="color: #1d4ed8; background: #eff6ff;">
-                          📝
-                        </button>
-                        <button type="button" class="action-icon-btn delete" title="Delete Student" onclick="app.deleteStudent('${s.id}')">
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
     `;
-
-    const adminStudentSearch = document.getElementById('dashStudentSearchInput');
-    if (adminStudentSearch) {
-      adminStudentSearch.addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase().trim();
-        const rows = container.querySelectorAll('.dash-student-row');
-        let visibleCount = 0;
-        rows.forEach(r => {
-          const text = r.textContent.toLowerCase();
-          const match = !q || text.includes(q);
-          r.style.display = match ? '' : 'none';
-          if (match) visibleCount++;
-        });
-        const countBadge = document.getElementById('dashStudentCountBadge');
-        if (countBadge) {
-          countBadge.textContent = q ? `${visibleCount} of ${allStudents.length} Students` : `${allStudents.length} Students`;
-        }
-      });
-    }
   }
 
   // =========================================================================
@@ -2057,17 +1994,24 @@ class OLAGApp {
     const container = document.getElementById('view-students');
     if (!container) return;
 
-    let students = [...this.store.state.students];
-    const query = (this.store.state.studentSearchQuery || '').toLowerCase();
+    this.store.normalizeStudentsAndClasses(this.store.state);
+
+    const allStudents = this.store.state.students || [];
+    const currentWeek = this.getActiveWeek();
+    const allClasses = this.store.state.classes || [];
+    const allHouses = this.store.state.houses || [];
+
+    let students = [...allStudents];
+    const query = (this.store.state.studentSearchQuery || '').toLowerCase().trim();
     const classFilter = this.store.state.studentClassFilter || 'All Classes';
     const houseFilter = this.store.state.studentHouseFilter || 'All Houses';
 
     if (query) {
-      students = students.filter(s => 
-        s.name.toLowerCase().includes(query) || 
-        s.id.toLowerCase().includes(query) || 
-        s.class.toLowerCase().includes(query) || 
-        s.house.toLowerCase().includes(query)
+      students = students.filter(s =>
+        (s.name || '').toLowerCase().includes(query) ||
+        (s.id || '').toLowerCase().includes(query) ||
+        (s.class || '').toLowerCase().includes(query) ||
+        (s.house || '').toLowerCase().includes(query)
       );
     }
 
@@ -2076,101 +2020,151 @@ class OLAGApp {
     }
 
     if (houseFilter !== 'All Houses') {
-      students = students.filter(s => s.house.toLowerCase().includes(houseFilter.toLowerCase()));
+      students = students.filter(s => (s.house || '').toLowerCase().includes(houseFilter.toLowerCase()));
     }
+
+    const hasActiveFilter = !!query || classFilter !== 'All Classes' || houseFilter !== 'All Houses';
 
     container.innerHTML = `
       <div class="view-header">
-        <h2>Manage Students</h2>
-        <p>Add, edit or view student information.</p>
+        <h2>Students Dashboard</h2>
+        <p>Add, edit, evaluate or view all enrolled student records across all classes and houses.</p>
       </div>
 
-      <div class="table-filter-toolbar">
-        <div class="toolbar-left-search">
-          <div class="search-input-wrapper">
-            <span class="search-icon-pos">🔍</span>
-            <input type="text" id="studentSearchInput" class="form-input" 
-              placeholder="Search by name, ID, class or house..." 
-              value="${escapeHtml(this.store.state.studentSearchQuery)}" />
+      <!-- =========================================================================
+           STUDENTS DASHBOARD: ALL ENROLLED STUDENTS DIRECTORY
+           ========================================================================= -->
+      <div class="scoring-table-card" style="padding: 0; overflow: hidden;" id="studentsDirectorySection">
+        <div class="scoring-table-title" style="padding: 1.15rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-size: 1.25rem;">🎓</span>
+              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">All Enrolled Students Directory</span>
+              <span id="studentsDirectoryCountBadge" style="background: #f1f5f9; color: var(--navy-primary); font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                ${hasActiveFilter ? `${students.length} of ${allStudents.length} Students` : `${allStudents.length} Student${allStudents.length === 1 ? '' : 's'}`}
+              </span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Directory of all added students across all classes and houses at Our Lady of Grace SHS.
+            </div>
           </div>
 
-          <select id="studentClassFilterSelect" class="form-select" style="max-width: 140px;">
-            <option value="All Classes">All Classes</option>
-            ${this.store.state.classes.map(c => `<option value="${c}" ${c === classFilter ? 'selected' : ''}>${c}</option>`).join('')}
-          </select>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="studentSearchInput" class="form-input"
+              placeholder="🔍 Search students..."
+              value="${escapeHtml(this.store.state.studentSearchQuery || '')}"
+              style="height: 32px; font-size: 0.78rem; width: 175px; padding: 0 0.65rem;" />
 
-          <select id="studentHouseFilterSelect" class="form-select" style="max-width: 140px;">
-            <option value="All Houses">All Houses</option>
-            ${this.store.state.houses.map(h => `<option value="${h}" ${houseFilter === h ? 'selected' : ''}>${h}</option>`).join('')}
-          </select>
+            <select id="studentClassFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 140px; padding: 0 1.6rem 0 0.55rem;">
+              <option value="All Classes">All Classes</option>
+              ${allClasses.map(c => `<option value="${escapeHtml(c)}" ${c === classFilter ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+            </select>
+
+            <select id="studentHouseFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 140px; padding: 0 1.6rem 0 0.55rem;">
+              <option value="All Houses">All Houses</option>
+              ${allHouses.map(h => `<option value="${escapeHtml(h)}" ${houseFilter === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
+            </select>
+
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddStudentModal()">
+              👤 + Add Student
+            </button>
+
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #334155;" onclick="app.openAddClassModal()">
+              🏫 Classes (${allClasses.length})
+            </button>
+          </div>
         </div>
 
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button type="button" class="btn-navy-action" style="background: #334155;" onclick="app.openAddClassModal()">
-            🏫 Classes (${this.store.state.classes.length})
-          </button>
-          <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
-            + Add Student
-          </button>
-        </div>
-      </div>
-
-      <div class="scoring-table-card" style="padding: 0; overflow: hidden;">
         <div style="overflow-x: auto;">
           <table class="table-standard">
             <thead>
               <tr>
                 <th style="width: 50px;">No.</th>
                 <th>Student ID</th>
-                <th>Name</th>
+                <th>Student Name</th>
                 <th>Class</th>
                 <th>House</th>
                 <th>Gender</th>
-                <th style="width: 110px; text-align: center;">Action</th>
+                <th>${currentWeek ? escapeHtml(currentWeek.name) : 'Weekly'} Status</th>
+                <th style="text-align: center; width: 150px;">Actions</th>
               </tr>
             </thead>
             <tbody>
               ${students.length === 0 ? `
                 <tr>
-                  <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                    No students found in the database.<br>
-                    <button type="button" class="btn-navy-action" style="margin-top: 0.75rem;" onclick="app.openAddStudentModal()">
-                      + Add First Student
-                    </button>
+                  <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+                    <div style="font-size: 2rem; margin-bottom: 0.4rem;">👥</div>
+                    <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">
+                      ${allStudents.length === 0 ? 'No Students Enrolled Yet' : 'No Matching Students Found'}
+                    </div>
+                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
+                      ${allStudents.length === 0
+                        ? 'Add students to the database to begin weekly personality evaluations.'
+                        : 'Try clearing your search or class/house filter to see all enrolled students.'}
+                    </div>
+                    ${allStudents.length === 0 ? `
+                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
+                        👤 + Add First Student
+                      </button>
+                    ` : `
+                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('students')">
+                        Clear Filters (Show All ${allStudents.length})
+                      </button>
+                    `}
                   </td>
                 </tr>
-              ` : students.map((s, idx) => `
-                <tr>
-                  <td>${idx + 1}</td>
-                  <td><strong>${escapeHtml(s.id)}</strong></td>
-                  <td>
-                    <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 700; color: var(--navy-primary);">
-                      ${escapeHtml(s.name)}
-                    </a>
-                  </td>
-                  <td>${escapeHtml(s.class)}</td>
-                  <td>${escapeHtml(s.house)}</td>
-                  <td>${escapeHtml(s.gender)}</td>
-                  <td style="text-align: center;">
-                    <button class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
-                      👁️
-                    </button>
-                    <button class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
-                      ✏️
-                    </button>
-                    <button class="action-icon-btn delete" title="Delete" onclick="app.deleteStudent('${s.id}')">
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              `).join('')}
+              ` : students.map((s, idx) => {
+                const scoreData = currentWeek && this.store.state.scores[currentWeek.id] ? this.store.state.scores[currentWeek.id][s.id] : null;
+                const isEvaluated = scoreData && typeof scoreData.total === 'number';
+                return `
+                  <tr class="student-directory-row">
+                    <td>${idx + 1}</td>
+                    <td><strong>${escapeHtml(s.id)}</strong></td>
+                    <td>
+                      <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 700; color: var(--navy-primary);">
+                        ${escapeHtml(s.name)}
+                      </a>
+                    </td>
+                    <td>${escapeHtml(s.class)}</td>
+                    <td>${escapeHtml(s.house)}</td>
+                    <td>${escapeHtml(s.gender || '—')}</td>
+                    <td>
+                      ${isEvaluated ? `
+                        <span class="status-badge-active" style="font-size: 0.72rem;">
+                          ✓ Scored: <strong>${scoreData.total}/${currentWeek.maxScore || this.getMaxCriteriaScore()}</strong> (${scoreData.pct}%)
+                        </span>
+                        ${scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : ''}
+                      ` : `
+                        <span class="status-badge-pending" style="font-size: 0.72rem;">
+                          ⏳ Pending Scoring
+                        </span>
+                      `}
+                    </td>
+                    <td style="text-align: center;">
+                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                        <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
+                          👁️
+                        </button>
+                        <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
+                          ✏️
+                        </button>
+                        <button type="button" class="action-icon-btn" title="Enter Scores for Student" onclick="app.scoreStudent('${s.id}')" style="color: #1d4ed8; background: #eff6ff;">
+                          📝
+                        </button>
+                        <button type="button" class="action-icon-btn delete" title="Delete Student" onclick="app.deleteStudent('${s.id}')">
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
 
         <div class="pagination-container">
-          <span>Showing ${students.length > 0 ? '1' : '0'} – ${students.length} of ${this.store.state.students.length} students</span>
+          <span>Showing ${students.length > 0 ? '1' : '0'} – ${students.length} of ${allStudents.length} students</span>
           <div class="pagination-pages">
             <button class="page-btn active">1</button>
           </div>
@@ -2181,8 +2175,16 @@ class OLAGApp {
     const searchInput = document.getElementById('studentSearchInput');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
+        const cursorPos = e.target.selectionStart;
         this.store.state.studentSearchQuery = e.target.value;
         this.renderStudents();
+        const refreshedInput = document.getElementById('studentSearchInput');
+        if (refreshedInput) {
+          refreshedInput.focus();
+          if (typeof cursorPos === 'number') {
+            try { refreshedInput.setSelectionRange(cursorPos, cursorPos); } catch (_) {}
+          }
+        }
       });
     }
 
@@ -4587,7 +4589,7 @@ function initOLAGApp() {
         app.store.state.selectedClass = sClass;
       }
 
-      const newId = `OLAG${String(app.store.state.students.length + 1).padStart(3, '0')}`;
+      const newId = app.store.getNextStudentId();
       const newStudent = {
         id: newId,
         name,
@@ -4601,6 +4603,7 @@ function initOLAGApp() {
       app.store.state.totalStudentsCount = app.store.state.students.length;
       app.store.state.selectedStudentId = newId;
       app.store.state.studentClassFilter = 'All Classes';
+      app.store.state.studentHouseFilter = 'All Houses';
       app.store.state.studentSearchQuery = '';
       app.store.save();
 
