@@ -309,6 +309,7 @@ class OLAGStore {
     this.normalizeStudentsAndClasses(this.state);
     this.applyPortalSession(this.state);
     this.syncEvaluatorWithCurrentLogin(this.state);
+    this.state.theme = localStorage.getItem('olag_theme') || this.state.theme || 'light';
 
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.state));
@@ -532,7 +533,7 @@ class OLAGStore {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
         parsed = JSON.parse(saved);
-        if (!parsed.theme) parsed.theme = localStorage.getItem('olag_theme') || 'light';
+        parsed.theme = localStorage.getItem('olag_theme') || parsed.theme || 'light';
         if (typeof parsed.sidebarCollapsed === 'undefined') parsed.sidebarCollapsed = false;
         if (typeof parsed.dashInfoHidden === 'undefined') parsed.dashInfoHidden = false;
 
@@ -774,26 +775,34 @@ class OLAGApp {
   }
 
   init() {
-    this.applyTheme(this.store.state.theme || 'light');
+    this.applyTheme(localStorage.getItem('olag_theme') || this.store.state.theme || 'light');
     this.applySidebarState();
     this.bindEvents();
     window.addEventListener('resize', () => this.applySidebarState());
     window.addEventListener('storage', (e) => {
+      if (e.key === 'olag_theme' && e.newValue) {
+        this.applyTheme(e.newValue);
+        return;
+      }
       if (e.key === this.store.storageKey) {
         this.store.state = this.store.loadState();
+        this.applyTheme(this.store.state.theme || 'light');
         this.render();
       }
     });
-    window.addEventListener('focus', () => {
+    const refreshFromFocus = () => {
+      const now = Date.now();
+      if (this._lastFocusRefreshAt && now - this._lastFocusRefreshAt < 1000) return;
+      this._lastFocusRefreshAt = now;
       this.store.state = this.store.loadState();
+      this.applyTheme(this.store.state.theme || 'light');
       this.store.fetchFromSupabase();
       this.render();
-    });
+    };
+    window.addEventListener('focus', refreshFromFocus);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        this.store.state = this.store.loadState();
-        this.store.fetchFromSupabase();
-        this.render();
+        refreshFromFocus();
       }
     });
 
@@ -809,28 +818,39 @@ class OLAGApp {
 
   // --- Theme Management (Light & Dark Mode) ---
   applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    this.store.state.theme = theme;
-    localStorage.setItem('olag_theme', theme);
+    const resolved = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', resolved);
+    this.store.state.theme = resolved;
+    localStorage.setItem('olag_theme', resolved);
     this.updateThemeUI();
   }
 
   toggleTheme() {
-    const nextTheme = this.store.state.theme === 'dark' ? 'light' : 'dark';
+    const now = Date.now();
+    if (this._lastThemeToggleAt && now - this._lastThemeToggleAt < 150) return;
+    this._lastThemeToggleAt = now;
+
+    const currentDomTheme = document.documentElement.getAttribute('data-theme');
+    const currentTheme = currentDomTheme || localStorage.getItem('olag_theme') || this.store.state.theme || 'light';
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
     this.setTheme(nextTheme);
   }
 
   setTheme(theme) {
-    this.applyTheme(theme);
-    this.store.save();
-    this.showToast(`Switched to ${theme === 'dark' ? 'Dark' : 'Light'} Mode`);
+    const resolved = theme === 'dark' ? 'dark' : 'light';
+    this.applyTheme(resolved);
+    try {
+      localStorage.setItem(this.store.storageKey, JSON.stringify(this.store.state));
+    } catch (e) {}
+    this.showToast(`Switched to ${resolved === 'dark' ? 'Dark' : 'Light'} Mode`);
     if (this.store.state.currentView === 'settings') {
       this.renderSettings();
     }
   }
 
   updateThemeUI() {
-    const isDark = this.store.state.theme === 'dark';
+    const currentDomTheme = document.documentElement.getAttribute('data-theme');
+    const isDark = (currentDomTheme || this.store.state.theme) === 'dark';
     const iconEl = document.getElementById('themeIconIndicator');
     const labelEl = document.getElementById('themeLabelIndicator');
     if (iconEl) iconEl.textContent = isDark ? '☀️' : '🌙';
@@ -1637,6 +1657,7 @@ class OLAGApp {
     }
 
     this.updateDatabaseStatusUI();
+    this.updateThemeUI();
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const weekPillEl = document.querySelector('.header-week-pill');
 
@@ -5078,17 +5099,21 @@ on conflict (id) do nothing;`;
     const stack = document.getElementById('toastStack');
     if (!stack) return;
 
+    // Clear existing toast notifications so only a single response is shown at once
+    stack.innerHTML = '';
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+
     const item = document.createElement('div');
     item.className = 'toast-item';
     item.innerHTML = `<span>${message}</span>`;
     stack.appendChild(item);
 
-    setTimeout(() => {
+    this._toastTimer = setTimeout(() => {
       item.style.opacity = '0';
       item.style.transform = 'translateX(30px)';
       item.style.transition = 'all 0.25s ease';
       setTimeout(() => item.remove(), 250);
-    }, 3200);
+    }, 2800);
   }
 }
 
