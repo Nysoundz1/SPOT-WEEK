@@ -610,18 +610,21 @@ class OLAGApp {
     const btnLogout = document.getElementById('btnSidebarLogout');
     if (btnLogout) {
       btnLogout.addEventListener('click', () => {
-        this.store.state.isLoggedIn = false;
-        this.store.save();
-        this.render();
-        this.showToast('You have logged out.');
+        this.logout();
       });
     }
 
-    // Switch Dashboard Button & Header Profile click
+    // Dashboard switching is disabled for both Admin and Committee Members
     const btnSwitchDash = document.getElementById('btnSwitchDashboard');
+    if (btnSwitchDash) {
+      btnSwitchDash.style.display = 'none';
+      btnSwitchDash.onclick = null;
+    }
     const headerProfile = document.getElementById('headerUserProfile');
-    if (btnSwitchDash) btnSwitchDash.addEventListener('click', () => this.openRoleSwitcherModal());
-    if (headerProfile) headerProfile.addEventListener('click', () => this.openRoleSwitcherModal());
+    if (headerProfile) {
+      headerProfile.style.cursor = 'default';
+      headerProfile.onclick = null;
+    }
 
     // Form Set Week Interval
     const formSetWeek = document.getElementById('formSetWeekInterval');
@@ -1114,6 +1117,12 @@ class OLAGApp {
 
   navigateTo(viewId, payload = null) {
     this.closeMobileSidebar();
+    const roleKey = this.store.state.currentRoleKey;
+    if (roleKey === 'committee' && (viewId === 'dashboard-admin' || viewId === 'committee' || viewId === 'settings')) {
+      viewId = 'dashboard-committee';
+    } else if (roleKey === 'admin' && viewId === 'dashboard-committee') {
+      viewId = 'dashboard-admin';
+    }
     this.store.state.currentView = viewId;
     if (viewId === 'students' && !(payload && payload.preserveFilters)) {
       this.store.state.studentClassFilter = 'All Classes';
@@ -1205,14 +1214,15 @@ class OLAGApp {
       }
     }
 
-    // Toggle button in header between the two dashboards
+    // Dashboard switching is disabled for both Admin and Committee Members
     if (btnSwitchDash) {
-      btnSwitchDash.innerHTML = isCurrentlyAdmin 
-        ? `<span>👥 Switch to Committee Member</span>` 
-        : `<span>🛡️ Switch to Admin View</span>`;
-      btnSwitchDash.onclick = () => {
-        this.handleLoginByRole(isCurrentlyAdmin ? 'committee' : 'admin');
-      };
+      btnSwitchDash.style.display = 'none';
+      btnSwitchDash.onclick = null;
+    }
+    const headerProfileEl = document.getElementById('headerUserProfile');
+    if (headerProfileEl) {
+      headerProfileEl.style.cursor = 'default';
+      headerProfileEl.onclick = null;
     }
   }
 
@@ -1260,7 +1270,16 @@ class OLAGApp {
   }
 
   renderActiveView() {
-    const view = this.store.state.currentView;
+    const roleKey = this.store.state.currentRoleKey;
+    let view = this.store.state.currentView;
+
+    if (roleKey === 'committee' && (view === 'dashboard-admin' || view === 'committee' || view === 'settings')) {
+      view = 'dashboard-committee';
+      this.store.state.currentView = view;
+    } else if (roleKey === 'admin' && view === 'dashboard-committee') {
+      view = 'dashboard-admin';
+      this.store.state.currentView = view;
+    }
 
     document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
 
@@ -1959,34 +1978,12 @@ class OLAGApp {
 
 
   // =========================================================================
-  // ROLE SWITCHER MODAL
+  // ROLE SWITCHER MODAL (DISABLED - STRICT DASHBOARD SEPARATION)
   // =========================================================================
   openRoleSwitcherModal() {
     const modal = document.getElementById('modalRoleSwitcher');
-    if (!modal) return;
-
-    const list = document.getElementById('roleSwitcherList');
-    const currentKey = this.store.state.currentRoleKey;
-
-    list.innerHTML = Object.keys(SYSTEM_ROLES).map(k => {
-      const role = SYSTEM_ROLES[k];
-      const isSelected = role.key === currentKey;
-      return `
-        <button type="button" class="role-switcher-card-btn ${isSelected ? 'active' : ''}" onclick="app.handleLoginByRole('${role.key}')">
-          <div class="role-avatar-circle" style="background-color: ${role.avatarBg}; color: white;">
-            ${role.avatar}
-          </div>
-          <div style="flex: 1;">
-            <div style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">${escapeHtml(role.name)}</div>
-            <div style="font-size: 0.78rem; font-weight: 700; color: var(--accent-gold);">${escapeHtml(role.roleTag)}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">${escapeHtml(role.description)}</div>
-          </div>
-          ${isSelected ? '<span style="font-weight: 800; color: var(--stat-green); font-size: 0.85rem;">Active</span>' : ''}
-        </button>
-      `;
-    }).join('');
-
-    modal.classList.add('active');
+    if (modal) modal.classList.remove('active');
+    return;
   }
 
   // Common Views
@@ -1996,6 +1993,7 @@ class OLAGApp {
 
     this.store.normalizeStudentsAndClasses(this.store.state);
 
+    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const allStudents = this.store.state.students || [];
     const currentWeek = this.getActiveWeek();
     const allClasses = this.store.state.classes || [];
@@ -2028,7 +2026,9 @@ class OLAGApp {
     container.innerHTML = `
       <div class="view-header">
         <h2>Students Dashboard</h2>
-        <p>Add, edit, evaluate or view all enrolled student records across all classes and houses.</p>
+        <p>${isCurrentlyAdmin
+          ? 'Add, edit, evaluate or view all enrolled student records across all classes and houses.'
+          : 'View enrolled student records and enter weekly personality evaluations.'}</p>
       </div>
 
       <!-- =========================================================================
@@ -2065,13 +2065,15 @@ class OLAGApp {
               ${allHouses.map(h => `<option value="${escapeHtml(h)}" ${houseFilter === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
             </select>
 
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddStudentModal()">
-              👤 + Add Student
-            </button>
+            ${isCurrentlyAdmin ? `
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddStudentModal()">
+                👤 + Add Student
+              </button>
 
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #334155;" onclick="app.openAddClassModal()">
-              🏫 Classes (${allClasses.length})
-            </button>
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #334155;" onclick="app.openAddClassModal()">
+                🏫 Classes (${allClasses.length})
+              </button>
+            ` : ''}
           </div>
         </div>
 
@@ -2099,14 +2101,14 @@ class OLAGApp {
                     </div>
                     <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
                       ${allStudents.length === 0
-                        ? 'Add students to the database to begin weekly personality evaluations.'
+                        ? (isCurrentlyAdmin ? 'Add students to the database to begin weekly personality evaluations.' : 'Students added by the administrator will appear here.')
                         : 'Try clearing your search or class/house filter to see all enrolled students.'}
                     </div>
-                    ${allStudents.length === 0 ? `
+                    ${allStudents.length === 0 ? (isCurrentlyAdmin ? `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
                         👤 + Add First Student
                       </button>
-                    ` : `
+                    ` : '') : `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('students')">
                         Clear Filters (Show All ${allStudents.length})
                       </button>
@@ -2145,15 +2147,19 @@ class OLAGApp {
                         <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
                           👁️
                         </button>
-                        <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
-                          ✏️
-                        </button>
+                        ${isCurrentlyAdmin ? `
+                          <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
+                            ✏️
+                          </button>
+                        ` : ''}
                         <button type="button" class="action-icon-btn" title="Enter Scores for Student" onclick="app.scoreStudent('${s.id}')" style="color: #1d4ed8; background: #eff6ff;">
                           📝
                         </button>
-                        <button type="button" class="action-icon-btn delete" title="Delete Student" onclick="app.deleteStudent('${s.id}')">
-                          🗑️
-                        </button>
+                        ${isCurrentlyAdmin ? `
+                          <button type="button" class="action-icon-btn delete" title="Delete Student" onclick="app.deleteStudent('${s.id}')">
+                            🗑️
+                          </button>
+                        ` : ''}
                       </div>
                     </td>
                   </tr>

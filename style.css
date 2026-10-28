@@ -1142,14 +1142,9 @@ a {
   background: rgba(255, 255, 255, 0.08);
   padding: 0.35rem 0.85rem 0.35rem 0.45rem;
   border-radius: var(--radius-pill);
-  cursor: pointer;
+  cursor: default;
   transition: var(--transition);
   border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.header-user-profile:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: var(--accent-yellow);
 }
 
 .header-user-avatar {
