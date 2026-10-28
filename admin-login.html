@@ -162,21 +162,25 @@
           state.currentRoleKey = 'admin';
           state.currentView = 'dashboard-admin';
           state.currentUser = {
+            id: 'role-admin',
             key: 'admin',
-            name: 'Rev. Fr. Principal',
-            title: 'School Administrator',
-            roleTag: 'Administrator (Head)',
+            name: 'Administrator',
+            title: 'System Administrator',
+            roleTag: 'Administrator',
+            username: 'admin',
             avatar: 'AD',
             avatarBg: '#0c2340',
             dashboardView: 'dashboard-admin',
-            description: 'Complete institutional oversight, assessment management, criteria control, and student records.'
+            description: 'Full administrative oversight: all students, criteria rubric, week intervals, and reports.'
           };
+          state.selectedEvaluatorId = 'role-admin';
           localStorage.setItem(storageKey, JSON.stringify(state));
           localStorage.setItem('OLAG_SHS_ADMIN_SESSION', JSON.stringify({
             isLoggedIn: true,
             currentRoleKey: 'admin',
             currentView: 'dashboard-admin',
-            currentUser: state.currentUser
+            currentUser: state.currentUser,
+            selectedEvaluatorId: 'role-admin'
           }));
         } catch (e) {}
         window.location.href = 'admin-dashboard.html';

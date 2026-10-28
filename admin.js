@@ -12,16 +12,19 @@
     state.currentRoleKey = 'admin';
     if (!state.currentUser || state.currentUser.key !== 'admin') {
       state.currentUser = {
+        id: 'role-admin',
         key: 'admin',
-        name: 'Rev. Fr. Principal',
-        title: 'School Administrator',
-        roleTag: 'Administrator (Head)',
+        name: 'Administrator',
+        title: 'System Administrator',
+        roleTag: 'Administrator',
+        username: 'admin',
         avatar: 'AD',
         avatarBg: '#0c2340',
         dashboardView: 'dashboard-admin',
-        description: 'Complete institutional oversight, assessment management, criteria control, and student records.'
+        description: 'Full administrative oversight: all students, criteria rubric, week intervals, and reports.'
       };
     }
+    state.selectedEvaluatorId = state.currentUser.id || 'role-admin';
     if (!state.currentView || state.currentView === 'dashboard-committee') {
       state.currentView = 'dashboard-admin';
     }
@@ -33,3 +36,4 @@
     enforceAdminPortal();
   }
 })();
+

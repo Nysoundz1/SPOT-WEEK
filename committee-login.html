@@ -235,22 +235,27 @@
           state.isLoggedIn = true;
           state.currentRoleKey = 'committee';
           state.currentView = 'dashboard-committee';
-          const member = (state.members || []).find(m => m.username && m.username.toLowerCase() === username);
+          const member = (state.members || []).find(m =>
+            (m.username && m.username.toLowerCase() === username) ||
+            (m.name && m.name.toLowerCase() === username) ||
+            (m.name && m.name.toLowerCase().includes(username))
+          );
           const name = member ? member.name : (username === 'committee' ? 'Committee Member' : username);
-          const title = member ? member.role : 'Evaluator';
+          const title = member ? (member.role || 'Evaluator') : 'Evaluator';
+          const evalId = member ? member.id : 'role-committee';
           state.currentUser = {
-            id: member ? member.id : 'committee-default',
+            id: evalId,
             key: 'committee',
             name: name,
             title: title,
-            roleTag: 'Committee Member',
-            username: username,
+            roleTag: title,
+            username: member ? member.username : username,
             avatar: name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM',
             avatarBg: '#059669',
             dashboardView: 'dashboard-committee',
             description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
           };
-          state.selectedEvaluatorId = member ? member.id : 'committee-default';
+          state.selectedEvaluatorId = evalId;
           localStorage.setItem(storageKey, JSON.stringify(state));
           localStorage.setItem('OLAG_SHS_COMMITTEE_SESSION', JSON.stringify({
             isLoggedIn: true,

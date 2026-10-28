@@ -194,6 +194,7 @@ class OLAGStore {
 
     this.normalizeStudentsAndClasses(this.state);
     this.applyPortalSession(this.state);
+    this.syncEvaluatorWithCurrentLogin(this.state);
 
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.state));
@@ -431,7 +432,65 @@ class OLAGStore {
       parsed = this.getInitialState();
     }
     this.applyPortalSession(parsed);
+    this.syncEvaluatorWithCurrentLogin(parsed);
     return parsed;
+  }
+
+  syncEvaluatorWithCurrentLogin(stateObj) {
+    if (!stateObj || typeof stateObj !== 'object') return;
+    const isCommittee = stateObj.currentRoleKey === 'committee';
+    if (!isCommittee) {
+      stateObj.currentRoleKey = 'admin';
+      if (!stateObj.currentUser || stateObj.currentUser.key !== 'admin') {
+        stateObj.currentUser = { ...SYSTEM_ROLES.ADMIN };
+      }
+      stateObj.selectedEvaluatorId = stateObj.currentUser.id || 'role-admin';
+    } else {
+      const members = Array.isArray(stateObj.members) ? stateObj.members : [];
+      const cur = stateObj.currentUser;
+      let matched = null;
+      if (cur && cur.key === 'committee') {
+        matched = members.find(m =>
+          (cur.id && m.id === cur.id) ||
+          (cur.username && m.username && m.username.toLowerCase() === cur.username.toLowerCase()) ||
+          (cur.name && m.name && m.name.toLowerCase() === cur.name.toLowerCase())
+        );
+      }
+      if (!matched && stateObj.selectedEvaluatorId && stateObj.selectedEvaluatorId !== 'role-admin') {
+        matched = members.find(m => m.id === stateObj.selectedEvaluatorId);
+      }
+      if (matched) {
+        const initials = matched.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+        stateObj.currentUser = {
+          id: matched.id,
+          key: 'committee',
+          name: matched.name,
+          title: matched.role || 'Evaluator',
+          roleTag: matched.role || 'Committee Member',
+          username: matched.username,
+          avatar: initials,
+          avatarBg: '#059669',
+          dashboardView: 'dashboard-committee',
+          description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
+        };
+        stateObj.selectedEvaluatorId = matched.id;
+      } else if (cur && cur.key === 'committee') {
+        const initials = (cur.name || 'CM').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+        stateObj.currentUser = {
+          ...cur,
+          id: cur.id || 'role-committee',
+          key: 'committee',
+          avatar: cur.avatar || initials,
+          avatarBg: cur.avatarBg || '#059669',
+          title: cur.title || cur.roleTag || 'Evaluator',
+          roleTag: cur.title || cur.roleTag || 'Committee Member'
+        };
+        stateObj.selectedEvaluatorId = stateObj.currentUser.id;
+      } else {
+        stateObj.currentUser = { ...SYSTEM_ROLES.COMMITTEE };
+        stateObj.selectedEvaluatorId = stateObj.currentUser.id || 'role-committee';
+      }
+    }
   }
 
   applyPortalSession(stateObj) {
@@ -1050,8 +1109,8 @@ class OLAGApp {
         id: matchedMember.id,
         key: 'committee',
         name: matchedMember.name,
-        title: matchedMember.role,
-        roleTag: 'Committee Member',
+        title: matchedMember.role || 'Evaluator',
+        roleTag: matchedMember.role || 'Committee Member',
         username: matchedMember.username,
         avatar: initials,
         avatarBg: '#059669',
@@ -1177,8 +1236,8 @@ class OLAGApp {
       id: newMember.id,
       key: 'committee',
       name: newMember.name,
-      title: newMember.role,
-      roleTag: 'Committee Member',
+      title: newMember.role || 'Evaluator',
+      roleTag: newMember.role || 'Committee Member',
       username: newMember.username,
       avatar: initials,
       avatarBg: '#059669',
@@ -1209,22 +1268,22 @@ class OLAGApp {
     const isCommittee = roleKey === 'committee';
     let role;
     if (isCommittee) {
-      const primaryMember = this.store.state.members[0] || { id: 'committee-default', name: 'Committee Member', role: 'Evaluator', username: 'committee' };
       role = {
-        id: primaryMember.id,
+        id: 'role-committee',
         key: 'committee',
-        name: primaryMember.name,
-        title: primaryMember.role,
+        name: 'Committee Member',
+        title: 'Evaluator',
         roleTag: 'Committee Member',
-        username: primaryMember.username,
-        avatar: primaryMember.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM',
+        username: 'committee',
+        avatar: 'CM',
         avatarBg: '#059669',
         dashboardView: 'dashboard-committee',
         description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
       };
-      this.store.state.selectedEvaluatorId = primaryMember.id;
+      this.store.state.selectedEvaluatorId = role.id;
     } else {
-      role = SYSTEM_ROLES.ADMIN;
+      role = { ...SYSTEM_ROLES.ADMIN };
+      this.store.state.selectedEvaluatorId = role.id;
     }
 
     this.store.state.currentRoleKey = role.key;
@@ -1380,7 +1439,29 @@ class OLAGApp {
     this.renderActiveView();
   }
 
+  getCurrentLoginEvaluator() {
+    this.store.syncEvaluatorWithCurrentLogin(this.store.state);
+    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
+    const currentUser = this.store.state.currentUser || (isCurrentlyAdmin ? SYSTEM_ROLES.ADMIN : SYSTEM_ROLES.COMMITTEE);
+    const name = currentUser.name || (isCurrentlyAdmin ? 'Administrator' : 'Committee Member');
+    const role = isCurrentlyAdmin
+      ? (currentUser.roleTag || currentUser.title || 'Administrator')
+      : (currentUser.title || currentUser.roleTag || 'Evaluator');
+    const initials = currentUser.avatar || name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || (isCurrentlyAdmin ? 'AD' : 'CM');
+    const avatarBg = currentUser.avatarBg || (isCurrentlyAdmin ? '#0c2340' : '#059669');
+    return {
+      id: currentUser.id || (isCurrentlyAdmin ? 'role-admin' : 'role-committee'),
+      name: name,
+      role: role,
+      username: currentUser.username || (isCurrentlyAdmin ? 'admin' : 'committee'),
+      avatar: initials,
+      avatarBg: avatarBg,
+      status: 'Active'
+    };
+  }
+
   renderTopHeader() {
+    const evaluator = this.getCurrentLoginEvaluator();
     const user = this.store.state.currentUser;
     const activeWeek = this.getActiveWeek();
     const upcomingWeek = this.getUpcomingWeek();
@@ -1392,11 +1473,11 @@ class OLAGApp {
     const weekIntervalEl = document.getElementById('headerWeekIntervalText');
     const btnSwitchDash = document.getElementById('btnSwitchDashboard');
 
-    if (userNameEl) userNameEl.textContent = user.name;
-    if (userRoleEl) userRoleEl.textContent = user.roleTag;
+    if (userNameEl) userNameEl.textContent = evaluator.name;
+    if (userRoleEl) userRoleEl.textContent = evaluator.role;
     if (userAvatarEl) {
-      userAvatarEl.textContent = user.avatar;
-      userAvatarEl.style.backgroundColor = user.avatarBg;
+      userAvatarEl.textContent = evaluator.avatar;
+      userAvatarEl.style.backgroundColor = evaluator.avatarBg;
       userAvatarEl.style.color = '#ffffff';
     }
 
@@ -2510,30 +2591,9 @@ class OLAGApp {
     const currentStudentId = this.store.state.selectedStudentId;
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const isCommitteeUser = this.store.state.currentRoleKey === 'committee';
-    const currentUser = this.store.state.currentUser;
-
-    let currentEvaluatorId = this.store.state.selectedEvaluatorId;
-    if (isCommitteeUser && currentUser && currentUser.id) {
-      currentEvaluatorId = currentUser.id;
-      this.store.state.selectedEvaluatorId = currentEvaluatorId;
-    } else if (!currentEvaluatorId && members.length > 0) {
-      currentEvaluatorId = members[0].id;
-      this.store.state.selectedEvaluatorId = currentEvaluatorId;
-    }
-
-    let evaluator = members.find(m => m.id === currentEvaluatorId);
-    if (!evaluator && currentUser && (currentUser.id === currentEvaluatorId || isCommitteeUser)) {
-      evaluator = {
-        id: currentUser.id || 'committee-default',
-        name: currentUser.name || 'Committee Member',
-        role: currentUser.title || currentUser.roleTag || 'Evaluator',
-        username: currentUser.username || 'committee',
-        status: 'Active'
-      };
-    }
-    if (!evaluator) {
-      evaluator = members[0] || { id: 'committee-default', name: 'Committee Member', role: 'Evaluator', username: 'committee' };
-    }
+    const evaluator = this.getCurrentLoginEvaluator();
+    const currentEvaluatorId = evaluator.id;
+    this.store.state.selectedEvaluatorId = currentEvaluatorId;
 
     const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const isWeekClosed = currentWeekObj && currentWeekObj.status === 'Closed';
@@ -2613,7 +2673,7 @@ class OLAGApp {
       <!-- Interactive Evaluator & Week Interval Status Banner -->
       <div class="evaluator-banner">
         <div class="evaluator-banner-left">
-          <div class="evaluator-avatar">${evaluator.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM'}</div>
+          <div class="evaluator-avatar" style="background: ${evaluator.avatarBg}; color: #ffffff;">${escapeHtml(evaluator.avatar)}</div>
           <div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">
               Scoring as: ${escapeHtml(evaluator.name)}
@@ -2663,28 +2723,14 @@ class OLAGApp {
           </select>
         </div>
 
-        <!-- Interactive Committee Evaluator Field -->
+        <!-- Committee Evaluator Field Matching Current Login -->
         <div class="filter-field">
           <label>Committee Evaluator</label>
-          ${isCurrentlyAdmin ? `
-            <select id="assessMemberSelect" class="form-select" style="font-weight: 600;">
-              ${members.length === 0 ? `
-                <option value="${evaluator.id}">
-                  👤 ${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})
-                </option>
-              ` : members.map(m => `
-                <option value="${m.id}" ${m.id === currentEvaluatorId ? 'selected' : ''}>
-                  👤 ${escapeHtml(m.name)} (${escapeHtml(m.role)})
-                </option>
-              `).join('')}
-            </select>
-          ` : `
-            <div style="font-size: 0.88rem; font-weight: 700; color: var(--navy-primary); padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem; height: 38px;">
-              <span>👤</span>
-              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})</span>
-              <span style="font-size: 0.7rem; color: #15803d; font-weight: 800; margin-left: auto; white-space: nowrap;">● Active</span>
-            </div>
-          `}
+          <div id="assessCurrentEvaluatorDisplay" style="font-size: 0.88rem; font-weight: 700; color: var(--navy-primary); padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem; height: 38px;">
+            <span>👤</span>
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})</span>
+            <span style="font-size: 0.7rem; color: #15803d; font-weight: 800; margin-left: auto; white-space: nowrap;">● Active</span>
+          </div>
         </div>
 
         <div class="filter-field">
