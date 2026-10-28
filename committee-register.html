@@ -38,10 +38,10 @@
         <!-- Mode Switcher Tabs: Create Account / Sign In -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; background: #f1f5f9; padding: 0.3rem; border-radius: 10px; margin-bottom: 1.5rem;">
           <a href="committee-login.html" style="text-decoration: none; text-align: center; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: transparent; color: #475569; transition: all 0.2s;">
-            🔑 Sign In
+            Sign In
           </a>
           <button type="button" id="tabCommitteeRegister" style="border: none; border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: #059669; color: #ffffff; transition: all 0.2s;">
-            ✨ Create Account
+            Create Account
           </button>
         </div>
 
@@ -91,7 +91,6 @@
               <label for="regCommitteePassword">Password</label>
               <div class="auth-input-container">
                 <input type="password" id="regCommitteePassword" class="auth-input-field" placeholder="Create a password (min. 3 characters)" autocomplete="new-password" required />
-                <button type="button" id="btnToggleRegPassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="togglePwd('regCommitteePassword', 'btnToggleRegPassword')">👁️</button>
               </div>
             </div>
 
@@ -135,44 +134,12 @@
   <script>
     function updateAuthThemeUI(theme) {
       document.documentElement.setAttribute('data-theme', theme);
-      const icon = document.getElementById('authThemeIcon');
-      const label = document.getElementById('authThemeLabel');
-      if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
-      if (label) label.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
-    }
-
-    function toggleAuthTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const next = current === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('olag_theme', next);
-      updateAuthThemeUI(next);
-      if (window.app && window.app.store) {
-        window.app.store.state.theme = next;
-        window.app.store.save();
-      }
     }
 
     (function() {
       const savedTheme = localStorage.getItem('olag_theme') || 'light';
       updateAuthThemeUI(savedTheme);
     })();
-
-    function togglePwd(inputId, btnId) {
-      if (window.app && window.app.togglePasswordVisibility) {
-        window.app.togglePasswordVisibility(inputId, btnId);
-        return;
-      }
-      const inp = document.getElementById(inputId);
-      const btn = document.getElementById(btnId);
-      if (!inp) return;
-      if (inp.type === 'password') {
-        inp.type = 'text';
-        if (btn) btn.textContent = '🙈';
-      } else {
-        inp.type = 'password';
-        if (btn) btn.textContent = '👁️';
-      }
-    }
 
     function registerCommitteeAccount() {
       if (window.app && window.app.handleCommitteeRegister) {
@@ -220,10 +187,10 @@
         state.notifications.unshift({
           id: 'notif-member-' + newId,
           type: 'member',
-          icon: '👥',
+          icon: '',
           title: 'Committee Member Registered: ' + name,
           message: name + ' (' + role + ') registered with username "' + username + '".',
-          actionLabel: 'View in Directory ➜',
+          actionLabel: 'View in Directory',
           actionView: 'committee',
           unread: true,
           createdAt: new Date().toISOString()
