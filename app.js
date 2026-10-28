@@ -3224,7 +3224,7 @@ class OLAGApp {
               </span>
             </div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-              Official faculty and staff evaluators authorized to submit weekly student assessments.
+              Official head prefects evaluators authorized to submit weekly student assessments.
             </div>
           </div>
 
