@@ -1840,6 +1840,9 @@ class OLAGApp {
       }
     }
     const isHidden = !!this.store.state.dashInfoHidden;
+    const topStudentInitials = topStudent
+      ? (topStudent.name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ST')
+      : 'ST';
 
     container.innerHTML = `
       <div class="view-header view-header-with-toggle">
@@ -1854,28 +1857,32 @@ class OLAGApp {
       </div>
 
       <div class="dashboard-info-collapsible ${isHidden ? 'is-collapsed' : ''}" id="adminDashboardInfoWrap">
-        <div class="stat-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.15rem; margin-bottom: 1.5rem;">
-          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.navigateTo('students')" title="Click to open Students Dashboard">
+        <div class="stat-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 1.15rem; margin-bottom: 1.5rem;">
+          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.navigateTo('students')" title="Click to open Students Directory">
             <div class="stat-card-text">
               <span class="stat-card-title">Total Students</span>
               <span class="stat-card-value">${allStudents.length}</span>
               <span class="stat-card-sub">Enrolled for assessment</span>
             </div>
-            <div class="stat-card-icon">👥</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
           </div>
 
           <div class="stat-card card-green" style="cursor: pointer; ${currentWeek && currentWeek.status === 'Closed' ? 'border: 2px solid #ef4444;' : ''}" onclick="app.openSetWeekIntervalModal(${currentWeek ? `'${currentWeek.id}'` : ''})" title="Click to Set / Configure Week Interval">
             <div class="stat-card-text">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.15rem;">
-                <span class="stat-card-title">This Week</span>
-                <span style="font-size: 0.68rem; font-weight: 700; background: ${currentWeek && currentWeek.status === 'Closed' ? '#fee2e2' : 'rgba(255,255,255,0.3)'}; color: ${currentWeek && currentWeek.status === 'Closed' ? '#991b1b' : 'inherit'}; padding: 0.1rem 0.45rem; border-radius: 999px;">
-                  ${currentWeek ? (currentWeek.status === 'Closed' ? '🔒 Closed' : '🟢 Open') : '⚙️ Set'}
+              <div style="display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.2rem;">
+                <span class="stat-card-title" style="margin-bottom: 0;">This Week</span>
+                <span style="font-size: 0.66rem; font-weight: 700; background: ${currentWeek && currentWeek.status === 'Closed' ? '#fee2e2' : 'rgba(255,255,255,0.24)'}; color: ${currentWeek && currentWeek.status === 'Closed' ? '#991b1b' : '#ffffff'}; padding: 0.1rem 0.5rem; border-radius: 999px;">
+                  ${currentWeek ? (currentWeek.status === 'Closed' ? 'Closed' : 'Open') : 'Set'}
                 </span>
               </div>
               <span class="stat-card-value" style="font-size: 1.45rem;">${currentWeek ? escapeHtml(currentWeek.name) : 'No Week Set'}</span>
               <span class="stat-card-sub">${currentWeek ? `(${escapeHtml(currentWeek.dateRange)})` : '(Click to set interval)'}</span>
             </div>
-            <div class="stat-card-icon">📅</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
           </div>
 
           <div class="stat-card card-purple" style="cursor: pointer;" onclick="app.navigateTo('committee')" title="Click to open Committee Members Directory">
@@ -1884,7 +1891,9 @@ class OLAGApp {
               <span class="stat-card-value">${members.length}</span>
               <span class="stat-card-sub">Registered committee</span>
             </div>
-            <div class="stat-card-icon">🛡️</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
           </div>
 
           <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.openAddClassModal()" title="Click to manage classes">
@@ -1893,7 +1902,9 @@ class OLAGApp {
               <span class="stat-card-value">${this.store.state.classes.length}</span>
               <span class="stat-card-sub">Academic cohorts</span>
             </div>
-            <div class="stat-card-icon">🎓</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
           </div>
 
           <div class="stat-card card-orange">
@@ -1902,7 +1913,9 @@ class OLAGApp {
               <span class="stat-card-value">${this.store.state.houses.length}</span>
               <span class="stat-card-sub">School houses</span>
             </div>
-            <div class="stat-card-icon">🏠</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
           </div>
         </div>
 
@@ -1910,7 +1923,7 @@ class OLAGApp {
         <div class="dashboard-winner-card">
           <div class="dashboard-winner-card-header">
             <div class="winner-card-heading">
-              <span class="trophy-icon">🏆</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-yellow); flex-shrink: 0;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
               <span>Student Personality of the Week</span>
             </div>
             ${currentWeek ? `<span class="winner-card-week-tag">(${escapeHtml(currentWeek.name)})${currentWeek.status === 'Closed' ? ' • Sealed' : ''}</span>` : ''}
@@ -1919,10 +1932,10 @@ class OLAGApp {
           ${topStudent ? `
             <div class="dashboard-winner-body">
               <div class="dashboard-winner-left">
-                <div class="winner-avatar-circle">👤</div>
+                <div class="winner-avatar-circle" style="font-size: 1.35rem; font-weight: 800; letter-spacing: 0.03em;">${escapeHtml(topStudentInitials)}</div>
                 <div class="winner-info-text">
                   <h3>${escapeHtml(topStudent.name)}</h3>
-                  <p>${escapeHtml(topStudent.class)} | ${escapeHtml(topStudent.house)}</p>
+                  <p>${escapeHtml(topStudent.class)} &nbsp;|&nbsp; ${escapeHtml(topStudent.house)}</p>
                 </div>
               </div>
 
@@ -1937,63 +1950,64 @@ class OLAGApp {
                   <div class="winner-percentage-value">${topPercentage || 0}%</div>
                 </div>
 
-                <div class="winner-laurel-decor">🌿</div>
+                <div class="winner-laurel-decor" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(255, 199, 44, 0.14); border: 1px solid rgba(255, 199, 44, 0.35); color: var(--accent-yellow);">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+                </div>
               </div>
             </div>
           ` : `
-            <div class="dashboard-winner-body" style="padding: 1.5rem; text-align: center; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
-              <div style="font-size: 2rem;">🌟</div>
-              <h4 style="margin: 0; color: var(--text-main); font-size: 1.05rem;">No Winner Announced Yet ${currentWeek ? `for ${escapeHtml(currentWeek.name)}` : ''}</h4>
-              <p style="margin: 0; font-size: 0.85rem; max-width: 440px;">Weekly assessments are awaiting evaluation submissions. As scores are entered by committee members, the top-performing student will be celebrated here.</p>
+            <div class="dashboard-winner-body" style="padding: 1.5rem; text-align: center; color: #cbd5e1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
+              <h4 style="margin: 0; color: #ffffff; font-size: 1.05rem;">No Winner Announced Yet ${currentWeek ? `for ${escapeHtml(currentWeek.name)}` : ''}</h4>
+              <p style="margin: 0; font-size: 0.85rem; max-width: 440px; color: #94a3b8;">Weekly assessments are awaiting evaluation submissions. As scores are entered by committee members, the top-performing student will be celebrated here.</p>
             </div>
           `}
         </div>
 
         <!-- Upcoming Assessment Cycle Info Card (Admin) -->
         ${upcomingWeek ? `
-          <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px solid #bfdbfe; border-radius: var(--radius-lg); padding: 1.15rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-            <div style="display: flex; align-items: center; gap: 0.9rem;">
-              <div style="width: 48px; height: 48px; border-radius: 12px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
-                ⏳
+          <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: var(--card-bg); border: 1px solid var(--card-border); border-left: 4px solid #2563eb; border-radius: var(--radius-lg); padding: 1.1rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; align-items: center; gap: 0.95rem;">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
                 <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                  <span style="font-size: 0.74rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">Upcoming Assessment Cycle</span>
-                  <span class="status-badge-upcoming">⏳ Scheduled for Next Assessment</span>
+                  <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">Upcoming Assessment Cycle</span>
+                  <span class="status-badge-upcoming">Scheduled</span>
                 </div>
-                <div style="font-size: 1.12rem; font-weight: 800; color: var(--navy-primary); margin-top: 0.15rem;">
-                  ${escapeHtml(upcomingWeek.name)} &nbsp;•&nbsp; <span style="font-weight: 600; font-size: 0.96rem; color: #334155;">${escapeHtml(upcomingWeek.dateRange)}</span>
+                <div style="font-size: 1.02rem; font-weight: 800; color: var(--navy-primary); margin-top: 0.15rem;">
+                  ${escapeHtml(upcomingWeek.name)} &nbsp;•&nbsp; <span style="font-weight: 600; font-size: 0.92rem; color: var(--text-muted);">${escapeHtml(upcomingWeek.dateRange)}</span>
                 </div>
-                <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.15rem;">
-                  Scheduled for next evaluation round. Active cycle <strong>(${escapeHtml(currentWeek ? currentWeek.name : 'None')})</strong> remains open for scoring until you activate this upcoming week.
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.1rem;">
+                  Active cycle <strong>(${escapeHtml(currentWeek ? currentWeek.name : 'None')})</strong> remains open until you activate this upcoming schedule.
                 </div>
               </div>
             </div>
             <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
               <button type="button" class="btn-navy-action" style="background: #2563eb; color: #fff; height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="app.activateUpcomingWeek('${upcomingWeek.id}')">
-                🚀 Activate Now (Make Active)
+                Activate Now
               </button>
-              <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 36px; padding: 0 0.85rem; font-size: 0.82rem;" onclick="app.openSetWeekIntervalModal('${upcomingWeek.id}')">
-                ✏️ Edit Schedule
+              <button type="button" class="btn-navy-action" style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; height: 36px; padding: 0 0.85rem; font-size: 0.82rem;" onclick="app.openSetWeekIntervalModal('${upcomingWeek.id}')">
+                Edit Schedule
               </button>
             </div>
           </div>
         ` : `
-          <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: var(--bg-card); border: 1.5px dashed #cbd5e1; border-radius: var(--radius-lg); padding: 1rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 1rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
             <div style="display: flex; align-items: center; gap: 0.85rem;">
-              <div style="width: 42px; height: 42px; border-radius: 10px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
-                ⏳
+              <div style="width: 40px; height: 40px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
-                <div style="font-weight: 700; font-size: 0.92rem; color: var(--navy-primary);">
-                  Next Assessment Cycle: <span style="color: var(--text-muted); font-weight: normal;">Not Scheduled</span>
+                <div style="font-weight: 700; font-size: 0.9rem; color: var(--navy-primary);">
+                  Next Assessment Cycle: <span style="color: var(--text-muted); font-weight: 500;">Not Scheduled</span>
                 </div>
                 <div style="font-size: 0.78rem; color: var(--text-muted);">
                   Schedule the upcoming week interval in advance so committee members know what cycle is next.
                 </div>
               </div>
             </div>
-            <button type="button" class="btn-demo-pill" style="border: 1.5px solid #3b82f6; color: #1d4ed8; font-weight: 700; background: #eff6ff; padding: 0.45rem 0.9rem;" onclick="app.scheduleNextWeekInterval()">
+            <button type="button" class="btn-demo-pill" style="border: 1px solid #bfdbfe; color: #1d4ed8; font-weight: 700; background: #eff6ff; padding: 0.45rem 0.95rem; border-radius: 8px;" onclick="app.scheduleNextWeekInterval()">
               + Schedule Next Week Interval
             </button>
           </div>
@@ -2004,46 +2018,65 @@ class OLAGApp {
         <div class="section-title">Quick Actions</div>
         <div class="quick-actions-grid">
           <div class="quick-action-card" onclick="app.openSetWeekIntervalModal(${currentWeek ? `'${currentWeek.id}'` : ''})">
-            <div class="quick-action-icon">📅</div>
+            <div class="quick-action-icon-box tone-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
             <div class="quick-action-label">Set Week Interval</div>
           </div>
 
           <div class="quick-action-card" onclick="app.scheduleNextWeekInterval()">
-            <div class="quick-action-icon">⏳</div>
+            <div class="quick-action-icon-box tone-indigo">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
             <div class="quick-action-label">${upcomingWeek ? `Next: ${escapeHtml(upcomingWeek.name)}` : 'Schedule Next Week'}</div>
           </div>
 
           ${currentWeek ? `
-            <div class="quick-action-card" onclick="app.quickToggleWeekStatus('${currentWeek.id}')" style="border: 1.5px solid ${currentWeek.status === 'Closed' ? '#86efac' : '#fca5a5'};">
-              <div class="quick-action-icon">${currentWeek.status === 'Closed' ? '🔓' : '🔒'}</div>
-              <div class="quick-action-label" style="font-weight: 800; color: ${currentWeek.status === 'Closed' ? '#15803d' : '#991b1b'};">
+            <div class="quick-action-card" onclick="app.quickToggleWeekStatus('${currentWeek.id}')">
+              <div class="quick-action-icon-box ${currentWeek.status === 'Closed' ? 'tone-green' : 'tone-amber'}">
+                ${currentWeek.status === 'Closed'
+                  ? `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`
+                  : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+                }
+              </div>
+              <div class="quick-action-label">
                 ${currentWeek.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal)'}
               </div>
             </div>
           ` : ''}
 
           <div class="quick-action-card" onclick="app.navigateTo('assessment')">
-            <div class="quick-action-icon">✏️</div>
+            <div class="quick-action-icon-box tone-emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
             <div class="quick-action-label">${currentWeek && currentWeek.status === 'Closed' ? 'View Scores (Sealed)' : `Enter Scores ${currentWeek ? `(${escapeHtml(currentWeek.name)})` : ''}`}</div>
           </div>
 
           <div class="quick-action-card" onclick="app.navigateTo('rankings')">
-            <div class="quick-action-icon">📊</div>
+            <div class="quick-action-icon-box tone-purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
             <div class="quick-action-label">View Rankings</div>
           </div>
 
           <div class="quick-action-card" onclick="app.openAddStudentModal()">
-            <div class="quick-action-icon">👤➕</div>
+            <div class="quick-action-icon-box tone-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </div>
             <div class="quick-action-label">Add Student</div>
           </div>
 
           <div class="quick-action-card" onclick="app.openAddMemberModal()">
-            <div class="quick-action-icon">👥➕</div>
+            <div class="quick-action-icon-box tone-teal">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
             <div class="quick-action-label">Add Committee Member</div>
           </div>
 
           <div class="quick-action-card" onclick="app.navigateTo('reports')">
-            <div class="quick-action-icon">📥</div>
+            <div class="quick-action-icon-box tone-slate">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
             <div class="quick-action-label">Export Report</div>
           </div>
         </div>
@@ -2053,28 +2086,28 @@ class OLAGApp {
            ADMIN DASHBOARD: NOTIFICATIONS & ACTIVITY ALERTS
            ========================================================================= -->
       <div class="scoring-table-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;" id="adminDashboardNotificationsSection">
-        <div class="scoring-table-title" style="padding: 1.1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+        <div class="scoring-table-title" style="padding: 1.1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--card-border);">
           <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span style="font-size: 1.25rem;">🔔</span>
-              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">Notifications</span>
-              <span style="background: ${unreadCount > 0 ? '#dbeafe' : '#f1f5f9'}; color: ${unreadCount > 0 ? '#1d4ed8' : 'var(--navy-primary)'}; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
-                ${unreadCount > 0 ? `${unreadCount} Unread` : `${notifications.length} Notification${notifications.length === 1 ? '' : 's'}`}
+            <div style="display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--navy-primary);"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary);">Notifications</span>
+              <span style="background: ${unreadCount > 0 ? '#dbeafe' : '#f1f5f9'}; color: ${unreadCount > 0 ? '#1d4ed8' : '#475569'}; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                ${unreadCount > 0 ? `${unreadCount} Unread` : `${notifications.length} Total`}
               </span>
             </div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
-              Real-time alerts for committee member registrations, score submissions, and assessment updates.
+              Real-time updates for registered committee members, score submissions, and assessment intervals.
             </div>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             ${unreadCount > 0 ? `
               <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;" onclick="app.markAllNotificationsRead()">
-                ✓ Mark All Read
+                Mark All Read
               </button>
             ` : ''}
             ${notifications.length > 0 ? `
               <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #f1f5f9; color: #475569;" onclick="app.clearAllNotifications()">
-                🗑️ Clear Notifications
+                Clear All
               </button>
             ` : ''}
           </div>
@@ -2083,7 +2116,6 @@ class OLAGApp {
         <div style="padding: 0.85rem 1.25rem; display: flex; flex-direction: column; gap: 0.65rem;">
           ${notifications.length === 0 ? `
             <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
-              <div style="font-size: 1.85rem; margin-bottom: 0.35rem;">🔕</div>
               <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.2rem;">No Notifications Right Now</div>
               <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto;">
                 New committee member registrations, student evaluations, and interval updates will appear here automatically.
@@ -2091,24 +2123,24 @@ class OLAGApp {
             </div>
           ` : notifications.map(n => {
             const bgMap = {
-              member: { bg: '#ecfdf5', border: '#a7f3d0', iconBg: '#059669' },
+              member: { bg: '#f0fdf4', border: '#bbf7d0', iconBg: '#059669' },
               score: { bg: '#eff6ff', border: '#bfdbfe', iconBg: '#2563eb' },
               student: { bg: '#f8fafc', border: '#cbd5e1', iconBg: '#0c2340' },
               interval: { bg: '#fefce8', border: '#fde047', iconBg: '#ca8a04' }
             };
             const palette = bgMap[n.type] || bgMap.score;
             return `
-              <div class="admin-notification-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; padding: 0.85rem 1rem; border-radius: 10px; background: ${n.unread ? palette.bg : 'var(--bg-card)'}; border: 1px solid ${n.unread ? palette.border : '#e2e8f0'}; flex-wrap: wrap;">
+              <div class="admin-notification-item" style="display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; padding: 0.85rem 1rem; border-radius: 10px; background: ${n.unread ? palette.bg : 'var(--card-bg)'}; border: 1px solid ${n.unread ? palette.border : 'var(--card-border)'}; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 220px;">
-                  <div style="width: 38px; height: 38px; border-radius: 10px; background: ${palette.iconBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
-                    ${n.icon || '🔔'}
+                  <div style="width: 36px; height: 36px; border-radius: 9px; background: ${palette.iconBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
                   </div>
                   <div style="flex: 1;">
                     <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
-                      <span style="font-weight: 800; font-size: 0.9rem; color: var(--navy-primary);">${escapeHtml(n.title)}</span>
-                      ${n.unread ? `<span style="background: #2563eb; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; text-transform: uppercase;">New</span>` : ''}
+                      <span style="font-weight: 800; font-size: 0.88rem; color: var(--navy-primary);">${escapeHtml(n.title)}</span>
+                      ${n.unread ? `<span style="background: #2563eb; color: #fff; font-size: 0.64rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 999px; text-transform: uppercase;">New</span>` : ''}
                     </div>
-                    <div style="font-size: 0.81rem; color: #475569; margin-top: 0.15rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
                       ${escapeHtml(n.message)}
                     </div>
                   </div>
@@ -2116,7 +2148,7 @@ class OLAGApp {
                 <div style="display: flex; align-items: center; gap: 0.45rem;">
                   ${n.actionView ? `
                     <button type="button" class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.76rem;" onclick="app.openNotificationTarget('${escapeHtml(n.id)}', '${escapeHtml(n.actionView)}')">
-                      ${escapeHtml(n.actionLabel || 'View ➜')}
+                      ${escapeHtml(n.actionLabel || 'View')}
                     </button>
                   ` : ''}
                   <button type="button" class="action-icon-btn" title="Dismiss Notification" onclick="app.dismissNotification('${escapeHtml(n.id)}')" style="width: 28px; height: 28px; font-size: 0.75rem;">
@@ -2375,16 +2407,18 @@ class OLAGApp {
           <!-- Card 1: Active Week Interval matching Admin Dashboard -->
           <div class="stat-card card-green" style="cursor: pointer;" onclick="app.navigateTo('previous-weeks')" title="Click to view all weekly scoring intervals">
             <div class="stat-card-text">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.15rem;">
-                <span class="stat-card-title">This Week</span>
-                <span style="font-size: 0.68rem; font-weight: 700; background: rgba(255,255,255,0.3); padding: 0.1rem 0.45rem; border-radius: 999px;">
+              <div style="display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.2rem;">
+                <span class="stat-card-title" style="margin-bottom: 0;">This Week</span>
+                <span style="font-size: 0.66rem; font-weight: 700; background: rgba(255,255,255,0.24); padding: 0.1rem 0.5rem; border-radius: 999px;">
                   ${currentWeek ? (currentWeek.status === 'Closed' ? 'Closed' : 'Open') : 'Pending'}
                 </span>
               </div>
               <span class="stat-card-value" style="font-size: 1.45rem;">${currentWeek ? escapeHtml(currentWeek.name) : 'No Week Set'}</span>
               <span class="stat-card-sub">${currentWeek ? `(${escapeHtml(currentWeek.dateRange)})` : '(Awaiting admin setup)'}</span>
             </div>
-            <div class="stat-card-icon">📅</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
           </div>
 
           <!-- Card 2: Assigned Students -->
@@ -2394,7 +2428,9 @@ class OLAGApp {
               <span class="stat-card-value">${totalAssigned}</span>
               <span class="stat-card-sub">In evaluation queue</span>
             </div>
-            <div class="stat-card-icon">📋</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            </div>
           </div>
 
           <!-- Card 3: Evaluated Students -->
@@ -2404,7 +2440,9 @@ class OLAGApp {
               <span class="stat-card-value">${evaluatedCount}</span>
               <span class="stat-card-sub">${completionPct}% completed</span>
             </div>
-            <div class="stat-card-icon">✓</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
           </div>
 
           <!-- Card 4: Pending Students -->
@@ -2414,7 +2452,9 @@ class OLAGApp {
               <span class="stat-card-value">${pendingCount}</span>
               <span class="stat-card-sub">${pendingCount === 0 && totalAssigned > 0 ? 'All caught up!' : 'Awaiting grading'}</span>
             </div>
-            <div class="stat-card-icon">⏳</div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
           </div>
         </div>
       </div>
