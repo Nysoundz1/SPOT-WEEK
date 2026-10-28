@@ -17,7 +17,7 @@
   <!-- Application Stylesheet -->
   <link rel="stylesheet" href="style.css?v=8">
 </head>
-<body>
+<body data-portal-role="committee">
 
   <!-- Floating Dark/Light Mode Toggle -->
   <div style="position: fixed; top: 1.25rem; right: 1.25rem; z-index: 100;">
@@ -168,8 +168,10 @@
   <!-- Toast Notification Stack -->
   <div id="toastStack" class="toast-stack"></div>
 
-  <!-- JavaScript Application Bundle -->
+  <!-- JavaScript Application Bundle (Dedicated Committee Member Portal) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>window.OLAG_PORTAL_ROLE = 'committee';</script>
+  <script src="committee.js?v=1"></script>
   <script src="app.js?v=10"></script>
   <script>
     function updateAuthThemeUI(theme) {
@@ -250,8 +252,15 @@
           };
           state.selectedEvaluatorId = member ? member.id : 'committee-default';
           localStorage.setItem(storageKey, JSON.stringify(state));
+          localStorage.setItem('OLAG_SHS_COMMITTEE_SESSION', JSON.stringify({
+            isLoggedIn: true,
+            currentRoleKey: 'committee',
+            currentView: 'dashboard-committee',
+            currentUser: state.currentUser,
+            selectedEvaluatorId: state.selectedEvaluatorId
+          }));
         } catch (e) {}
-        window.location.href = 'index.html';
+        window.location.href = 'committee-dashboard.html';
       }
     }
 

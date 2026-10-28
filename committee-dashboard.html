@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>OUR LADY OF GRACE SENIOR HIGH SCHOOL — Committee Member Dashboard</title>
+  <meta name="description" content="Official Student Personality of the Week Committee Member & Evaluator Portal for Our Lady of Grace Senior High School (OLAG SHS).">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" type="image/png" href="olag_logo.png">
+  <link rel="stylesheet" href="style.css?v=9">
+</head>
+<body data-portal-role="committee">
+
+  <!-- =========================================================================
+       SCREEN 1: COMMITTEE MEMBER LOGIN & REGISTRATION
+       ========================================================================= -->
+  <div id="screenLoginWrapper" class="login-split-container">
+    <div class="auth-panel-form">
+      <div class="auth-form-inner">
+        <div class="auth-brand-header">
+          <div class="auth-brand-logo-wrap">
+            <img src="olag_logo.png" alt="Our Lady of Grace Senior High School Crest" />
+          </div>
+          <div class="auth-brand-text-wrap">
+            <div class="auth-brand-name">OUR LADY OF GRACE</div>
+            <div class="auth-brand-sub">SENIOR HIGH SCHOOL</div>
+          </div>
+        </div>
+
+        <div id="panelCommitteeLogin">
+          <h1 class="auth-main-heading" id="committeeCardTitle">Welcome back</h1>
+          <p class="auth-sub-heading" id="committeeCardSubtitle">Sign in to your committee evaluator account to continue</p>
+
+          <form id="loginFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); signInCommittee(); return false;">
+            <div class="auth-form-group">
+              <label for="loginCommitteeUsername">Username or Staff ID</label>
+              <div class="auth-input-container">
+                <input
+                  type="text"
+                  id="loginCommitteeUsername"
+                  class="auth-input-field"
+                  placeholder="e.g. akosua.d"
+                  autocomplete="username"
+                  required
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); signInCommittee();}"
+                />
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="loginCommitteePassword">Password</label>
+              <div class="auth-input-container">
+                <input
+                  type="password"
+                  id="loginCommitteePassword"
+                  class="auth-input-field"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                  required
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); signInCommittee();}"
+                />
+                <button type="button" id="btnToggleCommitteePassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('loginCommitteePassword', 'btnToggleCommitteePassword')">👁️</button>
+              </div>
+            </div>
+
+            <button type="button" class="auth-submit-btn committee-green-btn" id="btnLoginSubmitCommittee" onclick="signInCommittee()">
+              <span>Sign in</span>
+            </button>
+
+            <div class="auth-bottom-switch">
+              Don't have an account? <a href="javascript:void(0)" class="auth-green-link" onclick="if(window.app) window.app.switchCommitteeForm('register')">Register as a committee member</a>
+            </div>
+          </form>
+        </div>
+
+        <div id="panelCommitteeRegister" style="display: none;">
+          <h1 class="auth-main-heading">Create your account</h1>
+          <p class="auth-sub-heading">Register as a committee member to evaluate students</p>
+
+          <form id="registerFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleCommitteeRegister(); return false;">
+            <div class="auth-form-group">
+              <label for="regCommitteeName">Full Name</label>
+              <div class="auth-input-container">
+                <input type="text" id="regCommitteeName" class="auth-input-field" placeholder="e.g. Mrs. Akosua Dankwa" required />
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteeRole">Role / Designation</label>
+              <div class="auth-input-container">
+                <input type="text" id="regCommitteeRole" class="auth-input-field" placeholder="e.g. Discipline Member, House Master" list="committeeRoleList" autocomplete="off" required />
+                <datalist id="committeeRoleList">
+                  <option value="Discipline Committee Member"></option>
+                  <option value="Teacher Representative"></option>
+                  <option value="House Master / Mistress"></option>
+                  <option value="Head of Department"></option>
+                  <option value="Guidance Counselor"></option>
+                  <option value="Sports Coordinator"></option>
+                  <option value="Parent Representative (PTA)"></option>
+                  <option value="Chaplaincy Representative"></option>
+                  <option value="Committee Member / Evaluator"></option>
+                </datalist>
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteeUsername">Username / Staff ID</label>
+              <div class="auth-input-container">
+                <input type="text" id="regCommitteeUsername" class="auth-input-field" placeholder="Choose username (e.g. akosua.d)" autocomplete="username" required />
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteePassword">Password</label>
+              <div class="auth-input-container">
+                <input type="password" id="regCommitteePassword" class="auth-input-field" placeholder="Create a password" autocomplete="new-password" required />
+                <button type="button" id="btnToggleRegPassword" class="auth-eye-btn" title="Toggle Password" aria-label="Toggle password visibility" onclick="if(window.app) window.app.togglePasswordVisibility('regCommitteePassword', 'btnToggleRegPassword')">👁️</button>
+              </div>
+            </div>
+
+            <div class="auth-form-group">
+              <label for="regCommitteeConfirmPassword">Confirm Password</label>
+              <div class="auth-input-container">
+                <input type="password" id="regCommitteeConfirmPassword" class="auth-input-field" placeholder="Re-enter password" autocomplete="new-password" required />
+              </div>
+            </div>
+
+            <button type="button" class="auth-submit-btn committee-green-btn" id="btnRegisterSubmitCommittee" onclick="if(window.app) window.app.handleCommitteeRegister()">
+              <span>Register as a Committee Member</span>
+            </button>
+
+            <div class="auth-bottom-switch">
+              Already have an account? <a href="javascript:void(0)" class="auth-green-link" onclick="if(window.app) window.app.switchCommitteeForm('login')">Sign in</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-panel-showcase committee-showcase">
+      <div class="auth-showcase-inner">
+        <h2 class="auth-showcase-title">Assess Student Character</h2>
+        <p class="auth-showcase-desc">Evaluate weekly nominees across moral character, academic discipline, and leadership values at Our Lady of Grace Senior High School.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       COMMITTEE MEMBER PORTAL APP SHELL
+       ========================================================================= -->
+  <div id="screenAppShell" class="app-shell" style="display: none;">
+
+    <header class="olag-top-header">
+      <div class="header-left-brand">
+        <button type="button" class="sidebar-toggle-btn" id="btnToggleSidebar" title="Collapse / Expand Sidebar" aria-label="Toggle Sidebar" onclick="if(window.app) window.app.toggleSidebar()">
+          <span class="sidebar-arrow-icon" id="sidebarArrowIcon">◀</span>
+        </button>
+        <div class="header-crest" onclick="if(window.app) window.app.navigateTo('dashboard-committee')" style="cursor: pointer;">
+          <img src="olag_logo.png" alt="Our Lady of Grace SHS Official Logo" />
+        </div>
+        <div class="header-brand-text" onclick="if(window.app) window.app.navigateTo('dashboard-committee')" style="cursor: pointer;">
+          <h1>OLAG SHS</h1>
+          <span>Student Personality of the Week — Committee Portal</span>
+        </div>
+      </div>
+
+      <div class="header-week-pill">
+        <span class="cal-icon">📅</span>
+        <div>
+          <span class="header-week-interval-title">Current Week Interval</span>
+          <span id="headerWeekIntervalText">No active week interval</span>
+        </div>
+      </div>
+
+      <div class="header-right-user">
+        <button type="button" class="header-db-pill" id="headerDbStatusBtn" title="Cloud Database Connection Status" style="cursor: default;">
+          <span class="db-status-dot" id="headerDbStatusDot">🟡</span>
+          <span class="db-status-text" id="headerDbStatusText">Local Storage</span>
+        </button>
+
+        <button type="button" class="header-theme-toggle" id="btnHeaderThemeToggle" onclick="if(window.app) window.app.toggleTheme()" title="Toggle Dark / Light Mode" aria-label="Toggle theme mode">
+          <span class="theme-icon-indicator" id="themeIconIndicator">🌙</span>
+          <span class="theme-label-indicator" id="themeLabelIndicator">Dark Mode</span>
+        </button>
+
+        <div class="header-user-profile" id="headerUserProfile">
+          <div class="header-user-avatar" id="headerProfileAvatar">CM</div>
+          <div class="header-user-text">
+            <div class="header-user-name" id="headerProfileName">Committee Member</div>
+            <div class="header-user-role" id="headerProfileRole">Committee Member</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-body-container">
+      <div id="sidebarMobileBackdrop" class="sidebar-mobile-backdrop" onclick="if(window.app) window.app.closeMobileSidebar()"></div>
+
+      <aside class="olag-sidebar" id="olagSidebar">
+        <nav class="sidebar-nav-menu" id="sidebarNavMenu"></nav>
+        <button type="button" class="sidebar-logout-btn" id="btnSidebarLogout">
+          <span style="font-size: 1.1rem;">🚪</span>
+          <span>Logout</span>
+        </button>
+      </aside>
+
+      <main class="olag-main-content">
+        <section id="view-dashboard-committee" class="page-view"></section>
+        <section id="view-assessment" class="page-view"></section>
+        <section id="view-students" class="page-view"></section>
+        <section id="view-rankings" class="page-view"></section>
+        <section id="view-previous-weeks" class="page-view"></section>
+        <section id="view-student-profile" class="page-view"></section>
+        <section id="view-reports" class="page-view"></section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div id="toastStack" class="toast-stack"></div>
+
+  <script>window.OLAG_PORTAL_ROLE = 'committee';</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js?v=11"></script>
+  <script src="committee.js?v=1"></script>
+  <script>
+    function signInCommittee() {
+      if (window.app && window.app.handleCommitteeLogin) {
+        window.app.handleCommitteeLogin();
+      }
+    }
+  </script>
+</body>
+</html>

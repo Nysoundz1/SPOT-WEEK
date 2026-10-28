@@ -17,7 +17,7 @@
   <!-- Application Stylesheet -->
   <link rel="stylesheet" href="style.css?v=8">
 </head>
-<body>
+<body data-portal-role="admin">
 
   <!-- Floating Dark/Light Mode Toggle -->
   <div style="position: fixed; top: 1.25rem; right: 1.25rem; z-index: 100;">
@@ -98,8 +98,10 @@
   <!-- Toast Notification Stack -->
   <div id="toastStack" class="toast-stack"></div>
 
-  <!-- JavaScript Application Bundle -->
+  <!-- JavaScript Application Bundle (Dedicated Administrator Portal) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>window.OLAG_PORTAL_ROLE = 'admin';</script>
+  <script src="admin.js?v=1"></script>
   <script src="app.js?v=10"></script>
   <script>
     function updateAuthThemeUI(theme) {
@@ -170,8 +172,14 @@
             description: 'Complete institutional oversight, assessment management, criteria control, and student records.'
           };
           localStorage.setItem(storageKey, JSON.stringify(state));
+          localStorage.setItem('OLAG_SHS_ADMIN_SESSION', JSON.stringify({
+            isLoggedIn: true,
+            currentRoleKey: 'admin',
+            currentView: 'dashboard-admin',
+            currentUser: state.currentUser
+          }));
         } catch (e) {}
-        window.location.href = 'index.html';
+        window.location.href = 'admin-dashboard.html';
       }
     }
   </script>

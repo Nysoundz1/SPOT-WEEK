@@ -66,6 +66,8 @@ const DEFAULT_SUPABASE_CONFIG = {
 class OLAGStore {
   constructor() {
     this.storageKey = 'OLAG_SHS_SPOT_DATA_V7';
+    this.adminSessionKey = 'OLAG_SHS_ADMIN_SESSION';
+    this.committeeSessionKey = 'OLAG_SHS_COMMITTEE_SESSION';
     this.dbConfigKey = 'OLAG_SUPABASE_CONFIG';
     this.supabase = null;
     this.realtimeChannel = null;
@@ -74,6 +76,18 @@ class OLAGStore {
     this.onStateUpdatedCallback = null;
     this.tableNeedsSetup = false;
     this.state = this.loadState();
+  }
+
+  getPortalRole() {
+    if (typeof window !== 'undefined') {
+      if (window.OLAG_PORTAL_ROLE === 'admin' || window.OLAG_PORTAL_ROLE === 'committee') {
+        return window.OLAG_PORTAL_ROLE;
+      }
+      if (typeof document !== 'undefined' && document.body && document.body.dataset && document.body.dataset.portalRole) {
+        return document.body.dataset.portalRole;
+      }
+    }
+    return null;
   }
 
   getDbConfig() {
@@ -179,6 +193,7 @@ class OLAGStore {
     }
 
     this.normalizeStudentsAndClasses(this.state);
+    this.applyPortalSession(this.state);
 
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.state));
@@ -386,10 +401,11 @@ class OLAGStore {
   }
 
   loadState() {
+    let parsed = null;
     try {
       const saved = localStorage.getItem(this.storageKey);
       if (saved) {
-        const parsed = JSON.parse(saved);
+        parsed = JSON.parse(saved);
         if (!parsed.theme) parsed.theme = localStorage.getItem('olag_theme') || 'light';
         if (typeof parsed.sidebarCollapsed === 'undefined') parsed.sidebarCollapsed = false;
         if (typeof parsed.dashInfoHidden === 'undefined') parsed.dashInfoHidden = false;
@@ -407,12 +423,94 @@ class OLAGStore {
           }
         }
         this.normalizeStudentsAndClasses(parsed);
-        return parsed;
       }
     } catch (e) {
       console.warn('Failed to parse state:', e);
     }
-    return this.getInitialState();
+    if (!parsed) {
+      parsed = this.getInitialState();
+    }
+    this.applyPortalSession(parsed);
+    return parsed;
+  }
+
+  applyPortalSession(stateObj) {
+    if (!stateObj || typeof stateObj !== 'object') return;
+    const portalRole = this.getPortalRole();
+    if (!portalRole) return;
+
+    if (portalRole === 'admin') {
+      stateObj.currentRoleKey = 'admin';
+      stateObj.activeLoginTab = 'admin';
+      let session = null;
+      try {
+        const raw = localStorage.getItem(this.adminSessionKey);
+        if (raw) session = JSON.parse(raw);
+      } catch (e) {}
+      if (session && typeof session === 'object') {
+        stateObj.isLoggedIn = typeof session.isLoggedIn === 'boolean' ? session.isLoggedIn : true;
+        stateObj.currentUser = (session.currentUser && session.currentUser.key === 'admin') ? session.currentUser : SYSTEM_ROLES.ADMIN;
+        if (session.currentView && session.currentView !== 'dashboard-committee') {
+          stateObj.currentView = session.currentView;
+        }
+      } else {
+        stateObj.currentUser = SYSTEM_ROLES.ADMIN;
+        if (typeof document !== 'undefined' && !document.getElementById('screenLoginWrapper')) {
+          stateObj.isLoggedIn = true;
+        }
+      }
+      if (!stateObj.currentView || stateObj.currentView === 'dashboard-committee') {
+        stateObj.currentView = 'dashboard-admin';
+      }
+    } else if (portalRole === 'committee') {
+      stateObj.currentRoleKey = 'committee';
+      stateObj.activeLoginTab = 'committee';
+      let session = null;
+      try {
+        const raw = localStorage.getItem(this.committeeSessionKey);
+        if (raw) session = JSON.parse(raw);
+      } catch (e) {}
+      const members = Array.isArray(stateObj.members) ? stateObj.members : [];
+      if (session && typeof session === 'object') {
+        stateObj.isLoggedIn = typeof session.isLoggedIn === 'boolean' ? session.isLoggedIn : true;
+        if (session.selectedEvaluatorId) stateObj.selectedEvaluatorId = session.selectedEvaluatorId;
+        if (session.currentUser && session.currentUser.key === 'committee') {
+          stateObj.currentUser = session.currentUser;
+        }
+        if (session.currentView && session.currentView !== 'dashboard-admin' && session.currentView !== 'committee' && session.currentView !== 'settings') {
+          stateObj.currentView = session.currentView;
+        }
+      } else if (typeof document !== 'undefined' && !document.getElementById('screenLoginWrapper')) {
+        stateObj.isLoggedIn = true;
+      }
+
+      if (!stateObj.currentUser || stateObj.currentUser.key !== 'committee') {
+        const matched = members.find(m => m.id === stateObj.selectedEvaluatorId) || members[0];
+        if (matched) {
+          const initials = matched.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+          stateObj.currentUser = {
+            id: matched.id,
+            key: 'committee',
+            name: matched.name,
+            title: matched.role || 'Evaluator',
+            roleTag: 'Committee Member',
+            username: matched.username,
+            avatar: initials,
+            avatarBg: '#059669',
+            dashboardView: 'dashboard-committee',
+            description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
+          };
+          stateObj.selectedEvaluatorId = matched.id;
+        } else {
+          stateObj.currentUser = { ...SYSTEM_ROLES.COMMITTEE, id: 'committee-default' };
+          stateObj.selectedEvaluatorId = 'committee-default';
+        }
+      }
+
+      if (!stateObj.currentView || stateObj.currentView === 'dashboard-admin' || stateObj.currentView === 'committee' || stateObj.currentView === 'settings') {
+        stateObj.currentView = 'dashboard-committee';
+      }
+    }
   }
 
   getInitialState() {
@@ -450,6 +548,23 @@ class OLAGStore {
 
   save() {
     try {
+      const portalRole = this.getPortalRole() || this.state.currentRoleKey;
+      if (portalRole === 'admin') {
+        localStorage.setItem(this.adminSessionKey, JSON.stringify({
+          isLoggedIn: Boolean(this.state.isLoggedIn),
+          currentRoleKey: 'admin',
+          currentUser: this.state.currentUser,
+          currentView: this.state.currentView
+        }));
+      } else if (portalRole === 'committee') {
+        localStorage.setItem(this.committeeSessionKey, JSON.stringify({
+          isLoggedIn: Boolean(this.state.isLoggedIn),
+          currentRoleKey: 'committee',
+          currentUser: this.state.currentUser,
+          currentView: this.state.currentView,
+          selectedEvaluatorId: this.state.selectedEvaluatorId
+        }));
+      }
       localStorage.setItem(this.storageKey, JSON.stringify(this.state));
     } catch (e) {
       console.error('Save failed:', e);
@@ -951,9 +1066,13 @@ class OLAGApp {
       this.store.state.isLoggedIn = true;
       this.store.save();
       this.closeModals();
-      if (typeof window !== 'undefined' && window.location && window.location.pathname && (window.location.pathname.includes('committee-login') || window.location.pathname.includes('admin-login'))) {
-        window.location.href = 'index.html';
-        return;
+      if (typeof window !== 'undefined' && window.location) {
+        const href = (window.location.href || '').toLowerCase();
+        const pathname = (window.location.pathname || '').toLowerCase();
+        if (href.includes('committee-login') || pathname.includes('committee-login')) {
+          window.location.href = 'committee-dashboard.html';
+          return;
+        }
       }
       this.render();
       this.showToast(`Logged in as ${matchedMember.name} (${matchedMember.role})`);
@@ -1074,9 +1193,13 @@ class OLAGApp {
     this.store.state.isLoggedIn = true;
     this.store.save();
     this.closeModals();
-    if (typeof window !== 'undefined' && window.location && window.location.pathname && (window.location.pathname.includes('committee-login') || window.location.pathname.includes('admin-login'))) {
-      window.location.href = 'index.html';
-      return;
+    if (typeof window !== 'undefined' && window.location) {
+      const href = (window.location.href || '').toLowerCase();
+      const pathname = (window.location.pathname || '').toLowerCase();
+      if (href.includes('committee-login') || pathname.includes('committee-login')) {
+        window.location.href = 'committee-dashboard.html';
+        return;
+      }
     }
     this.render();
     this.showToast(`✓ Registered successfully! Welcome, ${newMember.name}.`);
@@ -1113,8 +1236,12 @@ class OLAGApp {
     if (typeof window !== 'undefined' && window.location) {
       const href = (window.location.href || '').toLowerCase();
       const pathname = (window.location.pathname || '').toLowerCase();
-      if (href.includes('admin-login') || pathname.includes('admin-login') || href.includes('committee-login') || pathname.includes('committee-login')) {
-        window.location.href = 'index.html';
+      if (href.includes('admin-login') || pathname.includes('admin-login')) {
+        window.location.href = 'admin-dashboard.html';
+        return;
+      }
+      if (href.includes('committee-login') || pathname.includes('committee-login')) {
+        window.location.href = 'committee-dashboard.html';
         return;
       }
     }
@@ -1235,13 +1362,16 @@ class OLAGApp {
     const appShell = document.getElementById('screenAppShell');
 
     if (!isLoggedIn) {
-      if (loginWrapper) loginWrapper.style.display = 'flex';
-      if (appShell) appShell.style.display = 'none';
-      return;
-    } else {
-      if (loginWrapper) loginWrapper.style.display = 'none';
-      if (appShell) appShell.style.display = 'flex';
+      if (loginWrapper) {
+        loginWrapper.style.display = 'flex';
+        if (appShell) appShell.style.display = 'none';
+        return;
+      }
+      // On standalone dashboard pages without #screenLoginWrapper, keep the portal session active
+      this.store.state.isLoggedIn = true;
     }
+    if (loginWrapper) loginWrapper.style.display = 'none';
+    if (appShell) appShell.style.display = 'flex';
 
     if (!appShell) return; // Guard for standalone pages like committee-login.html
 
