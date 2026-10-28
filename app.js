@@ -167,19 +167,133 @@ class OLAGStore {
 
   applyRemoteState(remoteState) {
     if (!remoteState || typeof remoteState !== 'object') return;
-    if (Array.isArray(remoteState.students)) this.state.students = remoteState.students;
+    let hasLocalOnlyItems = false;
+
+    const deletedMembers = new Set([
+      ...(Array.isArray(this.state.deletedMemberIds) ? this.state.deletedMemberIds : []),
+      ...(Array.isArray(remoteState.deletedMemberIds) ? remoteState.deletedMemberIds : [])
+    ]);
+    this.state.deletedMemberIds = [...deletedMembers];
+
+    const deletedStudents = new Set([
+      ...(Array.isArray(this.state.deletedStudentIds) ? this.state.deletedStudentIds : []),
+      ...(Array.isArray(remoteState.deletedStudentIds) ? remoteState.deletedStudentIds : [])
+    ]);
+    this.state.deletedStudentIds = [...deletedStudents];
+
+    const deletedWeeks = new Set([
+      ...(Array.isArray(this.state.deletedWeekIds) ? this.state.deletedWeekIds : []),
+      ...(Array.isArray(remoteState.deletedWeekIds) ? remoteState.deletedWeekIds : [])
+    ]);
+    this.state.deletedWeekIds = [...deletedWeeks];
+
+    const dismissedNotifs = new Set([
+      ...(Array.isArray(this.state.dismissedNotificationIds) ? this.state.dismissedNotificationIds : []),
+      ...(Array.isArray(remoteState.dismissedNotificationIds) ? remoteState.dismissedNotificationIds : [])
+    ]);
+    this.state.dismissedNotificationIds = [...dismissedNotifs];
+
+    // 1. Merge Members non-destructively so all 8 registered committee members are preserved
+    if (Array.isArray(remoteState.members)) {
+      const remoteMembers = remoteState.members.filter(m => m && m.id && !deletedMembers.has(m.id));
+      const localMembers = (Array.isArray(this.state.members) ? this.state.members : []).filter(m => m && m.id && !deletedMembers.has(m.id));
+      const mergedMap = new Map();
+      const usernameMap = new Map();
+
+      remoteMembers.forEach(m => {
+        mergedMap.set(m.id, m);
+        if (m.username) usernameMap.set(String(m.username).toLowerCase(), m.id);
+      });
+
+      localMembers.forEach(m => {
+        const uKey = m.username ? String(m.username).toLowerCase() : '';
+        if (!mergedMap.has(m.id) && (!uKey || !usernameMap.has(uKey))) {
+          mergedMap.set(m.id, m);
+          if (uKey) usernameMap.set(uKey, m.id);
+          hasLocalOnlyItems = true;
+        }
+      });
+
+      this.state.members = [...mergedMap.values()].map((m, idx) => ({ ...m, no: idx + 1 }));
+    }
+
+    // 2. Merge Students non-destructively
+    if (Array.isArray(remoteState.students)) {
+      const remoteStudents = remoteState.students.filter(s => s && s.id && !deletedStudents.has(s.id));
+      const localStudents = (Array.isArray(this.state.students) ? this.state.students : []).filter(s => s && s.id && !deletedStudents.has(s.id));
+      const studentMap = new Map();
+      remoteStudents.forEach(s => studentMap.set(s.id, s));
+      localStudents.forEach(s => {
+        if (!studentMap.has(s.id)) {
+          studentMap.set(s.id, s);
+          hasLocalOnlyItems = true;
+        }
+      });
+      this.state.students = [...studentMap.values()];
+    }
+
+    // 3. Merge Weeks
     if (Array.isArray(remoteState.weeks)) {
-      this.state.weeks = remoteState.weeks.map(w => {
+      const remoteWeeks = remoteState.weeks.filter(w => w && w.id && !deletedWeeks.has(w.id)).map(w => {
         if (w.maxScore === 80 || !w.maxScore) w.maxScore = 70;
         return w;
       });
+      const localWeeks = (Array.isArray(this.state.weeks) ? this.state.weeks : []).filter(w => w && w.id && !deletedWeeks.has(w.id));
+      const weekMap = new Map();
+      remoteWeeks.forEach(w => weekMap.set(w.id, w));
+      localWeeks.forEach(w => {
+        if (!weekMap.has(w.id)) {
+          weekMap.set(w.id, w);
+          hasLocalOnlyItems = true;
+        }
+      });
+      this.state.weeks = [...weekMap.values()];
     }
-    if (remoteState.scores && typeof remoteState.scores === 'object') this.state.scores = remoteState.scores;
-    if (Array.isArray(remoteState.members)) this.state.members = remoteState.members;
-    if (Array.isArray(remoteState.classes)) this.state.classes = remoteState.classes;
+
+    // 4. Merge Scores
+    if (remoteState.scores && typeof remoteState.scores === 'object') {
+      const localScores = (this.state.scores && typeof this.state.scores === 'object') ? this.state.scores : {};
+      const mergedScores = { ...remoteState.scores };
+      Object.entries(localScores).forEach(([wId, wMap]) => {
+        if (!wMap || typeof wMap !== 'object') return;
+        if (!mergedScores[wId] || typeof mergedScores[wId] !== 'object') {
+          mergedScores[wId] = { ...wMap };
+          hasLocalOnlyItems = true;
+        } else {
+          Object.entries(wMap).forEach(([sId, sc]) => {
+            if (!mergedScores[wId][sId]) {
+              mergedScores[wId][sId] = sc;
+              hasLocalOnlyItems = true;
+            }
+          });
+        }
+      });
+      this.state.scores = mergedScores;
+    }
+
+    // 5. Merge Classes & Houses
+    if (Array.isArray(remoteState.classes)) {
+      const localClasses = Array.isArray(this.state.classes) ? this.state.classes : [];
+      this.state.classes = [...new Set([...remoteState.classes, ...localClasses])];
+    }
     if (Array.isArray(remoteState.houses)) this.state.houses = remoteState.houses;
-    if (Array.isArray(remoteState.notifications)) this.state.notifications = remoteState.notifications;
-    if (Array.isArray(remoteState.dismissedNotificationIds)) this.state.dismissedNotificationIds = remoteState.dismissedNotificationIds;
+
+    // 6. Merge Notifications
+    if (Array.isArray(remoteState.notifications)) {
+      const localNotifs = Array.isArray(this.state.notifications) ? this.state.notifications : [];
+      const notifMap = new Map();
+      remoteState.notifications.forEach(n => {
+        if (n && n.id && !dismissedNotifs.has(n.id)) notifMap.set(n.id, n);
+      });
+      localNotifs.forEach(n => {
+        if (n && n.id && !dismissedNotifs.has(n.id) && !notifMap.has(n.id)) {
+          notifMap.set(n.id, n);
+          hasLocalOnlyItems = true;
+        }
+      });
+      this.state.notifications = [...notifMap.values()];
+    }
+
     if (remoteState.selectedWeekId) this.state.selectedWeekId = remoteState.selectedWeekId;
 
     const isLegacyCriteria = !Array.isArray(remoteState.criteria) ||
@@ -199,6 +313,10 @@ class OLAGStore {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.state));
     } catch (e) {}
+
+    if (hasLocalOnlyItems) {
+      this.scheduleSupabaseSync();
+    }
   }
 
   normalizeStudentsAndClasses(stateObj) {
@@ -254,8 +372,12 @@ class OLAGStore {
     members.forEach(m => {
       if (!m || !m.id) return;
       const notifId = `notif-member-${m.id}`;
-      if (!existingIds.has(notifId) && !dismissed.has(notifId)) {
-        stateObj.notifications.push({
+      const existingNotif = stateObj.notifications.find(n => n && n.id === notifId);
+      if (existingNotif) {
+        existingNotif.title = `Committee Member Registered: ${m.name}`;
+        existingNotif.message = `${m.name} (${m.role || 'Evaluator'}) is registered (${m.status || 'Active'}) under scope "${m.scope || 'All Houses & Classes'}" with username "${m.username}".`;
+      } else if (!dismissed.has(notifId)) {
+        stateObj.notifications.unshift({
           id: notifId,
           type: 'member',
           icon: '👥',
@@ -377,6 +499,9 @@ class OLAGStore {
       criteria: this.state.criteria || [],
       notifications: this.state.notifications || [],
       dismissedNotificationIds: this.state.dismissedNotificationIds || [],
+      deletedMemberIds: this.state.deletedMemberIds || [],
+      deletedStudentIds: this.state.deletedStudentIds || [],
+      deletedWeekIds: this.state.deletedWeekIds || [],
       selectedWeekId: this.state.selectedWeekId
     };
 
@@ -599,6 +724,9 @@ class OLAGStore {
       committeeStatusFilter: 'All',
       notifications: [],
       dismissedNotificationIds: [],
+      deletedMemberIds: [],
+      deletedStudentIds: [],
+      deletedWeekIds: [],
       theme: localStorage.getItem('olag_theme') || 'light',
       sidebarCollapsed: false,
       dashInfoHidden: false
@@ -653,6 +781,18 @@ class OLAGApp {
     window.addEventListener('storage', (e) => {
       if (e.key === this.store.storageKey) {
         this.store.state = this.store.loadState();
+        this.render();
+      }
+    });
+    window.addEventListener('focus', () => {
+      this.store.state = this.store.loadState();
+      this.store.fetchFromSupabase();
+      this.render();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.store.state = this.store.loadState();
+        this.store.fetchFromSupabase();
         this.render();
       }
     });
@@ -1141,7 +1281,7 @@ class OLAGApp {
     this.showToast('Committee member not found. Please register or check your username.');
   }
 
-  handleCommitteeRegister() {
+  async handleCommitteeRegister() {
     const nameInp = document.getElementById('regCommitteeName');
     const roleInp = document.getElementById('regCommitteeRole');
     const userInp = document.getElementById('regCommitteeUsername');
@@ -1149,7 +1289,7 @@ class OLAGApp {
     const confirmInp = document.getElementById('regCommitteeConfirmPassword');
 
     const name = nameInp ? nameInp.value.trim() : '';
-    const role = roleInp ? roleInp.value.trim() : 'Committee Member / Evaluator';
+    const role = roleInp ? roleInp.value.trim() : "Head Boys' Prefect";
     const username = userInp ? userInp.value.trim().toLowerCase() : '';
     const password = passInp ? passInp.value.trim() : '';
     const confirmPassword = confirmInp ? confirmInp.value.trim() : '';
@@ -1167,13 +1307,13 @@ class OLAGApp {
     }
 
     if (!username) {
-      this.showToast('Please enter a username or staff ID.');
+      this.showToast('Please enter a username.');
       if (userInp) userInp.focus();
       return;
     }
 
-    if (username.length < 3) {
-      this.showToast('Username must be at least 3 characters.');
+    if (username.length < 2) {
+      this.showToast('Username must be at least 2 characters.');
       if (userInp) userInp.focus();
       return;
     }
@@ -1202,25 +1342,30 @@ class OLAGApp {
       return;
     }
 
-    const existingMember = this.store.state.members.find(m => m.username.toLowerCase() === username);
+    const existingMember = this.store.state.members.find(m => m.username && m.username.toLowerCase() === username);
     if (existingMember) {
       this.showToast(`Username '${username}' is already registered for ${existingMember.name}. Please choose another.`);
       if (userInp) userInp.focus();
       return;
     }
 
-    const newId = `mem-${Date.now()}`;
+    const newId = `mem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const initials = name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
     const newMember = {
       id: newId,
       no: this.store.state.members.length + 1,
       name: name,
       role: role,
+      scope: 'All Houses & Classes',
       username: username,
       password: password,
-      status: 'Active'
+      status: 'Active',
+      createdAt: new Date().toISOString()
     };
 
+    if (Array.isArray(this.store.state.deletedMemberIds)) {
+      this.store.state.deletedMemberIds = this.store.state.deletedMemberIds.filter(id => id !== newId);
+    }
     this.store.state.members.push(newMember);
     this.addNotification({
       id: `notif-member-${newMember.id}`,
@@ -1252,6 +1397,12 @@ class OLAGApp {
     this.store.state.isLoggedIn = true;
     this.store.save();
     this.closeModals();
+    try {
+      await Promise.race([
+        this.store.syncToSupabase(true),
+        new Promise(resolve => setTimeout(resolve, 1500))
+      ]);
+    } catch (e) {}
     if (typeof window !== 'undefined' && window.location) {
       const href = (window.location.href || '').toLowerCase();
       const pathname = (window.location.pathname || '').toLowerCase();
@@ -3379,12 +3530,18 @@ class OLAGApp {
     }
 
     if (confirm(`Are you sure you want to remove committee member "${member.name}" (${member.role})? This will delete their evaluator credentials.`)) {
+      if (!Array.isArray(this.store.state.deletedMemberIds)) {
+        this.store.state.deletedMemberIds = [];
+      }
+      if (!this.store.state.deletedMemberIds.includes(memberId)) {
+        this.store.state.deletedMemberIds.push(memberId);
+      }
       this.store.state.members = this.store.state.members.filter(m => m.id !== memberId);
       if (this.store.state.selectedEvaluatorId === memberId) {
         this.store.state.selectedEvaluatorId = this.store.state.members.length > 0 ? this.store.state.members[0].id : null;
       }
       this.store.save();
-      this.showToast(`🗑️ Removed committee member: ${member.name}`);
+      this.showToast(`Removed committee member: ${member.name}`);
       this.render();
     }
   }

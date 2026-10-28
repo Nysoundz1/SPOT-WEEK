@@ -304,7 +304,7 @@
 
       if (!name) { alert('Please enter your full name.'); if (nameInp) nameInp.focus(); return; }
       if (!role) { alert('Please enter your role or designation.'); if (roleInp) roleInp.focus(); return; }
-      if (!username || username.length < 3) { alert('Username must be at least 3 characters.'); if (userInp) userInp.focus(); return; }
+      if (!username || username.length < 2) { alert('Username must be at least 2 characters.'); if (userInp) userInp.focus(); return; }
       if (!password || password.length < 3) { alert('Password must be at least 3 characters.'); if (passInp) passInp.focus(); return; }
       if (password !== confirmPassword) { alert('Passwords do not match.'); if (confirmInp) confirmInp.focus(); return; }
 
