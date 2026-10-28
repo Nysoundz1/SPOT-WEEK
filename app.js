@@ -211,6 +211,12 @@ class OLAGStore {
           mergedMap.set(m.id, m);
           if (uKey) usernameMap.set(uKey, m.id);
           hasLocalOnlyItems = true;
+        } else if (mergedMap.has(m.id)) {
+          const existing = mergedMap.get(m.id);
+          if (m.updatedAt && (!existing.updatedAt || m.updatedAt > existing.updatedAt)) {
+            mergedMap.set(m.id, m);
+            hasLocalOnlyItems = true;
+          }
         }
       });
 
@@ -227,6 +233,12 @@ class OLAGStore {
         if (!studentMap.has(s.id)) {
           studentMap.set(s.id, s);
           hasLocalOnlyItems = true;
+        } else {
+          const existing = studentMap.get(s.id);
+          if (s.updatedAt && (!existing.updatedAt || s.updatedAt > existing.updatedAt)) {
+            studentMap.set(s.id, s);
+            hasLocalOnlyItems = true;
+          }
         }
       });
       this.state.students = [...studentMap.values()];
@@ -245,6 +257,12 @@ class OLAGStore {
         if (!weekMap.has(w.id)) {
           weekMap.set(w.id, w);
           hasLocalOnlyItems = true;
+        } else {
+          const existing = weekMap.get(w.id);
+          if (w.updatedAt && (!existing.updatedAt || w.updatedAt > existing.updatedAt)) {
+            weekMap.set(w.id, w);
+            hasLocalOnlyItems = true;
+          }
         }
       });
       this.state.weeks = [...weekMap.values()];
@@ -261,7 +279,11 @@ class OLAGStore {
           hasLocalOnlyItems = true;
         } else {
           Object.entries(wMap).forEach(([sId, sc]) => {
-            if (!mergedScores[wId][sId]) {
+            const remoteSc = mergedScores[wId][sId];
+            if (!remoteSc) {
+              mergedScores[wId][sId] = sc;
+              hasLocalOnlyItems = true;
+            } else if (sc && sc.submittedAt && (!remoteSc.submittedAt || sc.submittedAt > remoteSc.submittedAt)) {
               mergedScores[wId][sId] = sc;
               hasLocalOnlyItems = true;
             }
@@ -1216,7 +1238,7 @@ class OLAGApp {
     this.handleLoginByRole('admin');
   }
 
-  handleCommitteeLogin() {
+  async handleCommitteeLogin() {
     const userInp = document.getElementById('loginCommitteeUsername');
     const passInp = document.getElementById('loginCommitteePassword');
     const username = userInp ? userInp.value.trim().toLowerCase() : '';
@@ -1244,14 +1266,31 @@ class OLAGApp {
       return;
     }
 
-    // Check existing or newly registered committee member
-    const matchedMember = this.store.state.members.find(m => 
-      m.username.toLowerCase() === username || 
-      m.name.toLowerCase() === username || 
-      m.name.toLowerCase().includes(username)
+    const findMatchingMember = () => (this.store.state.members || []).find(m =>
+      m && (
+        (m.username && String(m.username).toLowerCase() === username) ||
+        (m.name && String(m.name).toLowerCase() === username) ||
+        (m.name && String(m.name).toLowerCase().includes(username))
+      )
     );
 
+    // Check existing or newly registered committee member (sync from cloud if not yet loaded locally)
+    let matchedMember = findMatchingMember();
+    if (!matchedMember && this.store.supabase) {
+      try {
+        await Promise.race([
+          this.store.fetchFromSupabase(),
+          new Promise(resolve => setTimeout(resolve, 1500))
+        ]);
+        matchedMember = findMatchingMember();
+      } catch (e) {}
+    }
+
     if (matchedMember) {
+      if (matchedMember.status === 'Inactive') {
+        this.showToast(`Account for ${matchedMember.name} is currently Inactive. Please contact the Administrator.`);
+        return;
+      }
       if (matchedMember.password) {
         if (matchedMember.password !== password) {
           this.showToast(`Invalid password for ${matchedMember.name}. Please try again.`);
@@ -3093,6 +3132,15 @@ class OLAGApp {
 
     const studentSelect = document.getElementById('assessStudentSelect');
     const btnLoad = document.getElementById('btnLoadStudentScores');
+    if (studentSelect) {
+      studentSelect.addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        this.store.state.selectedStudentId = e.target.value;
+        const st = this.store.state.students.find(s => s.id === e.target.value);
+        this.renderAssessment();
+        if (st) this.showToast(`Loaded ${st.name}`);
+      });
+    }
     if (btnLoad && studentSelect) {
       btnLoad.addEventListener('click', () => {
         if (!studentSelect.value) return;
@@ -3119,7 +3167,7 @@ class OLAGApp {
         let total = 0;
         inputs.forEach(inp => {
           const cId = inp.dataset.critId;
-          const val = parseInt(inp.value, 10) || 0;
+          const val = Math.max(0, Math.min(10, parseInt(inp.value, 10) || 0));
           scoresObj[cId] = val;
           total += val;
         });
@@ -3161,6 +3209,7 @@ class OLAGApp {
     const weeks = this.store.state.weeks || [];
     const classes = this.store.state.classes || [];
     const currentWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
+    const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks[0] || null;
     const currentClass = this.store.state.selectedClass || 'All';
     const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
     const rankedStudents = [];
@@ -3206,10 +3255,9 @@ class OLAGApp {
       ${topWinner ? `
         <div class="results-winner-banner">
           <div class="winner-banner-left">
-            <div class="winner-banner-avatar">👤</div>
+            <div class="winner-banner-avatar" style="font-size: 1.25rem; font-weight: 800;">${escapeHtml((topWinner.student.name || 'ST').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase())}</div>
             <div>
               <div class="winner-banner-title">
-                <span>🏆</span>
                 <span>Student Personality of the Week</span>
               </div>
               <div class="winner-banner-name">${escapeHtml(topWinner.student.name)}</div>
@@ -3220,7 +3268,7 @@ class OLAGApp {
           <div class="winner-banner-scores">
             <div class="banner-score-col">
               <div class="banner-score-lbl">Total Score</div>
-              <div class="banner-score-val">${topWinner.totalScore} / ${currentWeekObj.maxScore || this.getMaxCriteriaScore()}</div>
+              <div class="banner-score-val">${topWinner.totalScore} / ${(currentWeekObj && currentWeekObj.maxScore) || this.getMaxCriteriaScore()}</div>
             </div>
 
             <div class="banner-score-col">
@@ -4519,6 +4567,7 @@ on conflict (id) do nothing;`;
       if (newHouse && newHouse.trim()) {
         student.house = newHouse.trim();
       }
+      student.updatedAt = new Date().toISOString();
       this.store.save();
       this.showToast(`Updated student ${student.name}`);
       this.render();
@@ -4527,7 +4576,16 @@ on conflict (id) do nothing;`;
 
   deleteStudent(studentId) {
     if (confirm('Are you sure you want to remove this student?')) {
+      if (!Array.isArray(this.store.state.deletedStudentIds)) {
+        this.store.state.deletedStudentIds = [];
+      }
+      if (!this.store.state.deletedStudentIds.includes(studentId)) {
+        this.store.state.deletedStudentIds.push(studentId);
+      }
       this.store.state.students = this.store.state.students.filter(s => s.id !== studentId);
+      if (Array.isArray(this.store.state.notifications)) {
+        this.store.state.notifications = this.store.state.notifications.filter(n => n && n.id !== `notif-student-${studentId}`);
+      }
       this.store.state.totalStudentsCount = this.store.state.students.length;
       if (this.store.state.selectedStudentId === studentId) {
         this.store.state.selectedStudentId = this.store.state.students.length > 0 ? this.store.state.students[0].id : null;
@@ -4568,12 +4626,15 @@ on conflict (id) do nothing;`;
     const week = (this.store.state.weeks || []).find(w => w.id === weekId);
     if (!week) return;
 
+    const nowIso = new Date().toISOString();
     this.store.state.weeks.forEach(w => {
       if (w.id === weekId) {
         w.isCurrent = true;
         w.status = 'Open';
+        w.updatedAt = nowIso;
       } else {
         w.isCurrent = false;
+        w.updatedAt = nowIso;
       }
     });
 
@@ -4844,7 +4905,8 @@ on conflict (id) do nothing;`;
         maxScore: this.getMaxCriteriaScore(),
         percentage: null,
         status: status,
-        isCurrent: isCurrent
+        isCurrent: isCurrent,
+        updatedAt: new Date().toISOString()
       };
       this.store.state.weeks.push(newWeek);
       if (isCurrent) {
@@ -4871,6 +4933,7 @@ on conflict (id) do nothing;`;
         existing.endDate = endDate;
         existing.status = status;
         existing.isCurrent = isCurrent;
+        existing.updatedAt = new Date().toISOString();
         if (isCurrent) {
           this.store.state.selectedWeekId = existing.id;
         } else if (!this.store.state.weeks.some(w => w.isCurrent) && this.store.state.weeks.length > 0) {
@@ -4903,6 +4966,12 @@ on conflict (id) do nothing;`;
     if (!week) return;
 
     if (confirm(`Are you sure you want to delete "${week.name}"?`)) {
+      if (!Array.isArray(this.store.state.deletedWeekIds)) {
+        this.store.state.deletedWeekIds = [];
+      }
+      if (!this.store.state.deletedWeekIds.includes(targetVal)) {
+        this.store.state.deletedWeekIds.push(targetVal);
+      }
       this.store.state.weeks = this.store.state.weeks.filter(w => w.id !== targetVal);
       if (this.store.state.selectedWeekId === targetVal) {
         this.store.state.selectedWeekId = this.store.state.weeks[0] ? this.store.state.weeks[0].id : null;
@@ -4952,6 +5021,7 @@ on conflict (id) do nothing;`;
 
     const newStatus = week.status === 'Closed' ? 'Open' : 'Closed';
     week.status = newStatus;
+    week.updatedAt = new Date().toISOString();
     this.recalculateWeekResults(weekId);
     this.store.save();
 
@@ -5094,6 +5164,7 @@ on conflict (id) do nothing;`;
         existing.username = username;
         existing.password = password;
         existing.status = status;
+        existing.updatedAt = new Date().toISOString();
         this.showToast(`Updated committee member: ${name}`);
       }
     } else {
