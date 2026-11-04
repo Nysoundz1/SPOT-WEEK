@@ -485,14 +485,21 @@ class OLAGStore {
   normalizeStudentWeekScore(rawEntry, maxScore = 70) {
     if (!rawEntry || typeof rawEntry !== 'object') return null;
     const submissions = {};
+    const nameToKey = {};
 
     if (rawEntry.submissions && typeof rawEntry.submissions === 'object') {
       Object.entries(rawEntry.submissions).forEach(([k, sub]) => {
         if (sub && typeof sub === 'object' && typeof sub.total === 'number') {
-          const cleanKey = this.getEvaluatorScoreKey(sub) || k;
+          const cleanName = String(sub.evaluatorName || '').trim().toLowerCase();
+          let cleanKey = this.getEvaluatorScoreKey(sub) || k;
+          if (cleanName && nameToKey[cleanName]) {
+            cleanKey = nameToKey[cleanName];
+          } else if (cleanName) {
+            nameToKey[cleanName] = cleanKey;
+          }
           const existing = submissions[cleanKey];
           if (!existing || (sub.submittedAt && (!existing.submittedAt || sub.submittedAt > existing.submittedAt))) {
-            submissions[cleanKey] = { ...sub };
+            submissions[cleanKey] = { ...(existing || {}), ...sub };
           }
         }
       });
@@ -1853,7 +1860,9 @@ class OLAGApp {
 
   findSubmissionForEvaluator(scoreEntry, evaluatorInfo) {
     if (!scoreEntry || typeof scoreEntry !== 'object' || !evaluatorInfo) return null;
-    const norm = this.store.normalizeStudentWeekScore(scoreEntry, this.getMaxCriteriaScore());
+    const norm = (scoreEntry.submissions && typeof scoreEntry.submissions === 'object')
+      ? scoreEntry
+      : this.store.normalizeStudentWeekScore(scoreEntry, this.getMaxCriteriaScore());
     if (!norm || !norm.submissions || typeof norm.submissions !== 'object') return null;
 
     const directKey = this.store.getEvaluatorScoreKey(evaluatorInfo);
@@ -1883,10 +1892,16 @@ class OLAGApp {
     const members = this.store.state.members || [];
     const rows = [];
     const matchedSubs = new Set();
+    const matchedNames = new Set();
 
     members.forEach(m => {
       const sub = this.findSubmissionForEvaluator(scoreEntry, m);
-      if (sub) matchedSubs.add(sub);
+      if (sub) {
+        matchedSubs.add(sub);
+        matchedSubs.add(this.store.getEvaluatorScoreKey(sub));
+        if (sub.evaluatorName) matchedNames.add(String(sub.evaluatorName).trim().toLowerCase());
+      }
+      if (m && m.name) matchedNames.add(String(m.name).trim().toLowerCase());
       rows.push({
         evaluatorId: m.id,
         name: m.name,
@@ -1900,8 +1915,13 @@ class OLAGApp {
 
     if (scoreEntry && scoreEntry.submissions && typeof scoreEntry.submissions === 'object') {
       Object.entries(scoreEntry.submissions).forEach(([k, sub]) => {
-        if (sub && typeof sub.total === 'number' && !matchedSubs.has(sub)) {
+        if (!sub || typeof sub.total !== 'number') return;
+        const subKey = this.store.getEvaluatorScoreKey(sub);
+        const subName = String(sub.evaluatorName || '').trim().toLowerCase();
+        if (!matchedSubs.has(sub) && !matchedSubs.has(subKey) && !matchedSubs.has(k) && (!subName || !matchedNames.has(subName))) {
           matchedSubs.add(sub);
+          matchedSubs.add(subKey);
+          if (subName) matchedNames.add(subName);
           rows.push({
             evaluatorId: sub.evaluatorId || k,
             name: sub.evaluatorName || 'Evaluator',
@@ -2641,11 +2661,6 @@ class OLAGApp {
           </div>
         </div>
       </div>
-
-      <!-- =========================================================================
-           ADMIN DASHBOARD: ALL COMMITTEE MEMBERS' SCORES PER STUDENT
-           ========================================================================= -->
-      ${this.renderWeekAllStudentsCommitteeMatrixHtml(this.store.state.selectedWeekId || (currentWeek ? currentWeek.id : null), 'All')}
 
       <!-- =========================================================================
            ADMIN DASHBOARD: NOTIFICATIONS & ACTIVITY ALERTS
@@ -3965,8 +3980,6 @@ class OLAGApp {
           </table>
         </div>
       </div>
-
-      ${isCurrentlyAdmin && currentWeekId ? this.renderWeekAllStudentsCommitteeMatrixHtml(currentWeekId, currentClass) : ''}
     `;
 
     const rWeek = document.getElementById('rankingsWeekSelect');
