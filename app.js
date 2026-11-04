@@ -390,8 +390,12 @@ class OLAGStore {
       this.state.criteria = remoteState.criteria;
     }
 
+    const prevSelectedEvaluatorId = this.state.selectedEvaluatorId;
     this.normalizeStudentsAndClasses(this.state);
     this.applyPortalSession(this.state);
+    if (prevSelectedEvaluatorId && this.state.currentRoleKey === 'admin') {
+      this.state.selectedEvaluatorId = prevSelectedEvaluatorId;
+    }
     this.syncEvaluatorWithCurrentLogin(this.state);
     this.state.theme = localStorage.getItem('olag_theme') || this.state.theme || 'light';
 
@@ -776,7 +780,11 @@ class OLAGStore {
       if (!stateObj.currentUser || stateObj.currentUser.key !== 'admin') {
         stateObj.currentUser = { ...SYSTEM_ROLES.ADMIN };
       }
-      stateObj.selectedEvaluatorId = stateObj.currentUser.id || 'role-admin';
+      const members = Array.isArray(stateObj.members) ? stateObj.members : [];
+      const hasValidSelectedMember = stateObj.selectedEvaluatorId && members.some(m => m && m.id === stateObj.selectedEvaluatorId);
+      if (!hasValidSelectedMember) {
+        stateObj.selectedEvaluatorId = members[0] ? members[0].id : (stateObj.currentUser.id || 'role-admin');
+      }
     } else {
       const members = Array.isArray(stateObj.members) ? stateObj.members : [];
       const cur = stateObj.currentUser;
@@ -840,6 +848,7 @@ class OLAGStore {
       } catch (e) {}
       if (session && typeof session === 'object') {
         stateObj.isLoggedIn = typeof session.isLoggedIn === 'boolean' ? session.isLoggedIn : true;
+        if (session.selectedEvaluatorId) stateObj.selectedEvaluatorId = session.selectedEvaluatorId;
         stateObj.currentUser = (session.currentUser && session.currentUser.key === 'admin') ? session.currentUser : SYSTEM_ROLES.ADMIN;
         if (session.currentView && session.currentView !== 'dashboard-committee') {
           stateObj.currentView = session.currentView;
@@ -948,7 +957,8 @@ class OLAGStore {
           isLoggedIn: Boolean(this.state.isLoggedIn),
           currentRoleKey: 'admin',
           currentUser: this.state.currentUser,
-          currentView: this.state.currentView
+          currentView: this.state.currentView,
+          selectedEvaluatorId: this.state.selectedEvaluatorId
         }));
       } else if (portalRole === 'committee') {
         localStorage.setItem(this.committeeSessionKey, JSON.stringify({
@@ -1977,11 +1987,15 @@ class OLAGApp {
             ${rows.map((r, idx) => {
               const sub = r.submission;
               const isScored = sub && typeof sub.total === 'number';
+              const isSelectedEvaluator = this.store.state.selectedEvaluatorId && r.evaluatorId === this.store.state.selectedEvaluatorId;
               return `
-                <tr>
+                <tr style="${isSelectedEvaluator ? 'background: #f0fdf4;' : ''} cursor: pointer;" onclick="app.evaluateAsMember('${escapeHtml(r.evaluatorId)}')" title="Click to view ${escapeHtml(r.name)}'s scores above">
                   <td>${idx + 1}</td>
                   <td>
-                    <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(r.name)}</div>
+                    <div style="font-weight: 700; color: var(--navy-primary); display: flex; align-items: center; gap: 0.35rem;">
+                      <span>${escapeHtml(r.name)}</span>
+                      ${isSelectedEvaluator ? '<span style="font-size: 0.65rem; background: #dcfce7; color: #15803d; padding: 0.08rem 0.4rem; border-radius: 999px; font-weight: 800;">Selected</span>' : ''}
+                    </div>
                     ${r.username ? `<div style="font-size: 0.7rem; color: var(--text-muted);">@${escapeHtml(r.username)}</div>` : ''}
                   </td>
                   <td><span style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(r.role)}</span></td>
@@ -3748,6 +3762,7 @@ class OLAGApp {
     if (memberSelect) {
       memberSelect.addEventListener('change', (e) => {
         this.store.state.selectedEvaluatorId = e.target.value;
+        this.store.save();
         const mem = this.store.state.members.find(m => m.id === e.target.value);
         this.renderAssessment();
         if (mem) this.showToast(`Viewing scores for ${mem.name}`);
