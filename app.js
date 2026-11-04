@@ -310,27 +310,47 @@ class OLAGStore {
       this.state.weeks = [...weekMap.values()];
     }
 
-    // 4. Merge Scores
-    if (remoteState.scores && typeof remoteState.scores === 'object') {
+    // 4. Merge Scores (Preserving every committee member's score submission per student)
+    if ((remoteState.scores && typeof remoteState.scores === 'object') || (this.state.scores && typeof this.state.scores === 'object')) {
+      const remoteScores = (remoteState.scores && typeof remoteState.scores === 'object') ? remoteState.scores : {};
       const localScores = (this.state.scores && typeof this.state.scores === 'object') ? this.state.scores : {};
-      const mergedScores = { ...remoteState.scores };
-      Object.entries(localScores).forEach(([wId, wMap]) => {
-        if (!wMap || typeof wMap !== 'object') return;
-        if (!mergedScores[wId] || typeof mergedScores[wId] !== 'object') {
-          mergedScores[wId] = { ...wMap };
-          hasLocalOnlyItems = true;
-        } else {
-          Object.entries(wMap).forEach(([sId, sc]) => {
-            const remoteSc = mergedScores[wId][sId];
-            if (!remoteSc) {
-              mergedScores[wId][sId] = sc;
-              hasLocalOnlyItems = true;
-            } else if (sc && sc.submittedAt && (!remoteSc.submittedAt || sc.submittedAt > remoteSc.submittedAt)) {
-              mergedScores[wId][sId] = sc;
-              hasLocalOnlyItems = true;
+      const allWeekIds = new Set([...Object.keys(remoteScores), ...Object.keys(localScores)]);
+      const mergedScores = {};
+
+      allWeekIds.forEach(wId => {
+        const rWeekMap = (remoteScores[wId] && typeof remoteScores[wId] === 'object') ? remoteScores[wId] : {};
+        const lWeekMap = (localScores[wId] && typeof localScores[wId] === 'object') ? localScores[wId] : {};
+        const allStudentIds = new Set([...Object.keys(rWeekMap), ...Object.keys(lWeekMap)]);
+        const weekObj = (Array.isArray(this.state.weeks) ? this.state.weeks : []).find(w => w && w.id === wId);
+        const maxScore = (weekObj && weekObj.maxScore) ? weekObj.maxScore : 70;
+        mergedScores[wId] = {};
+
+        allStudentIds.forEach(sId => {
+          const rNorm = this.normalizeStudentWeekScore(rWeekMap[sId], maxScore);
+          const lNorm = this.normalizeStudentWeekScore(lWeekMap[sId], maxScore);
+          if (!rNorm && lNorm) {
+            mergedScores[wId][sId] = lNorm;
+            hasLocalOnlyItems = true;
+          } else if (rNorm && !lNorm) {
+            mergedScores[wId][sId] = rNorm;
+          } else if (rNorm && lNorm) {
+            const combinedSubs = { ...(rNorm.submissions || {}) };
+            Object.entries(lNorm.submissions || {}).forEach(([evalKey, lSub]) => {
+              const rSub = combinedSubs[evalKey];
+              if (!rSub) {
+                combinedSubs[evalKey] = lSub;
+                hasLocalOnlyItems = true;
+              } else if (lSub && lSub.submittedAt && (!rSub.submittedAt || lSub.submittedAt > rSub.submittedAt)) {
+                combinedSubs[evalKey] = lSub;
+                hasLocalOnlyItems = true;
+              }
+            });
+            const normalizedMerged = this.normalizeStudentWeekScore({ submissions: combinedSubs }, maxScore);
+            if (normalizedMerged) {
+              mergedScores[wId][sId] = normalizedMerged;
             }
-          });
-        }
+          }
+        });
       });
       this.state.scores = mergedScores;
     }
@@ -428,7 +448,105 @@ class OLAGStore {
       seenIds.add(s.id);
     });
 
+    // Normalize all weekly student score records so multi-evaluator submissions are preserved
+    if (!stateObj.scores || typeof stateObj.scores !== 'object') {
+      stateObj.scores = {};
+    } else {
+      const weeks = Array.isArray(stateObj.weeks) ? stateObj.weeks : [];
+      Object.entries(stateObj.scores).forEach(([wId, wMap]) => {
+        if (!wMap || typeof wMap !== 'object') return;
+        const wObj = weeks.find(w => w && w.id === wId);
+        const maxScore = (wObj && wObj.maxScore) ? wObj.maxScore : 70;
+        Object.entries(wMap).forEach(([sId, rawEntry]) => {
+          const norm = this.normalizeStudentWeekScore(rawEntry, maxScore);
+          if (norm) {
+            wMap[sId] = norm;
+          } else {
+            delete wMap[sId];
+          }
+        });
+      });
+    }
+
     this.syncDerivedNotifications(stateObj);
+  }
+
+  getEvaluatorScoreKey(info) {
+    if (!info || typeof info !== 'object') return 'evaluator';
+    const u = String(info.evaluatorUsername || info.username || '').trim().toLowerCase();
+    const id = String(info.evaluatorId || info.id || '').trim().toLowerCase();
+    const name = String(info.evaluatorName || info.name || '').trim().toLowerCase();
+    if (u && u !== 'committee') return `user:${u}`;
+    if (id && id !== 'role-committee' && id !== 'committee-default') return `id:${id}`;
+    if (name) return `name:${name}`;
+    return u || id || 'evaluator';
+  }
+
+  normalizeStudentWeekScore(rawEntry, maxScore = 70) {
+    if (!rawEntry || typeof rawEntry !== 'object') return null;
+    const submissions = {};
+
+    if (rawEntry.submissions && typeof rawEntry.submissions === 'object') {
+      Object.entries(rawEntry.submissions).forEach(([k, sub]) => {
+        if (sub && typeof sub === 'object' && typeof sub.total === 'number') {
+          const cleanKey = this.getEvaluatorScoreKey(sub) || k;
+          const existing = submissions[cleanKey];
+          if (!existing || (sub.submittedAt && (!existing.submittedAt || sub.submittedAt > existing.submittedAt))) {
+            submissions[cleanKey] = { ...sub };
+          }
+        }
+      });
+    }
+
+    // Legacy single-evaluator score entry support
+    if (Object.keys(submissions).length === 0 && typeof rawEntry.total === 'number') {
+      const legacySub = {
+        total: rawEntry.total,
+        pct: typeof rawEntry.pct === 'number' ? rawEntry.pct : Number(((rawEntry.total / maxScore) * 100).toFixed(1)),
+        evaluatorId: rawEntry.evaluatorId || 'evaluator',
+        evaluatorName: rawEntry.evaluatorName || 'Committee Evaluator',
+        evaluatorRole: rawEntry.evaluatorRole || 'Evaluator',
+        evaluatorUsername: rawEntry.evaluatorUsername || '',
+        submittedAt: rawEntry.submittedAt || new Date().toISOString()
+      };
+      CRITERIA_LIST.forEach(c => {
+        legacySub[c.id] = typeof rawEntry[c.id] === 'number' ? rawEntry[c.id] : 0;
+      });
+      const key = this.getEvaluatorScoreKey(legacySub);
+      submissions[key] = legacySub;
+    }
+
+    const subList = Object.values(submissions).filter(s => s && typeof s.total === 'number');
+    if (subList.length === 0) return null;
+
+    subList.sort((a, b) => String(a.submittedAt || '').localeCompare(String(b.submittedAt || '')));
+
+    const criteriaAverages = {};
+    CRITERIA_LIST.forEach(c => {
+      const sumC = subList.reduce((acc, s) => acc + (typeof s[c.id] === 'number' ? s[c.id] : 0), 0);
+      criteriaAverages[c.id] = Number((sumC / subList.length).toFixed(1));
+    });
+
+    const combinedTotal = subList.reduce((acc, s) => acc + (Number(s.total) || 0), 0);
+    const avgTotal = Number((combinedTotal / subList.length).toFixed(1));
+    const avgPct = Number(((avgTotal / maxScore) * 100).toFixed(1));
+    const latestSub = subList[subList.length - 1];
+    const evaluatorNamesList = subList.map(s => s.evaluatorName || 'Evaluator');
+
+    return {
+      ...criteriaAverages,
+      total: avgTotal,
+      combinedTotal,
+      maxCombinedScore: subList.length * maxScore,
+      pct: avgPct,
+      evaluatorCount: subList.length,
+      evaluatorId: latestSub.evaluatorId || 'evaluator',
+      evaluatorName: subList.length === 1 ? (latestSub.evaluatorName || 'Committee Evaluator') : evaluatorNamesList.join(', '),
+      evaluatorRole: latestSub.evaluatorRole || 'Evaluator',
+      evaluatorUsername: latestSub.evaluatorUsername || '',
+      submittedAt: latestSub.submittedAt || new Date().toISOString(),
+      submissions
+    };
   }
 
   syncDerivedNotifications(stateObj) {
@@ -475,24 +593,33 @@ class OLAGStore {
       const maxScore = (weekObj && weekObj.maxScore) ? weekObj.maxScore : 70;
       Object.entries(weekMap).forEach(([studentId, sc]) => {
         if (!sc || typeof sc.total !== 'number') return;
-        const notifId = `notif-score-${weekId}-${studentId}`;
-        if (!existingIds.has(notifId) && !dismissed.has(notifId)) {
-          const st = students.find(s => s.id === studentId);
-          const studentName = st ? `${st.name} (${st.class})` : studentId;
-          const evalName = sc.evaluatorName || 'Committee Evaluator';
-          stateObj.notifications.unshift({
-            id: notifId,
-            type: 'score',
-            icon: 'score',
-            title: `Assessment Scores Submitted (${weekLabel})`,
-            message: `${evalName} submitted scores for ${studentName}: ${sc.total}/${maxScore} (${sc.pct}%).`,
-            actionLabel: 'View Rankings',
-            actionView: 'rankings',
-            unread: true,
-            createdAt: sc.submittedAt || new Date().toISOString()
-          });
-          existingIds.add(notifId);
-        }
+        const st = students.find(s => s.id === studentId);
+        const studentName = st ? `${st.name} (${st.class})` : studentId;
+        const subMap = (sc.submissions && typeof sc.submissions === 'object' && Object.keys(sc.submissions).length > 0)
+          ? sc.submissions
+          : { [this.getEvaluatorScoreKey(sc)]: sc };
+
+        Object.entries(subMap).forEach(([evalKey, sub]) => {
+          if (!sub || typeof sub.total !== 'number') return;
+          const safeKey = String(evalKey).replace(/[^a-z0-9_-]/gi, '_');
+          const notifId = `notif-score-${weekId}-${studentId}-${safeKey}`;
+          const legacyNotifId = `notif-score-${weekId}-${studentId}`;
+          if (!existingIds.has(notifId) && !dismissed.has(notifId) && !dismissed.has(legacyNotifId)) {
+            const evalName = sub.evaluatorName || 'Committee Evaluator';
+            stateObj.notifications.unshift({
+              id: notifId,
+              type: 'score',
+              icon: 'score',
+              title: `Assessment Scores Submitted (${weekLabel})`,
+              message: `${evalName} (${sub.evaluatorRole || 'Evaluator'}) submitted scores for ${studentName}: ${sub.total}/${maxScore} (${sub.pct}%).`,
+              actionLabel: 'View Scores',
+              actionView: 'rankings',
+              unread: true,
+              createdAt: sub.submittedAt || new Date().toISOString()
+            });
+            existingIds.add(notifId);
+          }
+        });
       });
     });
 
@@ -1724,6 +1851,350 @@ class OLAGApp {
     };
   }
 
+  findSubmissionForEvaluator(scoreEntry, evaluatorInfo) {
+    if (!scoreEntry || typeof scoreEntry !== 'object' || !evaluatorInfo) return null;
+    const norm = this.store.normalizeStudentWeekScore(scoreEntry, this.getMaxCriteriaScore());
+    if (!norm || !norm.submissions || typeof norm.submissions !== 'object') return null;
+
+    const directKey = this.store.getEvaluatorScoreKey(evaluatorInfo);
+    if (norm.submissions[directKey]) return norm.submissions[directKey];
+
+    const targetId = String(evaluatorInfo.evaluatorId || evaluatorInfo.id || '').trim().toLowerCase();
+    const targetUser = String(evaluatorInfo.evaluatorUsername || evaluatorInfo.username || '').trim().toLowerCase();
+    const targetName = String(evaluatorInfo.evaluatorName || evaluatorInfo.name || '').trim().toLowerCase();
+
+    for (const sub of Object.values(norm.submissions)) {
+      if (!sub || typeof sub !== 'object') continue;
+      const sId = String(sub.evaluatorId || '').trim().toLowerCase();
+      const sUser = String(sub.evaluatorUsername || '').trim().toLowerCase();
+      const sName = String(sub.evaluatorName || '').trim().toLowerCase();
+      if (targetUser && targetUser !== 'committee' && sUser && sUser === targetUser) return sub;
+      if (targetId && targetId !== 'role-committee' && targetId !== 'committee-default' && sId && sId === targetId) return sub;
+      if (targetName && sName && sName === targetName) return sub;
+    }
+    return null;
+  }
+
+  getStudentCommitteeScoresBreakdown(weekId, studentId) {
+    const weekScores = (weekId && this.store.state.scores && this.store.state.scores[weekId]) ? this.store.state.scores[weekId] : {};
+    const weekObj = (this.store.state.weeks || []).find(w => w && w.id === weekId);
+    const maxScore = (weekObj && weekObj.maxScore) ? weekObj.maxScore : this.getMaxCriteriaScore();
+    const scoreEntry = this.store.normalizeStudentWeekScore(weekScores[studentId], maxScore);
+    const members = this.store.state.members || [];
+    const rows = [];
+    const matchedSubs = new Set();
+
+    members.forEach(m => {
+      const sub = this.findSubmissionForEvaluator(scoreEntry, m);
+      if (sub) matchedSubs.add(sub);
+      rows.push({
+        evaluatorId: m.id,
+        name: m.name,
+        role: m.role || 'Committee Evaluator',
+        username: m.username || '',
+        isRegisteredMember: true,
+        status: sub && typeof sub.total === 'number' ? 'Scored' : 'Pending',
+        submission: sub || null
+      });
+    });
+
+    if (scoreEntry && scoreEntry.submissions && typeof scoreEntry.submissions === 'object') {
+      Object.entries(scoreEntry.submissions).forEach(([k, sub]) => {
+        if (sub && typeof sub.total === 'number' && !matchedSubs.has(sub)) {
+          matchedSubs.add(sub);
+          rows.push({
+            evaluatorId: sub.evaluatorId || k,
+            name: sub.evaluatorName || 'Evaluator',
+            role: sub.evaluatorRole || 'Evaluator',
+            username: sub.evaluatorUsername || '',
+            isRegisteredMember: false,
+            status: 'Scored',
+            submission: sub
+          });
+        }
+      });
+    }
+
+    const scoredSubmissions = rows.filter(r => r.submission && typeof r.submission.total === 'number').map(r => r.submission);
+    return {
+      scoreEntry,
+      rows,
+      scoredSubmissions,
+      maxScore,
+      totalEvaluators: members.length,
+      scoredCount: scoredSubmissions.length
+    };
+  }
+
+  renderStudentCommitteeBreakdownTableHtml(weekId, studentId) {
+    const breakdown = this.getStudentCommitteeScoresBreakdown(weekId, studentId);
+    const criteria = (this.store.state.criteria && this.store.state.criteria.length > 0) ? this.store.state.criteria : CRITERIA_LIST;
+    const { scoreEntry, rows, maxScore, scoredCount } = breakdown;
+
+    if (rows.length === 0) {
+      return `
+        <div style="text-align: center; padding: 1.75rem 1rem; color: var(--text-muted); font-size: 0.84rem;">
+          No committee members registered or scores submitted yet for this student in this week.
+        </div>
+      `;
+    }
+
+    return `
+      <div style="overflow-x: auto;">
+        <table class="table-standard" style="min-width: 780px;">
+          <thead>
+            <tr>
+              <th style="width: 42px;">No.</th>
+              <th>Committee Member / Evaluator</th>
+              <th>Role</th>
+              ${criteria.map(c => `<th style="text-align: center; font-size: 0.7rem;" title="${escapeHtml(c.name)} (Max 10)">C${c.no}<br><span style="font-weight: 600; font-size: 0.64rem; text-transform: none;">${escapeHtml(c.name.split(' ')[0])}</span></th>`).join('')}
+              <th style="text-align: center;">Total</th>
+              <th style="text-align: center;">Pct</th>
+              <th style="text-align: center;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r, idx) => {
+              const sub = r.submission;
+              const isScored = sub && typeof sub.total === 'number';
+              return `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td>
+                    <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(r.name)}</div>
+                    ${r.username ? `<div style="font-size: 0.7rem; color: var(--text-muted);">@${escapeHtml(r.username)}</div>` : ''}
+                  </td>
+                  <td><span style="font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(r.role)}</span></td>
+                  ${criteria.map(c => `
+                    <td style="text-align: center; font-weight: ${isScored ? '700' : '400'}; color: ${isScored ? 'var(--navy-primary)' : '#94a3b8'};">
+                      ${isScored && typeof sub[c.id] === 'number' ? sub[c.id] : '—'}
+                    </td>
+                  `).join('')}
+                  <td style="text-align: center; font-weight: 800; color: ${isScored ? 'var(--navy-primary)' : '#94a3b8'};">
+                    ${isScored ? `${sub.total} / ${maxScore}` : '—'}
+                  </td>
+                  <td style="text-align: center; font-weight: 800; color: ${isScored ? '#15803d' : '#94a3b8'};">
+                    ${isScored ? `${sub.pct}%` : '—'}
+                  </td>
+                  <td style="text-align: center;">
+                    ${isScored ? `
+                      <span class="status-badge-active" style="font-size: 0.7rem;">Scored</span>
+                    ` : `
+                      <span class="status-badge-pending" style="font-size: 0.7rem;">Pending</span>
+                    `}
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+          ${scoreEntry && scoredCount > 0 ? `
+            <tfoot>
+              <tr style="background: var(--table-header-bg); font-weight: 800; border-top: 2px solid var(--card-border);">
+                <td colspan="3" style="color: var(--navy-primary);">
+                  Overall Average (${scoredCount} Evaluator${scoredCount === 1 ? '' : 's'} Scored • Combined: ${scoreEntry.combinedTotal}/${scoreEntry.maxCombinedScore})
+                </td>
+                ${criteria.map(c => `
+                  <td style="text-align: center; color: var(--navy-primary);">${typeof scoreEntry[c.id] === 'number' ? scoreEntry[c.id] : '—'}</td>
+                `).join('')}
+                <td style="text-align: center; color: var(--navy-primary); font-size: 0.92rem;">${scoreEntry.total} / ${maxScore}</td>
+                <td style="text-align: center; color: #b45309; font-size: 0.92rem;">${scoreEntry.pct}%</td>
+                <td style="text-align: center;">
+                  <span class="status-badge-active" style="font-size: 0.7rem;">${scoredCount} Submitted</span>
+                </td>
+              </tr>
+            </tfoot>
+          ` : ''}
+        </table>
+      </div>
+    `;
+  }
+
+  renderWeekAllStudentsCommitteeMatrixHtml(weekId, classFilter = 'All') {
+    const weeks = this.store.state.weeks || [];
+    const targetWeek = (weekId ? weeks.find(w => w.id === weekId) : null) || this.getActiveWeek() || weeks[0] || null;
+    const effectiveWeekId = targetWeek ? targetWeek.id : null;
+    const maxScore = (targetWeek && targetWeek.maxScore) ? targetWeek.maxScore : this.getMaxCriteriaScore();
+    const members = this.store.state.members || [];
+    let students = [...(this.store.state.students || [])];
+    if (classFilter && classFilter !== 'All' && classFilter !== 'All Classes') {
+      students = students.filter(s => s.class === classFilter);
+    }
+
+    return `
+      <div class="scoring-table-card" style="padding: 0; overflow: hidden; margin-top: 1.5rem;" id="adminCommitteeScoresMatrixSection">
+        <div class="scoring-table-title directory-header-bar" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.committee}</span>
+              <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary);">All Committee Members' Scores per Student</span>
+              ${targetWeek ? `
+                <span style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                  ${escapeHtml(targetWeek.name)} (${escapeHtml(targetWeek.dateRange)})
+                </span>
+              ` : ''}
+              <span style="background: #f1f5f9; color: var(--navy-primary); font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                ${members.length} Registered Evaluator${members.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
+              View individual scores submitted by each committee member for every student in the selected week interval.
+            </div>
+          </div>
+
+          ${weeks.length > 0 ? `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Week:</label>
+              <select class="form-select" style="height: 32px; font-size: 0.78rem; width: 210px; padding: 0 1.5rem 0 0.6rem;" onchange="app.changeAdminScoresMatrixWeek(this.value)">
+                ${weeks.map(w => `<option value="${w.id}" ${effectiveWeekId === w.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+              </select>
+            </div>
+          ` : ''}
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="table-standard">
+            <thead>
+              <tr>
+                <th style="width: 46px;">No.</th>
+                <th>Student</th>
+                <th>Class &amp; House</th>
+                <th>Committee Members' Individual Scores (${targetWeek ? escapeHtml(targetWeek.name) : 'Weekly'})</th>
+                <th style="text-align: center; width: 130px;">Average Score</th>
+                <th style="text-align: center; width: 130px;">Breakdown</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${students.length === 0 ? `
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+                    No students enrolled yet to display committee member scores.
+                  </td>
+                </tr>
+              ` : students.map((s, idx) => {
+                const b = this.getStudentCommitteeScoresBreakdown(effectiveWeekId, s.id);
+                const hasAnyScore = b.scoreEntry && b.scoredCount > 0;
+                return `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td>
+                      <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(s.name)}</div>
+                      <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(s.id)}</div>
+                    </td>
+                    <td>
+                      <div style="font-weight: 600; font-size: 0.82rem;">${escapeHtml(s.class)}</div>
+                      <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(s.house)}</div>
+                    </td>
+                    <td>
+                      ${b.rows.length === 0 ? `
+                        <span style="font-size: 0.76rem; color: var(--text-muted);">No committee evaluators registered yet</span>
+                      ` : `
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center;">
+                          ${b.rows.map(r => {
+                            const sub = r.submission;
+                            const isScored = sub && typeof sub.total === 'number';
+                            return isScored ? `
+                              <span style="display: inline-flex; align-items: center; gap: 0.3rem; background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 0.18rem 0.55rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700;" title="${escapeHtml(r.name)} (${escapeHtml(r.role)}): ${sub.total}/${maxScore} (${sub.pct}%)">
+                                <span>${escapeHtml(r.name)}:</span>
+                                <strong>${sub.total}/${maxScore}</strong>
+                                <span style="opacity: 0.85;">(${sub.pct}%)</span>
+                              </span>
+                            ` : `
+                              <span style="display: inline-flex; align-items: center; gap: 0.25rem; background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 0.16rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600;" title="${escapeHtml(r.name)} (${escapeHtml(r.role)}): Not scored yet">
+                                <span>${escapeHtml(r.name)}:</span>
+                                <span>Pending</span>
+                              </span>
+                            `;
+                          }).join('')}
+                        </div>
+                      `}
+                    </td>
+                    <td style="text-align: center;">
+                      ${hasAnyScore ? `
+                        <div style="font-weight: 800; color: var(--navy-primary); font-size: 0.88rem;">${b.scoreEntry.total} / ${maxScore}</div>
+                        <div style="font-size: 0.74rem; font-weight: 700; color: #15803d;">${b.scoreEntry.pct}% (${b.scoredCount} Eval${b.scoredCount === 1 ? '' : 's'})</div>
+                      ` : `
+                        <span class="status-badge-pending" style="font-size: 0.7rem;">No Scores Yet</span>
+                      `}
+                    </td>
+                    <td style="text-align: center;">
+                      <button type="button" class="btn-navy-action" style="height: 30px; padding: 0 0.65rem; font-size: 0.74rem;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${effectiveWeekId || ''}')">
+                        ${APP_ICONS.eye} View Scores
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  changeAdminScoresMatrixWeek(weekId) {
+    if (!weekId) return;
+    this.store.state.selectedWeekId = weekId;
+    this.store.save();
+    this.render();
+  }
+
+  openStudentCommitteeScoresModal(studentId, weekId = null) {
+    const student = (this.store.state.students || []).find(s => s.id === studentId);
+    if (!student) return;
+    const weeks = this.store.state.weeks || [];
+    const targetWeek = (weekId ? weeks.find(w => w.id === weekId) : null) ||
+      (this.store.state.selectedWeekId ? weeks.find(w => w.id === this.store.state.selectedWeekId) : null) ||
+      this.getActiveWeek() || weeks[0] || null;
+    const effectiveWeekId = targetWeek ? targetWeek.id : '';
+
+    let modal = document.getElementById('modalStudentCommitteeScores');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modalStudentCommitteeScores';
+      modal.className = 'modal-overlay';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div class="modal-container" style="max-width: 920px; width: 95%;">
+        <div class="modal-header-row">
+          <div>
+            <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+              ${APP_ICONS.committee}
+              <span>Committee Members' Scores: ${escapeHtml(student.name)} (${escapeHtml(student.id)})</span>
+            </h3>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Class: <strong>${escapeHtml(student.class)}</strong> &nbsp;•&nbsp; House: <strong>${escapeHtml(student.house)}</strong>
+              ${targetWeek ? ` &nbsp;•&nbsp; Week: <strong>${escapeHtml(targetWeek.name)} (${escapeHtml(targetWeek.dateRange)})</strong>` : ''}
+            </div>
+          </div>
+          <button type="button" class="btn-close-x" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active')">&times;</button>
+        </div>
+
+        ${weeks.length > 1 ? `
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.85rem;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">Select Week Interval:</label>
+            <select class="form-select" style="width: 240px; height: 34px; font-size: 0.8rem;" onchange="app.openStudentCommitteeScoresModal('${student.id}', this.value)">
+              ${weeks.map(w => `<option value="${w.id}" ${w.id === effectiveWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+            </select>
+          </div>
+        ` : ''}
+
+        ${this.renderStudentCommitteeBreakdownTableHtml(effectiveWeekId, student.id)}
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1.25rem; padding-top: 0.85rem; border-top: 1px solid var(--card-border);">
+          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active')">
+            Close
+          </button>
+          <button type="button" class="btn-navy-action" style="height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active'); app.scoreStudent('${student.id}')">
+            ${APP_ICONS.assessment} Open in Weekly Assessment
+          </button>
+        </div>
+      </div>
+    `;
+    modal.classList.add('active');
+  }
+
   renderTopHeader() {
     const evaluator = this.getCurrentLoginEvaluator();
     const user = this.store.state.currentUser;
@@ -2172,6 +2643,11 @@ class OLAGApp {
       </div>
 
       <!-- =========================================================================
+           ADMIN DASHBOARD: ALL COMMITTEE MEMBERS' SCORES PER STUDENT
+           ========================================================================= -->
+      ${this.renderWeekAllStudentsCommitteeMatrixHtml(this.store.state.selectedWeekId || (currentWeek ? currentWeek.id : null), 'All')}
+
+      <!-- =========================================================================
            ADMIN DASHBOARD: NOTIFICATIONS & ACTIVITY ALERTS
            ========================================================================= -->
       <div class="scoring-table-card" style="margin-top: 1.5rem; padding: 0; overflow: hidden;" id="adminDashboardNotificationsSection">
@@ -2356,15 +2832,16 @@ class OLAGApp {
     const weekDateRange = currentWeek ? currentWeek.dateRange : 'Interval not configured';
     const weekStatus = currentWeek ? (currentWeek.status || 'Open') : 'Pending';
 
+    const currentEvaluator = this.getCurrentLoginEvaluator();
     const evaluatedStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
-      return !!sScores && typeof sScores.total === 'number';
+      return !!this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
     const evaluatedCount = evaluatedStudents.length;
     const totalAssigned = allStudents.length;
     const pendingStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
-      return !sScores || typeof sScores.total !== 'number';
+      return !this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
     const pendingCount = pendingStudents.length;
     const completionPct = totalAssigned > 0 ? Math.round((evaluatedCount / totalAssigned) * 100) : 0;
@@ -2789,8 +3266,11 @@ class OLAGApp {
                   </td>
                 </tr>
               ` : students.map((s, idx) => {
-                const scoreData = currentWeek && this.store.state.scores[currentWeek.id] ? this.store.state.scores[currentWeek.id][s.id] : null;
-                const isEvaluated = scoreData && typeof scoreData.total === 'number';
+                const rawScoreData = currentWeek && this.store.state.scores[currentWeek.id] ? this.store.state.scores[currentWeek.id][s.id] : null;
+                const maxPossible = (currentWeek && currentWeek.maxScore) || this.getMaxCriteriaScore();
+                const scoreData = rawScoreData ? this.store.normalizeStudentWeekScore(rawScoreData, maxPossible) : null;
+                const isEvaluated = scoreData && typeof scoreData.total === 'number' && (scoreData.evaluatorCount > 0 || scoreData.total > 0 || scoreData.evaluatorName);
+                const subList = (scoreData && scoreData.submissions) ? Object.values(scoreData.submissions) : [];
                 return `
                   <tr class="student-directory-row">
                     <td>${idx + 1}</td>
@@ -2805,14 +3285,36 @@ class OLAGApp {
                     <td>${escapeHtml(s.gender || '—')}</td>
                     <td>
                       ${isEvaluated ? `
-                        <span class="status-badge-active" style="font-size: 0.72rem;">
-                          Scored: <strong>${scoreData.total}/${currentWeek.maxScore || this.getMaxCriteriaScore()}</strong> (${scoreData.pct}%)
-                        </span>
-                        ${scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : ''}
+                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                          <span class="status-badge-active" style="font-size: 0.72rem;">
+                            ${subList.length > 1 ? 'Avg:' : 'Scored:'} <strong>${scoreData.total}/${maxPossible}</strong> (${scoreData.pct}%)
+                          </span>
+                          ${isCurrentlyAdmin && currentWeek ? `
+                            <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 700;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View all committee members' scores for ${escapeHtml(s.name)}">
+                              ${APP_ICONS.eye} ${subList.length} Evaluator${subList.length === 1 ? '' : 's'}
+                            </button>
+                          ` : ''}
+                        </div>
+                        ${isCurrentlyAdmin && subList.length > 0 ? `
+                          <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                            ${subList.map(sub => `
+                              <span style="font-size: 0.67rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; padding: 0.08rem 0.4rem; border-radius: 999px; font-weight: 600;">
+                                ${escapeHtml(sub.evaluatorName || 'Evaluator')}: <strong>${sub.total}/${maxPossible}</strong> (${sub.pct}%)
+                              </span>
+                            `).join('')}
+                          </div>
+                        ` : (scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : '')}
                       ` : `
-                        <span class="status-badge-pending" style="font-size: 0.72rem;">
-                          Pending Scoring
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                          <span class="status-badge-pending" style="font-size: 0.72rem;">
+                            Pending Scoring
+                          </span>
+                          ${isCurrentlyAdmin && currentWeek ? `
+                            <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View committee member evaluation status">
+                              ${APP_ICONS.eye} Committee Scores
+                            </button>
+                          ` : ''}
+                        </div>
                       `}
                     </td>
                     <td style="text-align: center;">
@@ -2896,9 +3398,27 @@ class OLAGApp {
     const currentStudentId = this.store.state.selectedStudentId;
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const isCommitteeUser = this.store.state.currentRoleKey === 'committee';
-    const evaluator = this.getCurrentLoginEvaluator();
-    const currentEvaluatorId = evaluator.id;
-    this.store.state.selectedEvaluatorId = currentEvaluatorId;
+    const loginEvaluator = this.getCurrentLoginEvaluator();
+    let evaluator = loginEvaluator;
+    if (isCurrentlyAdmin && this.store.state.selectedEvaluatorId && this.store.state.selectedEvaluatorId !== 'role-admin') {
+      const selectedMem = members.find(m => m && m.id === this.store.state.selectedEvaluatorId);
+      if (selectedMem) {
+        const memInitials = (selectedMem.name || 'CM').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+        evaluator = {
+          id: selectedMem.id,
+          name: selectedMem.name,
+          role: selectedMem.role || 'Evaluator',
+          username: selectedMem.username || 'committee',
+          avatar: memInitials,
+          avatarBg: '#059669',
+          status: selectedMem.status || 'Active'
+        };
+      } else {
+        this.store.state.selectedEvaluatorId = loginEvaluator.id;
+      }
+    } else {
+      this.store.state.selectedEvaluatorId = loginEvaluator.id;
+    }
 
     const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const isWeekClosed = currentWeekObj && currentWeekObj.status === 'Closed';
@@ -2910,10 +3430,14 @@ class OLAGApp {
       : this.store.state.students.filter(s => s.class === currentClass);
     let selectedStudent = (currentStudentId ? this.store.state.students.find(s => s.id === currentStudentId) : null) || classStudents[0] || null;
 
-    const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
-    const studentScoreData = selectedStudent ? (weekScores[selectedStudent.id] || {}) : {};
-    const criteria = (this.store.state.criteria && this.store.state.criteria.length > 0) ? this.store.state.criteria : CRITERIA_LIST;
     const maxTotalScore = this.getMaxCriteriaScore();
+    const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
+    const rawStudentScoreData = selectedStudent ? (weekScores[selectedStudent.id] || null) : null;
+    const normalizedStudentScore = rawStudentScoreData ? this.store.normalizeStudentWeekScore(rawStudentScoreData, maxTotalScore) : null;
+    const studentScoreData = (selectedStudent && rawStudentScoreData)
+      ? (this.findSubmissionForEvaluator(rawStudentScoreData, evaluator) || {})
+      : {};
+    const criteria = (this.store.state.criteria && this.store.state.criteria.length > 0) ? this.store.state.criteria : CRITERIA_LIST;
 
     container.innerHTML = `
       <div class="view-header">
@@ -3028,14 +3552,21 @@ class OLAGApp {
           </select>
         </div>
 
-        <!-- Committee Evaluator Field Matching Current Login -->
+        <!-- Committee Evaluator Field Matching Current Login (or Admin Selector) -->
         <div class="filter-field">
           <label>Committee Evaluator</label>
-          <div id="assessCurrentEvaluatorDisplay" style="font-size: 0.88rem; font-weight: 700; color: var(--navy-primary); padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem; height: 38px;">
-            <span style="display: inline-flex; color: #15803d;">${APP_ICONS.user}</span>
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})</span>
-            <span style="font-size: 0.7rem; color: #15803d; font-weight: 800; margin-left: auto; white-space: nowrap;">● Active</span>
-          </div>
+          ${isCurrentlyAdmin ? `
+            <select id="assessMemberSelect" class="form-select">
+              <option value="role-admin" ${evaluator.id === 'role-admin' ? 'selected' : ''}>Administrator (Admin Override)</option>
+              ${members.map(m => `<option value="${escapeHtml(m.id)}" ${evaluator.id === m.id ? 'selected' : ''}>${escapeHtml(m.name)} (${escapeHtml(m.role || 'Evaluator')})</option>`).join('')}
+            </select>
+          ` : `
+            <div id="assessCurrentEvaluatorDisplay" style="font-size: 0.88rem; font-weight: 700; color: var(--navy-primary); padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem; height: 38px;">
+              <span style="display: inline-flex; color: #15803d;">${APP_ICONS.user}</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})</span>
+              <span style="font-size: 0.7rem; color: #15803d; font-weight: 800; margin-left: auto; white-space: nowrap;">● Active</span>
+            </div>
+          `}
         </div>
 
         <div class="filter-field">
@@ -3060,9 +3591,16 @@ class OLAGApp {
 
       ${selectedStudent ? `
         <div class="scoring-table-card">
-            <div class="scoring-table-title">
+          <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <span>Assessment Criteria (Each / 10) — Evaluating: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)})</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Max Total: ${maxTotalScore} Points</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              ${normalizedStudentScore && normalizedStudentScore.evaluatorCount > 0 ? `
+                <span style="font-size: 0.75rem; font-weight: 700; background: #dcfce7; color: #15803d; padding: 0.2rem 0.6rem; border-radius: 999px;">
+                  Overall Avg (${normalizedStudentScore.evaluatorCount} Evaluator${normalizedStudentScore.evaluatorCount === 1 ? '' : 's'}): ${normalizedStudentScore.total}/${maxTotalScore} (${normalizedStudentScore.pct}%)
+                </span>
+              ` : ''}
+              <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">Max Total: ${maxTotalScore} Points</span>
+            </div>
           </div>
 
           <form id="formSubmitWeeklyScores">
@@ -3098,7 +3636,7 @@ class OLAGApp {
 
             <div class="scoring-summary-bar">
               <div class="scoring-tally-text">
-                Live Total: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / ${maxTotalScore}</strong> &nbsp;•&nbsp; 
+                ${escapeHtml(evaluator.name)}'s Score: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / ${maxTotalScore}</strong> &nbsp;•&nbsp; 
                 Percentage: <strong id="livePctDisplay" style="color: var(--accent-gold);">${studentScoreData.pct || 0}%</strong>
                 ${isWeekClosed ? '<span style="color: #991b1b; font-weight: 800; margin-left: 0.5rem;">Sealed</span>' : ''}
               </div>
@@ -3120,6 +3658,12 @@ class OLAGApp {
             </div>
           </form>
         </div>
+
+        ${isCurrentlyAdmin && currentWeekId ? `
+          <div style="margin-top: 1.25rem;">
+            ${this.renderStudentCommitteeBreakdownTableHtml(currentWeekId, selectedStudent.id)}
+          </div>
+        ` : ''}
       ` : `
         <div class="scoring-table-card" style="text-align: center; padding: 3rem 1.5rem;">
           <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.75rem;">${APP_ICONS.committee}</div>
@@ -3228,7 +3772,13 @@ class OLAGApp {
         const pct = Number(((total / maxTotalScore) * 100).toFixed(1));
 
         if (!this.store.state.scores[currentWeekId]) this.store.state.scores[currentWeekId] = {};
-        this.store.state.scores[currentWeekId][selectedStudent.id] = {
+        const existingRaw = this.store.state.scores[currentWeekId][selectedStudent.id] || null;
+        const existingNorm = existingRaw
+          ? this.store.normalizeStudentWeekScore(existingRaw, maxTotalScore)
+          : { submissions: {} };
+        const mergedSubmissions = { ...(existingNorm && existingNorm.submissions ? existingNorm.submissions : {}) };
+
+        const submissionEntry = {
           ...scoresObj,
           total,
           pct,
@@ -3238,14 +3788,22 @@ class OLAGApp {
           evaluatorUsername: evaluator.username,
           submittedAt: new Date().toISOString()
         };
+        const evalKey = this.store.getEvaluatorScoreKey(submissionEntry);
+        mergedSubmissions[evalKey] = submissionEntry;
+
+        this.store.state.scores[currentWeekId][selectedStudent.id] = this.store.normalizeStudentWeekScore({
+          ...submissionEntry,
+          submissions: mergedSubmissions
+        }, maxTotalScore);
 
         this.recalculateWeekResults(currentWeekId);
+        const safeEvalKey = evalKey.replace(/[^a-z0-9_-]/gi, '_');
         this.addNotification({
-          id: `notif-score-${currentWeekId}-${selectedStudent.id}`,
+          id: `notif-score-${currentWeekId}-${selectedStudent.id}-${safeEvalKey}`,
           type: 'score',
           icon: 'score',
           title: `Assessment Scores Submitted (${currentWeekObj ? currentWeekObj.name : 'Weekly'})`,
-          message: `${evaluator.name} submitted scores for ${selectedStudent.name} (${selectedStudent.class}): ${total}/${maxTotalScore} (${pct}%).`,
+          message: `${evaluator.name} (${evaluator.role || 'Evaluator'}) submitted scores for ${selectedStudent.name} (${selectedStudent.class}): ${total}/${maxTotalScore} (${pct}%).`,
           actionLabel: 'View Rankings',
           actionView: 'rankings'
         });
@@ -3260,10 +3818,12 @@ class OLAGApp {
     const container = document.getElementById('view-rankings');
     if (!container) return;
 
+    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const weeks = this.store.state.weeks || [];
     const classes = this.store.state.classes || [];
     const currentWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
     const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks[0] || null;
+    const maxScore = (currentWeekObj && currentWeekObj.maxScore) || this.getMaxCriteriaScore();
     const currentClass = this.store.state.selectedClass || 'All';
     const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
     const rankedStudents = [];
@@ -3274,9 +3834,17 @@ class OLAGApp {
     }
 
     targetStudents.forEach(s => {
-      const sc = weekScores[s.id];
-      if (sc && typeof sc.total === 'number') {
-        rankedStudents.push({ student: s, totalScore: sc.total, percentage: sc.pct });
+      const rawSc = weekScores[s.id];
+      const sc = rawSc ? this.store.normalizeStudentWeekScore(rawSc, maxScore) : null;
+      if (sc && typeof sc.total === 'number' && (sc.evaluatorCount > 0 || sc.total > 0 || sc.evaluatorName)) {
+        const subList = sc.submissions ? Object.values(sc.submissions) : [];
+        rankedStudents.push({
+          student: s,
+          totalScore: sc.total,
+          percentage: sc.pct,
+          evaluatorCount: sc.evaluatorCount || subList.length || 1,
+          submissions: subList
+        });
       }
     });
 
@@ -3321,8 +3889,8 @@ class OLAGApp {
 
           <div class="winner-banner-scores">
             <div class="banner-score-col">
-              <div class="banner-score-lbl">Total Score</div>
-              <div class="banner-score-val">${topWinner.totalScore} / ${(currentWeekObj && currentWeekObj.maxScore) || this.getMaxCriteriaScore()}</div>
+              <div class="banner-score-lbl">${topWinner.evaluatorCount > 1 ? `Avg Score (${topWinner.evaluatorCount} Evaluators)` : 'Total Score'}</div>
+              <div class="banner-score-val">${topWinner.totalScore} / ${maxScore}</div>
             </div>
 
             <div class="banner-score-col">
@@ -3342,20 +3910,21 @@ class OLAGApp {
                 <th>Student Name</th>
                 <th>Class</th>
                 <th>House</th>
-                <th style="text-align: center;">Total Score</th>
+                ${isCurrentlyAdmin ? '<th>Committee Members\' Scores</th>' : ''}
+                <th style="text-align: center;">${isCurrentlyAdmin ? 'Overall / Avg Score' : 'Total Score'}</th>
                 <th style="text-align: center;">Percentage</th>
               </tr>
             </thead>
             <tbody>
               ${rankedStudents.length === 0 ? `
                 <tr>
-                  <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                  <td colspan="${isCurrentlyAdmin ? '7' : '6'}" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
                     <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.rankings}</div><br>
                     No student scores recorded yet for this week interval.<br>
                     <small>Scores entered in the Assessment portal will automatically rank students here.</small>
                   </td>
                 </tr>
-              ` : rankedStudents.slice(0, 5).map((r, idx) => {
+              ` : rankedStudents.map((r, idx) => {
                 const rankNum = idx + 1;
                 return `
                   <tr>
@@ -3371,7 +3940,23 @@ class OLAGApp {
                     </td>
                     <td>${escapeHtml(r.student.class)}</td>
                     <td>${escapeHtml(r.student.house)}</td>
-                    <td style="text-align: center; font-weight: 700;">${r.totalScore}</td>
+                    ${isCurrentlyAdmin ? `
+                      <td>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;">
+                          ${r.submissions.map(sub => `
+                            <span style="font-size: 0.7rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #1e293b; padding: 0.12rem 0.45rem; border-radius: 999px; font-weight: 600;">
+                              ${escapeHtml(sub.evaluatorName || 'Evaluator')}: <strong>${sub.total}/${maxScore}</strong> (${sub.pct}%)
+                            </span>
+                          `).join('')}
+                          ${currentWeekId ? `
+                            <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 700;" onclick="app.openStudentCommitteeScoresModal('${r.student.id}', '${currentWeekId}')">
+                              ${APP_ICONS.eye} Breakdown
+                            </button>
+                          ` : ''}
+                        </div>
+                      </td>
+                    ` : ''}
+                    <td style="text-align: center; font-weight: 700;">${r.totalScore} / ${maxScore}</td>
                     <td style="text-align: center; font-weight: 700; color: ${rankNum === 1 ? '#b45309' : 'inherit'};">${r.percentage}%</td>
                   </tr>
                 `;
@@ -3380,6 +3965,8 @@ class OLAGApp {
           </table>
         </div>
       </div>
+
+      ${isCurrentlyAdmin && currentWeekId ? this.renderWeekAllStudentsCommitteeMatrixHtml(currentWeekId, currentClass) : ''}
     `;
 
     const rWeek = document.getElementById('rankingsWeekSelect');
@@ -3742,23 +4329,32 @@ class OLAGApp {
       return;
     }
 
+    const activeWeek = this.getActiveWeek();
     const performanceRows = this.store.state.weeks.map(w => {
-      const weekData = (this.store.state.scores[w.id] && this.store.state.scores[w.id][student.id]) || null;
-      if (!weekData || typeof weekData.total !== 'number') {
+      const maxWeekScore = w.maxScore || this.getMaxCriteriaScore();
+      const rawWeekData = (this.store.state.scores[w.id] && this.store.state.scores[w.id][student.id]) || null;
+      const weekData = rawWeekData ? this.store.normalizeStudentWeekScore(rawWeekData, maxWeekScore) : null;
+      if (!weekData || typeof weekData.total !== 'number' || (!weekData.evaluatorCount && !weekData.total && !weekData.evaluatorName)) {
         return {
+          weekId: w.id,
           week: w.name,
           date: w.dateRange,
           score: '—',
           pct: '—',
-          rankDisplay: '—'
+          rankDisplay: '—',
+          submissions: []
         };
       }
+      const subList = weekData.submissions ? Object.values(weekData.submissions) : [];
       return {
+        weekId: w.id,
         week: w.name,
         date: w.dateRange,
-        score: `${weekData.total} / ${w.maxScore || this.getMaxCriteriaScore()}`,
+        maxScore: maxWeekScore,
+        score: `${weekData.total} / ${maxWeekScore}`,
         pct: `${weekData.pct}%`,
-        rankDisplay: weekData.pct >= 90 ? '1' : (weekData.pct >= 80 ? '2' : '3')
+        rankDisplay: weekData.pct >= 90 ? '1' : (weekData.pct >= 80 ? '2' : '3'),
+        submissions: subList
       };
     });
 
@@ -3810,7 +4406,8 @@ class OLAGApp {
                 <tr>
                   <th>Week</th>
                   <th>Date Range</th>
-                  <th style="text-align: center;">Total Score</th>
+                  ${isCurrentlyAdmin ? '<th>Committee Members\' Scores</th>' : ''}
+                  <th style="text-align: center;">${isCurrentlyAdmin ? 'Overall / Avg Score' : 'Total Score'}</th>
                   <th style="text-align: center;">Percentage</th>
                   <th style="text-align: center;">Rank</th>
                 </tr>
@@ -3818,14 +4415,28 @@ class OLAGApp {
               <tbody>
                 ${performanceRows.length === 0 ? `
                   <tr>
-                    <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    <td colspan="${isCurrentlyAdmin ? '6' : '5'}" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                       No weekly assessment cycles configured yet.
                     </td>
                   </tr>
                 ` : performanceRows.map(p => `
                   <tr>
-                    <td><strong>${p.week}</strong></td>
-                    <td>${p.date}</td>
+                    <td><strong>${escapeHtml(p.week)}</strong></td>
+                    <td>${escapeHtml(p.date)}</td>
+                    ${isCurrentlyAdmin ? `
+                      <td>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center;">
+                          ${p.submissions && p.submissions.length > 0 ? p.submissions.map(sub => `
+                            <span style="font-size: 0.7rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #1e293b; padding: 0.1rem 0.45rem; border-radius: 999px; font-weight: 600;">
+                              ${escapeHtml(sub.evaluatorName || 'Evaluator')}: <strong>${sub.total}/${p.maxScore || 70}</strong> (${sub.pct}%)
+                            </span>
+                          `).join('') : '<span style="color: #94a3b8; font-size: 0.75rem;">Pending</span>'}
+                          <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 700;" onclick="app.openStudentCommitteeScoresModal('${student.id}', '${p.weekId}')">
+                            ${APP_ICONS.eye} View Scores
+                          </button>
+                        </div>
+                      </td>
+                    ` : ''}
                     <td style="text-align: center; font-weight: 700;">${p.score}</td>
                     <td style="text-align: center; font-weight: 700; color: ${p.rankDisplay === '1' ? '#b45309' : 'inherit'};">${p.pct}</td>
                     <td style="text-align: center;">
@@ -3836,6 +4447,12 @@ class OLAGApp {
               </tbody>
             </table>
           </div>
+
+          ${isCurrentlyAdmin && activeWeek ? `
+            <div style="margin-top: 1.35rem;">
+              ${this.renderStudentCommitteeBreakdownTableHtml(activeWeek.id, student.id)}
+            </div>
+          ` : ''}
 
           <div class="profile-comments-box">
             <h4>Comments</h4>
