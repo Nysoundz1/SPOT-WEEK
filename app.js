@@ -4,6 +4,42 @@
  * Complete Multi-Role Dashboards & Login Logic
  */
 
+// --- Modern SVG Vector Icons (Zero Unicode Emojis) ---
+const APP_ICONS = {
+  home: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  students: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
+  assessment: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>',
+  rankings: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  calendar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  committee: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  reports: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  settings: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  eye: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>',
+  edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+  user: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  userPlus: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>',
+  school: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="15" y1="9" x2="15" y2="9.01"/><line x1="9" y1="15" x2="9" y2="15.01"/><line x1="15" y1="15" x2="15" y2="15.01"/><path d="M9 22V17h6v5"/></svg>',
+  lock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  unlock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>',
+  clock: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  check: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  search: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  trophy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+  download: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+  fileText: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  printer: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+  sync: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+  copy: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  externalLink: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+  database: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  sun: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  moon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  logout: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+};
+
 // --- Pre-configured Roles & Accounts ---
 // --- System Roles & Default Admin Account ---
 const SYSTEM_ROLES = {
@@ -187,6 +223,12 @@ class OLAGStore {
     ]);
     this.state.deletedWeekIds = [...deletedWeeks];
 
+    const deletedClasses = new Set([
+      ...(Array.isArray(this.state.deletedClasses) ? this.state.deletedClasses : []),
+      ...(Array.isArray(remoteState.deletedClasses) ? remoteState.deletedClasses : [])
+    ]);
+    this.state.deletedClasses = [...deletedClasses];
+
     const dismissedNotifs = new Set([
       ...(Array.isArray(this.state.dismissedNotificationIds) ? this.state.dismissedNotificationIds : []),
       ...(Array.isArray(remoteState.dismissedNotificationIds) ? remoteState.dismissedNotificationIds : [])
@@ -296,7 +338,7 @@ class OLAGStore {
     // 5. Merge Classes & Houses
     if (Array.isArray(remoteState.classes)) {
       const localClasses = Array.isArray(this.state.classes) ? this.state.classes : [];
-      this.state.classes = [...new Set([...remoteState.classes, ...localClasses])];
+      this.state.classes = [...new Set([...remoteState.classes, ...localClasses])].filter(c => c && !deletedClasses.has(c));
     }
     if (Array.isArray(remoteState.houses)) this.state.houses = remoteState.houses;
 
@@ -345,11 +387,18 @@ class OLAGStore {
   normalizeStudentsAndClasses(stateObj) {
     if (!stateObj || typeof stateObj !== 'object') return;
     if (!Array.isArray(stateObj.students)) stateObj.students = [];
-    if (!Array.isArray(stateObj.classes)) stateObj.classes = [...CLASSES_LIST];
+    if (!Array.isArray(stateObj.deletedClasses)) stateObj.deletedClasses = [];
+    const deletedClassesSet = new Set(stateObj.deletedClasses);
 
-    // Ensure every student class exists in stateObj.classes
+    if (!Array.isArray(stateObj.classes)) {
+      stateObj.classes = CLASSES_LIST.filter(c => !deletedClassesSet.has(c));
+    } else {
+      stateObj.classes = stateObj.classes.filter(c => c && !deletedClassesSet.has(c));
+    }
+
+    // Ensure every student class exists in stateObj.classes (unless deleted by admin or unassigned)
     stateObj.students.forEach(s => {
-      if (s && s.class && !stateObj.classes.includes(s.class)) {
+      if (s && s.class && s.class !== 'Unassigned' && !deletedClassesSet.has(s.class) && !stateObj.classes.includes(s.class)) {
         stateObj.classes.push(s.class);
       }
     });
@@ -403,10 +452,10 @@ class OLAGStore {
         stateObj.notifications.unshift({
           id: notifId,
           type: 'member',
-          icon: '👥',
+          icon: 'member',
           title: `Committee Member Registered: ${m.name}`,
           message: `${m.name} (${m.role || 'Evaluator'}) is registered (${m.status || 'Active'}) under scope "${m.scope || 'All Houses & Classes'}" with username "${m.username}".`,
-          actionLabel: 'View in Directory ➜',
+          actionLabel: 'View in Directory',
           actionView: 'committee',
           unread: true,
           createdAt: m.createdAt || new Date().toISOString()
@@ -434,10 +483,10 @@ class OLAGStore {
           stateObj.notifications.unshift({
             id: notifId,
             type: 'score',
-            icon: '📝',
+            icon: 'score',
             title: `Assessment Scores Submitted (${weekLabel})`,
             message: `${evalName} submitted scores for ${studentName}: ${sc.total}/${maxScore} (${sc.pct}%).`,
-            actionLabel: 'View Rankings ➜',
+            actionLabel: 'View Rankings',
             actionView: 'rankings',
             unread: true,
             createdAt: sc.submittedAt || new Date().toISOString()
@@ -525,6 +574,7 @@ class OLAGStore {
       deletedMemberIds: this.state.deletedMemberIds || [],
       deletedStudentIds: this.state.deletedStudentIds || [],
       deletedWeekIds: this.state.deletedWeekIds || [],
+      deletedClasses: this.state.deletedClasses || [],
       selectedWeekId: this.state.selectedWeekId
     };
 
@@ -875,7 +925,7 @@ class OLAGApp {
     const isDark = (currentDomTheme || this.store.state.theme) === 'dark';
     const iconEl = document.getElementById('themeIconIndicator');
     const labelEl = document.getElementById('themeLabelIndicator');
-    if (iconEl) iconEl.textContent = isDark ? '☀️' : '🌙';
+    if (iconEl) iconEl.innerHTML = isDark ? APP_ICONS.sun : APP_ICONS.moon;
     if (labelEl) labelEl.textContent = isDark ? 'Light Mode' : 'Dark Mode';
   }
 
@@ -886,7 +936,7 @@ class OLAGApp {
     if (!shell) return;
     if (window.innerWidth <= 768) {
       const isMobileOpen = shell.classList.contains('mobile-sidebar-open');
-      if (arrow) arrow.textContent = isMobileOpen ? '✕' : '☰';
+      if (arrow) arrow.textContent = isMobileOpen ? '×' : '≡';
       return;
     }
     // Desktop mode
@@ -907,7 +957,7 @@ class OLAGApp {
       const isMobileOpen = typeof forceState === 'boolean' ? forceState : !shell.classList.contains('mobile-sidebar-open');
       shell.classList.toggle('mobile-sidebar-open', isMobileOpen);
       const arrow = document.getElementById('sidebarArrowIcon');
-      if (arrow) arrow.textContent = isMobileOpen ? '✕' : '☰';
+      if (arrow) arrow.textContent = isMobileOpen ? '×' : '≡';
       return;
     }
     this.store.state.sidebarCollapsed = typeof forceState === 'boolean' ? forceState : !this.store.state.sidebarCollapsed;
@@ -919,7 +969,7 @@ class OLAGApp {
     const shell = document.getElementById('screenAppShell');
     if (shell) shell.classList.remove('mobile-sidebar-open');
     const arrow = document.getElementById('sidebarArrowIcon');
-    if (arrow && window.innerWidth <= 768) arrow.textContent = '☰';
+    if (arrow && window.innerWidth <= 768) arrow.textContent = '≡';
   }
 
   // --- Dashboard Info Hide / Show Toggle ---
@@ -1193,13 +1243,13 @@ class OLAGApp {
     if (pwdInput.type === 'password') {
       pwdInput.type = 'text';
       if (btnTogglePwd) {
-        btnTogglePwd.textContent = '🙈';
+        btnTogglePwd.innerHTML = APP_ICONS.eyeOff;
         btnTogglePwd.title = 'Hide Password';
       }
     } else {
       pwdInput.type = 'password';
       if (btnTogglePwd) {
-        btnTogglePwd.textContent = '👁️';
+        btnTogglePwd.innerHTML = APP_ICONS.eye;
         btnTogglePwd.title = 'Show Password';
       }
     }
@@ -1429,10 +1479,10 @@ class OLAGApp {
     this.addNotification({
       id: `notif-member-${newMember.id}`,
       type: 'member',
-      icon: '👥',
+      icon: 'member',
       title: `Committee Member Registered: ${newMember.name}`,
       message: `${newMember.name} (${newMember.role}) registered with username "${newMember.username}" and is Active for student assessments.`,
-      actionLabel: 'View in Directory ➜',
+      actionLabel: 'View in Directory',
       actionView: 'committee'
     });
 
@@ -1471,7 +1521,7 @@ class OLAGApp {
       }
     }
     this.render();
-    this.showToast(`✓ Registered successfully! Welcome, ${newMember.name}.`);
+    this.showToast(`Registered successfully! Welcome, ${newMember.name}.`);
   }
 
   handleLoginByRole(roleKey) {
@@ -1705,16 +1755,16 @@ class OLAGApp {
       if (activeWeek) {
         intervalHtml = `${escapeHtml(activeWeek.name)} (${escapeHtml(activeWeek.dateRange)})`;
         if (upcomingWeek) {
-          intervalHtml += ` <span style="font-size: 0.74rem; font-weight: 700; color: #2563eb; margin-left: 0.35rem;">[⏳ Next: ${escapeHtml(upcomingWeek.name)}]</span>`;
+          intervalHtml += ` <span style="font-size: 0.74rem; font-weight: 700; color: #2563eb; margin-left: 0.35rem;">[Next: ${escapeHtml(upcomingWeek.name)}]</span>`;
         }
       } else if (upcomingWeek) {
-        intervalHtml = `<span style="color: #2563eb; font-weight: 700;">⏳ Next: ${escapeHtml(upcomingWeek.name)} (${escapeHtml(upcomingWeek.dateRange)})</span>`;
+        intervalHtml = `<span style="color: #2563eb; font-weight: 700;">Next: ${escapeHtml(upcomingWeek.name)} (${escapeHtml(upcomingWeek.dateRange)})</span>`;
       } else {
         intervalHtml = 'No active week interval';
       }
 
       if (isCurrentlyAdmin) {
-        weekIntervalEl.innerHTML = `${intervalHtml} <span class="header-week-edit-badge">✏️ Set</span>`;
+        weekIntervalEl.innerHTML = `${intervalHtml} <span class="header-week-edit-badge">Set</span>`;
       } else {
         weekIntervalEl.innerHTML = intervalHtml;
       }
@@ -1753,24 +1803,24 @@ class OLAGApp {
 
     if (roleKey === 'admin') {
       items = [
-        { id: 'dashboard-admin', icon: '🏠', label: 'Dashboard' },
-        { id: 'students', icon: '🎓', label: 'Students' },
-        { id: 'assessment', icon: '📝', label: 'Weekly Assessment' },
-        { id: 'rankings', icon: '📊', label: 'Results & Rankings' },
-        { id: 'previous-weeks', icon: '📅', label: 'Previous Weeks' },
-        { id: 'committee', icon: '👥', label: 'Committee Members' },
-        { id: 'reports', icon: '📑', label: 'Reports' },
-        { id: 'settings', icon: '⚙️', label: 'Settings' }
+        { id: 'dashboard-admin', icon: APP_ICONS.home, label: 'Dashboard' },
+        { id: 'students', icon: APP_ICONS.students, label: 'Students' },
+        { id: 'assessment', icon: APP_ICONS.assessment, label: 'Weekly Assessment' },
+        { id: 'rankings', icon: APP_ICONS.rankings, label: 'Results & Rankings' },
+        { id: 'previous-weeks', icon: APP_ICONS.calendar, label: 'Previous Weeks' },
+        { id: 'committee', icon: APP_ICONS.committee, label: 'Committee Members' },
+        { id: 'reports', icon: APP_ICONS.reports, label: 'Reports' },
+        { id: 'settings', icon: APP_ICONS.settings, label: 'Settings' }
       ];
     } else {
       // Committee Member View
       items = [
-        { id: 'dashboard-committee', icon: '🏠', label: 'My Dashboard' },
-        { id: 'assessment', icon: '📝', label: 'Enter Assessment' },
-        { id: 'rankings', icon: '📊', label: 'Results & Rankings' },
-        { id: 'previous-weeks', icon: '📅', label: 'Week Intervals' },
-        { id: 'students', icon: '🎓', label: 'Student Directory' },
-        { id: 'reports', icon: '📑', label: 'Official Reports' }
+        { id: 'dashboard-committee', icon: APP_ICONS.home, label: 'My Dashboard' },
+        { id: 'assessment', icon: APP_ICONS.assessment, label: 'Enter Assessment' },
+        { id: 'rankings', icon: APP_ICONS.rankings, label: 'Results & Rankings' },
+        { id: 'previous-weeks', icon: APP_ICONS.calendar, label: 'Week Intervals' },
+        { id: 'students', icon: APP_ICONS.students, label: 'Student Directory' },
+        { id: 'reports', icon: APP_ICONS.reports, label: 'Official Reports' }
       ];
     }
 
@@ -2191,7 +2241,7 @@ class OLAGApp {
                     </button>
                   ` : ''}
                   <button type="button" class="action-icon-btn" title="Dismiss Notification" onclick="app.dismissNotification('${escapeHtml(n.id)}')" style="width: 28px; height: 28px; font-size: 0.75rem;">
-                    ✕
+                    ×
                   </button>
                 </div>
               </div>
@@ -2202,7 +2252,7 @@ class OLAGApp {
     `;
   }
 
-  addNotification({ id, type = 'info', icon = '🔔', title, message, actionLabel = '', actionView = '' }) {
+  addNotification({ id, type = 'info', icon = 'info', title, message, actionLabel = '', actionView = '' }) {
     if (!Array.isArray(this.store.state.notifications)) {
       this.store.state.notifications = [];
     }
@@ -2261,7 +2311,7 @@ class OLAGApp {
     }
     this.store.save();
     this.render();
-    this.showToast('✓ All notifications marked as read.');
+    this.showToast('All notifications marked as read.');
   }
 
   clearAllNotifications() {
@@ -2278,7 +2328,7 @@ class OLAGApp {
     }
     this.store.save();
     this.render();
-    this.showToast('🗑️ Cleared all notifications.');
+    this.showToast('Cleared all notifications.');
   }
 
   // =========================================================================
@@ -2339,7 +2389,7 @@ class OLAGApp {
         <!-- Prominent Closed Scoring Notification Banner for Committee Members -->
         <div class="scoring-locked-banner" style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: var(--radius-md); padding: 0.9rem 1.15rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.65rem;">
-            <span style="font-size: 1.45rem;">🔒</span>
+            <span style="display: inline-flex; color: #991b1b;">${APP_ICONS.lock}</span>
             <div>
               <div style="font-weight: 800; font-size: 0.95rem; color: #991b1b;">
                 Scoring Closed (Results Sealed by Administrator)
@@ -2350,7 +2400,7 @@ class OLAGApp {
             </div>
           </div>
           <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.76rem; background: #991b1b; color: #fff;" onclick="app.navigateTo('rankings')">
-            🏆 View Sealed Rankings
+            ${APP_ICONS.trophy} View Sealed Rankings
           </button>
         </div>
       ` : ''}
@@ -2358,23 +2408,23 @@ class OLAGApp {
       <!-- Prominent Active Assessment Interval Banner for Committee Members -->
       <div class="evaluator-banner" style="margin-bottom: 1.25rem;">
         <div class="evaluator-banner-left">
-          <div class="evaluator-avatar" style="background: ${isWeekClosed ? '#991b1b' : (isWeekUpcoming ? '#2563eb' : 'var(--stat-green)')}; font-size: 1.25rem;">${isWeekClosed ? '🔒' : (isWeekUpcoming ? '⏳' : '📅')}</div>
+          <div class="evaluator-avatar" style="background: ${isWeekClosed ? '#991b1b' : (isWeekUpcoming ? '#2563eb' : 'var(--stat-green)')}; color: #fff;">${isWeekClosed ? APP_ICONS.lock : (isWeekUpcoming ? APP_ICONS.clock : APP_ICONS.calendar)}</div>
           <div>
             <div style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <span>Assessment Interval: <strong>${currentWeek ? escapeHtml(currentWeek.name) : 'No Active Interval'}</strong></span>
               ${currentWeek ? `
                 <span class="${currentWeek.status === 'Closed' ? 'status-badge-closed' : (currentWeek.status === 'Upcoming' ? 'status-badge-upcoming' : 'status-badge-active')}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; ${currentWeek.status === 'Closed' ? 'background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;' : ''}">
-                  ● ${currentWeek.status === 'Closed' ? '🔒 Closed (Results Sealed)' : (currentWeek.status === 'Upcoming' ? '⏳ Upcoming (Scheduled)' : '🟢 Open for Scoring')}
+                  ● ${currentWeek.status === 'Closed' ? 'Closed (Results Sealed)' : (currentWeek.status === 'Upcoming' ? 'Upcoming (Scheduled)' : 'Open for Scoring')}
                 </span>
-                ${currentWeek.isCurrent ? '<span style="font-size: 0.68rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.45rem; border-radius: 999px;">★ Current Cycle</span>' : ''}
+                ${currentWeek.isCurrent ? '<span style="font-size: 0.68rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.45rem; border-radius: 999px;">Current Cycle</span>' : ''}
               ` : `
                 <span style="font-size: 0.72rem; font-weight: 700; background: #fef3c7; color: #92400e; padding: 0.15rem 0.55rem; border-radius: 999px;">
-                  ⚠️ Awaiting Admin Interval Setup
+                  Awaiting Admin Interval Setup
                 </span>
               `}
             </div>
             <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 0.15rem;">
-              ${currentWeek ? `🗓️ Dates: <strong>${escapeHtml(currentWeek.dateRange)}</strong>` : 'No scoring intervals have been configured by administrators yet.'}
+              ${currentWeek ? `Dates: <strong>${escapeHtml(currentWeek.dateRange)}</strong>` : 'No scoring intervals have been configured by administrators yet.'}
             </div>
           </div>
         </div>
@@ -2385,19 +2435,19 @@ class OLAGApp {
               <select id="committeeDashWeekSelect" class="form-select" style="font-size: 0.82rem; height: 34px; min-width: 170px;" onchange="app.changeCommitteeDashboardWeek(this.value)">
                 ${weeks.map(w => {
                   let tag = '';
-                  if (w.status === 'Closed') tag = ' [🔒 Closed]';
-                  else if (w.status === 'Upcoming') tag = ' [⏳ Upcoming]';
-                  else if (w.isCurrent) tag = ' [🟢 Active ★]';
+                  if (w.status === 'Closed') tag = ' [Closed]';
+                  else if (w.status === 'Upcoming') tag = ' [Upcoming]';
+                  else if (w.isCurrent) tag = ' [Active]';
                   return `<option value="${w.id}" ${currentWeek && w.id === currentWeek.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})${tag}</option>`;
                 }).join('')}
               </select>
             </div>
           ` : ''}
           <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
-            ${isWeekClosed ? '👁️ View Sealed Scores' : (isWeekUpcoming ? '👁️ Preview Criteria' : '📝 Enter Scores')}
+            ${isWeekClosed ? `${APP_ICONS.eye} View Sealed Scores` : (isWeekUpcoming ? `${APP_ICONS.eye} Preview Criteria` : `${APP_ICONS.edit} Enter Scores`)}
           </button>
           <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
-            📅 View All Intervals
+            ${APP_ICONS.calendar} View All Intervals
           </button>
         </div>
       </div>
@@ -2406,7 +2456,7 @@ class OLAGApp {
         <!-- Prominent Upcoming Assessment Cycle Notice for Committee Members -->
         <div class="upcoming-assessment-card" style="margin-bottom: 1.25rem; background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); border: 1.5px solid #bfdbfe; border-radius: var(--radius-md); padding: 0.95rem 1.15rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-size: 1.45rem;">⏳</span>
+            <span style="display: inline-flex; color: #2563eb;">${APP_ICONS.clock}</span>
             <div>
               <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
                 <span style="font-weight: 800; font-size: 0.92rem; color: #1e40af;">
@@ -2420,7 +2470,7 @@ class OLAGApp {
             </div>
           </div>
           <button type="button" class="btn-demo-pill" style="border: 1px solid #93c5fa; color: #1e40af; height: 30px; font-size: 0.76rem; background: #fff;" onclick="app.previewUpcomingWeek('${upcomingWeek.id}')">
-            🔍 Preview Next Schedule
+            Preview Next Schedule
           </button>
         </div>
       ` : ''}
@@ -2504,7 +2554,7 @@ class OLAGApp {
           <span>Pending Student Evaluations for ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <button class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
-              Open Full Rubric ➜
+              Open Full Rubric
             </button>
           </div>
         </div>
@@ -2524,7 +2574,7 @@ class OLAGApp {
             ${totalAssigned === 0 ? `
               <tr>
                 <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                  <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📋</div>
+                  <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.reports}</div><br>
                   No students currently enrolled in the system.<br>
                   <small>Students added by administrators will automatically appear here for evaluation.</small>
                 </td>
@@ -2532,7 +2582,7 @@ class OLAGApp {
             ` : (pendingStudents.length === 0 ? `
               <tr>
                 <td colspan="6" style="text-align: center; padding: 2rem; color: var(--stat-green);">
-                  <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🎉</div>
+                  <div style="display: inline-flex; color: var(--stat-green); margin-bottom: 0.5rem;">${APP_ICONS.check}</div><br>
                   <strong>All caught up!</strong> All ${totalAssigned} students have been evaluated for ${escapeHtml(weekLabel)}.
                 </td>
               </tr>
@@ -2546,11 +2596,11 @@ class OLAGApp {
                 <td style="text-align: center;">
                   ${isWeekClosed ? `
                     <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #94a3b8; cursor: not-allowed; opacity: 0.75;" disabled title="Scoring closed by administrator">
-                      🔒 Closed
+                      ${APP_ICONS.lock} Closed
                     </button>
                   ` : `
                     <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
-                      Assess ➜
+                      Assess
                     </button>
                   `}
                 </td>
@@ -2658,43 +2708,43 @@ class OLAGApp {
            STUDENTS DASHBOARD: ALL ENROLLED STUDENTS DIRECTORY
            ========================================================================= -->
       <div class="scoring-table-card" style="padding: 0; overflow: hidden;" id="studentsDirectorySection">
-        <div class="scoring-table-title" style="padding: 1.15rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span style="font-size: 1.25rem;">🎓</span>
-              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">All Enrolled Students Directory</span>
-              <span id="studentsDirectoryCountBadge" style="background: #f1f5f9; color: var(--navy-primary); font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+        <div class="scoring-table-title directory-header-bar" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 0.75rem;">
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.students}</span>
+              <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary); white-space: nowrap;">All Enrolled Students Directory</span>
+              <span id="studentsDirectoryCountBadge" style="background: #f1f5f9; color: var(--navy-primary); font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap;">
                 ${hasActiveFilter ? `${students.length} of ${allStudents.length} Students` : `${allStudents.length} Student${allStudents.length === 1 ? '' : 's'}`}
               </span>
             </div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               Directory of all added students across all classes and houses at Our Lady of Grace SHS.
             </div>
           </div>
 
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <div class="directory-toolbar-controls" style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: nowrap; flex-shrink: 0;">
             <input type="text" id="studentSearchInput" class="form-input"
-              placeholder="🔍 Search students..."
+              placeholder="Search students..."
               value="${escapeHtml(this.store.state.studentSearchQuery || '')}"
-              style="height: 32px; font-size: 0.78rem; width: 175px; padding: 0 0.65rem;" />
+              style="height: 32px; font-size: 0.76rem; width: 145px; padding: 0 0.6rem;" />
 
-            <select id="studentClassFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 140px; padding: 0 1.6rem 0 0.55rem;">
+            <select id="studentClassFilterSelect" class="form-select" style="height: 32px; font-size: 0.76rem; width: 120px; padding: 0 1.4rem 0 0.5rem;">
               <option value="All Classes">All Classes</option>
               ${allClasses.map(c => `<option value="${escapeHtml(c)}" ${c === classFilter ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
             </select>
 
-            <select id="studentHouseFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 140px; padding: 0 1.6rem 0 0.55rem;">
+            <select id="studentHouseFilterSelect" class="form-select" style="height: 32px; font-size: 0.76rem; width: 120px; padding: 0 1.4rem 0 0.5rem;">
               <option value="All Houses">All Houses</option>
               ${allHouses.map(h => `<option value="${escapeHtml(h)}" ${houseFilter === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
             </select>
 
             ${isCurrentlyAdmin ? `
-              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddStudentModal()">
-                👤 + Add Student
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddStudentModal()">
+                ${APP_ICONS.userPlus} + Add Student
               </button>
 
-              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem; background: #334155;" onclick="app.openAddClassModal()">
-                🏫 Classes (${allClasses.length})
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; background: #334155; white-space: nowrap;" onclick="app.openAddClassModal()">
+                ${APP_ICONS.school} Classes (${allClasses.length})
               </button>
             ` : ''}
           </div>
@@ -2718,7 +2768,7 @@ class OLAGApp {
               ${students.length === 0 ? `
                 <tr>
                   <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-                    <div style="font-size: 2rem; margin-bottom: 0.4rem;">👥</div>
+                    <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.4rem;">${APP_ICONS.committee}</div>
                     <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">
                       ${allStudents.length === 0 ? 'No Students Enrolled Yet' : 'No Matching Students Found'}
                     </div>
@@ -2729,7 +2779,7 @@ class OLAGApp {
                     </div>
                     ${allStudents.length === 0 ? (isCurrentlyAdmin ? `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
-                        👤 + Add First Student
+                        ${APP_ICONS.userPlus} + Add First Student
                       </button>
                     ` : '') : `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('students')">
@@ -2756,31 +2806,31 @@ class OLAGApp {
                     <td>
                       ${isEvaluated ? `
                         <span class="status-badge-active" style="font-size: 0.72rem;">
-                          ✓ Scored: <strong>${scoreData.total}/${currentWeek.maxScore || this.getMaxCriteriaScore()}</strong> (${scoreData.pct}%)
+                          Scored: <strong>${scoreData.total}/${currentWeek.maxScore || this.getMaxCriteriaScore()}</strong> (${scoreData.pct}%)
                         </span>
                         ${scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : ''}
                       ` : `
                         <span class="status-badge-pending" style="font-size: 0.72rem;">
-                          ⏳ Pending Scoring
+                          Pending Scoring
                         </span>
                       `}
                     </td>
                     <td style="text-align: center;">
                       <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
                         <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
-                          👁️
+                          ${APP_ICONS.eye}
                         </button>
                         ${isCurrentlyAdmin ? `
                           <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
-                            ✏️
+                            ${APP_ICONS.edit}
                           </button>
                         ` : ''}
                         <button type="button" class="action-icon-btn" title="Enter Scores for Student" onclick="app.scoreStudent('${s.id}')" style="color: #1d4ed8; background: #eff6ff;">
-                          📝
+                          ${APP_ICONS.assessment}
                         </button>
                         ${isCurrentlyAdmin ? `
                           <button type="button" class="action-icon-btn delete" title="Delete Student" onclick="app.deleteStudent('${s.id}')">
-                            🗑️
+                            ${APP_ICONS.trash}
                           </button>
                         ` : ''}
                       </div>
@@ -2792,10 +2842,10 @@ class OLAGApp {
           </table>
         </div>
 
-        <div class="pagination-container">
+        <div class="pagination-container" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; border-top: 1px solid var(--card-border); font-size: 0.8rem; color: var(--text-muted);">
           <span>Showing ${students.length > 0 ? '1' : '0'} – ${students.length} of ${allStudents.length} students</span>
-          <div class="pagination-pages">
-            <button class="page-btn active">1</button>
+          <div class="pagination-pages" style="display: flex; align-items: center; gap: 0.35rem;">
+            <button type="button" class="page-btn active" style="min-width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--navy-primary); background: var(--navy-primary); color: #ffffff; font-size: 0.76rem; font-weight: 700; cursor: default;">1</button>
           </div>
         </div>
       </div>
@@ -2875,7 +2925,7 @@ class OLAGApp {
         <!-- Prominent Admin Closed Scoring Enforcement Notice -->
         <div class="scoring-locked-banner" style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-size: 1.6rem;">🔒</span>
+            <span style="display: inline-flex; color: #991b1b;">${APP_ICONS.lock}</span>
             <div>
               <div style="font-weight: 800; font-size: 0.95rem; color: #991b1b;">
                 Scoring is Closed (Results Sealed by Administrator)
@@ -2887,11 +2937,11 @@ class OLAGApp {
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <button type="button" class="btn-navy-action" style="background: #991b1b; color: #fff; height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('rankings')">
-              🏆 View Sealed Rankings
+              ${APP_ICONS.trophy} View Sealed Rankings
             </button>
             ${isCurrentlyAdmin ? `
               <button type="button" class="btn-demo-pill" style="border: 1px solid #dc2626; color: #991b1b; height: 32px; background: #fff;" onclick="app.quickToggleWeekStatus('${currentWeekObj.id}')">
-                🔓 Re-Open Scoring
+                ${APP_ICONS.unlock} Re-Open Scoring
               </button>
             ` : ''}
           </div>
@@ -2902,7 +2952,7 @@ class OLAGApp {
         <!-- Prominent Upcoming Week Interval Notice -->
         <div class="scoring-locked-banner" style="background: #eff6ff; border: 1.5px solid #60a5fa; border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <span style="font-size: 1.6rem;">⏳</span>
+            <span style="display: inline-flex; color: #2563eb;">${APP_ICONS.clock}</span>
             <div>
               <div style="font-weight: 800; font-size: 0.95rem; color: #1e40af;">
                 Upcoming Assessment Cycle: ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
@@ -2915,7 +2965,7 @@ class OLAGApp {
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             ${isCurrentlyAdmin ? `
               <button type="button" class="btn-navy-action" style="background: #2563eb; color: #fff; height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.activateUpcomingWeek('${currentWeekObj.id}')">
-                🚀 Activate for Scoring Now
+                ${APP_ICONS.play} Activate for Scoring Now
               </button>
             ` : ''}
             <button type="button" class="btn-demo-pill" style="border: 1px solid #93c5fa; color: #1e40af; height: 32px; background: #fff;" onclick="app.switchToActiveWeek()">
@@ -2940,18 +2990,18 @@ class OLAGApp {
         </div>
         <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
           ${currentWeekObj ? `
-            <span style="font-size: 0.8rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
-              📅 ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
+            <span style="font-size: 0.8rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 0.35rem;">
+              ${APP_ICONS.calendar} ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
             </span>
             <span style="font-size: 0.8rem; font-weight: 700; background: ${isWeekClosed ? '#fee2e2' : (isWeekUpcoming ? '#eff6ff' : '#dcfce7')}; color: ${isWeekClosed ? '#991b1b' : (isWeekUpcoming ? '#1d4ed8' : '#15803d')}; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill); border: 1px solid ${isWeekClosed ? '#fca5a5' : (isWeekUpcoming ? '#bfdbfe' : '#86efac')};">
-              ${isWeekClosed ? '🔒 Closed (Results Sealed)' : (isWeekUpcoming ? '⏳ Upcoming (Scheduled)' : '🟢 Open for Scoring')}
+              ● ${isWeekClosed ? 'Closed (Results Sealed)' : (isWeekUpcoming ? 'Upcoming (Scheduled)' : 'Open for Scoring')}
             </span>
-            ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal('${currentWeekObj.id}')">⚙️ Set Interval</button>` : ''}
+            ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal('${currentWeekObj.id}')">Set Interval</button>` : ''}
           ` : `
             <span style="font-size: 0.8rem; font-weight: 700; background: #fef3c7; color: #92400e; padding: 0.25rem 0.65rem; border-radius: var(--radius-pill);">
-              📅 No Active Week Interval Set
+              No Active Week Interval Set
             </span>
-            ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal()">➕ Create Week Interval</button>` : ''}
+            ${isCurrentlyAdmin ? `<button type="button" class="btn-demo-pill" style="border: 1px solid var(--accent-gold); color: var(--navy-primary);" onclick="app.openSetWeekIntervalModal()">+ Create Week Interval</button>` : ''}
           `}
         </div>
       </div>
@@ -2962,9 +3012,9 @@ class OLAGApp {
           <select id="assessWeekSelect" class="form-select">
             ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => {
               let label = `${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})`;
-              if (w.status === 'Closed') label += ' [🔒 Closed]';
-              else if (w.status === 'Upcoming') label += ' [⏳ Upcoming]';
-              else if (w.isCurrent) label += ' [🟢 Active ★]';
+              if (w.status === 'Closed') label += ' [Closed]';
+              else if (w.status === 'Upcoming') label += ' [Upcoming]';
+              else if (w.isCurrent) label += ' [Active]';
               return `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${label}</option>`;
             }).join('')}
           </select>
@@ -2982,7 +3032,7 @@ class OLAGApp {
         <div class="filter-field">
           <label>Committee Evaluator</label>
           <div id="assessCurrentEvaluatorDisplay" style="font-size: 0.88rem; font-weight: 700; color: var(--navy-primary); padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem; height: 38px;">
-            <span>👤</span>
+            <span style="display: inline-flex; color: #15803d;">${APP_ICONS.user}</span>
             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(evaluator.name)} (${escapeHtml(evaluator.role)})</span>
             <span style="font-size: 0.7rem; color: #15803d; font-weight: 800; margin-left: auto; white-space: nowrap;">● Active</span>
           </div>
@@ -3050,7 +3100,7 @@ class OLAGApp {
               <div class="scoring-tally-text">
                 Live Total: <strong id="liveTotalDisplay">${studentScoreData.total || 0} / ${maxTotalScore}</strong> &nbsp;•&nbsp; 
                 Percentage: <strong id="livePctDisplay" style="color: var(--accent-gold);">${studentScoreData.pct || 0}%</strong>
-                ${isWeekClosed ? '<span style="color: #991b1b; font-weight: 800; margin-left: 0.5rem;">🔒 Sealed</span>' : ''}
+                ${isWeekClosed ? '<span style="color: #991b1b; font-weight: 800; margin-left: 0.5rem;">Sealed</span>' : ''}
               </div>
 
               ${isScoringLocked ? `
@@ -3059,7 +3109,7 @@ class OLAGApp {
                     ${isWeekClosed ? '● Scoring Closed by Admin' : '● Scheduled for Upcoming Cycle'}
                   </span>
                   <button type="button" class="btn-navy-action" disabled style="padding: 0 1.5rem; background: #94a3b8; cursor: not-allowed; opacity: 0.65;">
-                    ${isWeekClosed ? '🔒 Scoring Locked' : '⏳ Scoring Scheduled'}
+                    ${isWeekClosed ? 'Scoring Locked' : 'Scoring Scheduled'}
                   </button>
                 </div>
               ` : `
@@ -3072,14 +3122,18 @@ class OLAGApp {
         </div>
       ` : `
         <div class="scoring-table-card" style="text-align: center; padding: 3rem 1.5rem;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">👥</div>
+          <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.75rem;">${APP_ICONS.committee}</div>
           <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Students Found in ${escapeHtml(currentClass)}</h3>
           <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
-            There are currently no students registered in this class. You can add new students using the button below or pick another class from the filter above.
+            ${isCurrentlyAdmin
+              ? 'There are currently no students registered in this class. You can add new students using the button below or pick another class from the filter above.'
+              : 'There are currently no students registered in this class. Please pick another class from the filter above.'}
           </p>
-          <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
-            + Add Student to Database
-          </button>
+          ${isCurrentlyAdmin ? `
+            <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
+              + Add Student to Database
+            </button>
+          ` : ''}
         </div>
       `}
     `;
@@ -3189,14 +3243,14 @@ class OLAGApp {
         this.addNotification({
           id: `notif-score-${currentWeekId}-${selectedStudent.id}`,
           type: 'score',
-          icon: '📝',
+          icon: 'score',
           title: `Assessment Scores Submitted (${currentWeekObj ? currentWeekObj.name : 'Weekly'})`,
           message: `${evaluator.name} submitted scores for ${selectedStudent.name} (${selectedStudent.class}): ${total}/${maxTotalScore} (${pct}%).`,
-          actionLabel: 'View Rankings ➜',
+          actionLabel: 'View Rankings',
           actionView: 'rankings'
         });
         this.store.save();
-        this.showToast(`✓ Scores submitted for ${selectedStudent.name} by ${evaluator.name}: ${total}/${maxTotalScore} (${pct}%)`);
+        this.showToast(`Scores submitted for ${selectedStudent.name} by ${evaluator.name}: ${total}/${maxTotalScore} (${pct}%)`);
         this.renderAssessment();
       });
     }
@@ -3296,7 +3350,7 @@ class OLAGApp {
               ${rankedStudents.length === 0 ? `
                 <tr>
                   <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+                    <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.rankings}</div><br>
                     No student scores recorded yet for this week interval.<br>
                     <small>Scores entered in the Assessment portal will automatically rank students here.</small>
                   </td>
@@ -3360,7 +3414,7 @@ class OLAGApp {
         </div>
         ${isCurrentlyAdmin ? `
           <button type="button" class="btn-navy-action" onclick="app.openSetWeekIntervalModal()">
-            📅 + Set New Week Interval
+            ${APP_ICONS.calendar} + Set New Week Interval
           </button>
         ` : ''}
       </div>
@@ -3383,9 +3437,9 @@ class OLAGApp {
               ${weeks.length === 0 ? `
                 <tr>
                   <td colspan="7" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📅</div>
+                    <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.calendar}</div><br>
                     <strong>No week intervals configured yet.</strong><br>
-                    <span style="font-size: 0.85rem;">Click "+ Set New Week Interval" above to create your first scoring cycle.</span>
+                    <span style="font-size: 0.85rem;">${isCurrentlyAdmin ? 'Click "+ Set New Week Interval" above to create your first scoring cycle.' : 'Week intervals configured by the administrator will appear here.'}</span>
                   </td>
                 </tr>
               ` : weeks.map(w => `
@@ -3397,7 +3451,7 @@ class OLAGApp {
                   <td>${escapeHtml(w.dateRange)}</td>
                   <td>
                     <span class="${w.status === 'Closed' ? 'status-badge-closed' : (w.status === 'Upcoming' ? 'status-badge-upcoming' : 'status-badge-active')}" style="font-size: 0.75rem;">
-                      ${w.status === 'Closed' ? '🔒 Closed (Sealed)' : (w.status === 'Upcoming' ? '⏳ Upcoming' : '🟢 Open')}
+                      ● ${w.status === 'Closed' ? 'Closed (Sealed)' : (w.status === 'Upcoming' ? 'Upcoming' : 'Open')}
                     </span>
                   </td>
                   <td>
@@ -3415,15 +3469,15 @@ class OLAGApp {
                       ${isCurrentlyAdmin ? `
                         ${w.status === 'Upcoming' ? `
                           <button class="action-icon-btn" title="Activate this week for scoring now" style="width: 30px; height: 30px; color: #2563eb; background: #eff6ff;" onclick="app.activateUpcomingWeek('${w.id}')">
-                            🚀
+                            ${APP_ICONS.play}
                           </button>
                         ` : `
                           <button class="action-icon-btn" title="${w.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal Results)'}" style="width: 30px; height: 30px;" onclick="app.quickToggleWeekStatus('${w.id}')">
-                            ${w.status === 'Closed' ? '🔓' : '🔒'}
+                            ${w.status === 'Closed' ? APP_ICONS.unlock : APP_ICONS.lock}
                           </button>
                         `}
                         <button class="action-icon-btn" title="Edit Week Interval" style="width: 30px; height: 30px;" onclick="app.openSetWeekIntervalModal('${w.id}')">
-                          ✏️
+                          ${APP_ICONS.edit}
                         </button>
                       ` : ''}
                     </div>
@@ -3477,41 +3531,41 @@ class OLAGApp {
       </div>
 
       <div class="scoring-table-card" style="padding: 0; overflow: hidden;" id="committeeDirectorySection">
-        <div class="scoring-table-title" style="padding: 1.15rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span style="font-size: 1.25rem;">👥</span>
-              <span style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary);">Registered Committee Members &amp; Evaluators</span>
-              <span style="background: #e0f2fe; color: #0369a1; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+        <div class="scoring-table-title directory-header-bar" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 0.75rem;">
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.committee}</span>
+              <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary); white-space: nowrap;">Registered Committee Members &amp; Evaluators</span>
+              <span style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap;">
                 ${hasActiveFilter ? `${filtered.length} of ${allMembers.length} Members` : `${allMembers.length} Registered Member${allMembers.length === 1 ? '' : 's'}`}
               </span>
             </div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               Official head prefects evaluators authorized to submit weekly student assessments.
             </div>
           </div>
 
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <div class="directory-toolbar-controls" style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: nowrap; flex-shrink: 0;">
             <input type="text" id="committeeSearchInput" class="form-input"
-              placeholder="🔍 Search member..."
+              placeholder="Search member..."
               value="${escapeHtml(this.store.state.committeeSearchQuery || '')}"
-              style="height: 32px; font-size: 0.78rem; width: 175px; padding: 0 0.65rem;" />
+              style="height: 32px; font-size: 0.76rem; width: 145px; padding: 0 0.6rem;" />
 
-            <select id="committeeRoleFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 175px; padding: 0 1.6rem 0 0.55rem; font-weight: 600;">
+            <select id="committeeRoleFilterSelect" class="form-select" style="height: 32px; font-size: 0.76rem; width: 155px; padding: 0 1.4rem 0 0.5rem; font-weight: 600;">
               <option value="All" ${roleFilter === 'All' ? 'selected' : ''}>All Roles</option>
               <option value="HeadPrefect" ${roleFilter === 'HeadPrefect' ? 'selected' : ''}>Head Prefects (4)</option>
               <option value="ProtocolPrefect" ${roleFilter === 'ProtocolPrefect' ? 'selected' : ''}>Head Protocol Prefects (4)</option>
             </select>
 
-            <select id="committeeStatusFilterSelect" class="form-select" style="height: 32px; font-size: 0.78rem; max-width: 135px; padding: 0 1.6rem 0 0.55rem; font-weight: 600;">
+            <select id="committeeStatusFilterSelect" class="form-select" style="height: 32px; font-size: 0.76rem; width: 120px; padding: 0 1.4rem 0 0.5rem; font-weight: 600;">
               <option value="All" ${statusFilter === 'All' ? 'selected' : ''}>All Status</option>
-              <option value="Active" ${statusFilter === 'Active' ? 'selected' : ''}>🟢 Active</option>
-              <option value="Observer" ${statusFilter === 'Observer' ? 'selected' : ''}>🟡 Observer</option>
-              <option value="On Leave" ${statusFilter === 'On Leave' ? 'selected' : ''}>⚪ On Leave</option>
+              <option value="Active" ${statusFilter === 'Active' ? 'selected' : ''}>Active</option>
+              <option value="Observer" ${statusFilter === 'Observer' ? 'selected' : ''}>Observer</option>
+              <option value="On Leave" ${statusFilter === 'On Leave' ? 'selected' : ''}>On Leave</option>
             </select>
 
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.openAddMemberModal()">
-              👥 + Add Member
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.75rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddMemberModal()">
+              ${APP_ICONS.userPlus} + Add Member
             </button>
           </div>
         </div>
@@ -3533,7 +3587,7 @@ class OLAGApp {
               ${filtered.length === 0 ? `
                 <tr>
                   <td colspan="7" style="text-align: center; padding: 2.25rem 1rem; color: var(--text-muted);">
-                    <div style="font-size: 1.85rem; margin-bottom: 0.4rem;">👥</div>
+                    <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.4rem;">${APP_ICONS.committee}</div>
                     <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">
                       ${allMembers.length === 0 ? 'No Committee Members Registered Yet' : 'No Matching Committee Members'}
                     </div>
@@ -3544,7 +3598,7 @@ class OLAGApp {
                     </div>
                     ${allMembers.length === 0 ? `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddMemberModal()">
-                        👥 + Register First Committee Member
+                        ${APP_ICONS.userPlus} + Register First Committee Member
                       </button>
                     ` : `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('committee')">
@@ -3579,13 +3633,13 @@ class OLAGApp {
                     <td style="text-align: center;">
                       <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
                         <button type="button" class="action-icon-btn" title="Evaluate as this Member" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
-                          📝
+                          ${APP_ICONS.assessment}
                         </button>
                         <button type="button" class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
-                          ✏️
+                          ${APP_ICONS.edit}
                         </button>
                         <button type="button" class="action-icon-btn delete" title="Delete Committee Member" onclick="app.deleteMember('${m.id}')">
-                          🗑️
+                          ${APP_ICONS.trash}
                         </button>
                       </div>
                     </td>
@@ -3632,6 +3686,10 @@ class OLAGApp {
   }
 
   deleteMember(memberId) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can delete committee members.');
+      return;
+    }
     const member = this.store.state.members.find(m => m.id === memberId);
     if (!member) {
       this.showToast('Committee member not found.', 'error');
@@ -3659,6 +3717,7 @@ class OLAGApp {
     const container = document.getElementById('view-student-profile');
     if (!container) return;
 
+    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const studentId = this.store.state.selectedStudentId;
     const student = (studentId ? this.store.state.students.find(s => s.id === studentId) : null) || this.store.state.students[0] || null;
 
@@ -3668,14 +3727,16 @@ class OLAGApp {
           <a href="javascript:void(0)" onclick="app.navigateTo('students')">Students</a> &gt; <span>Profile</span>
         </div>
         <div class="scoring-table-card" style="text-align: center; padding: 3rem 1.5rem;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">👤</div>
+          <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.75rem;">${APP_ICONS.user}</div>
           <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Student Selected</h3>
           <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
             There are currently no students registered in the system or no student has been selected.
           </p>
-          <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
-            + Add Student
-          </button>
+          ${isCurrentlyAdmin ? `
+            <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
+              + Add Student
+            </button>
+          ` : ''}
         </div>
       `;
       return;
@@ -3701,6 +3762,8 @@ class OLAGApp {
       };
     });
 
+    const studentInitials = (student.name || 'ST').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ST';
+
     container.innerHTML = `
       <div class="breadcrumb-nav">
         <a href="javascript:void(0)" onclick="app.navigateTo('students')">Students</a> &gt; <span>${escapeHtml(student.name)}</span>
@@ -3708,7 +3771,7 @@ class OLAGApp {
 
       <div class="student-profile-grid">
         <div class="student-info-sidebar-card">
-          <div class="profile-avatar-large">👤</div>
+          <div class="profile-avatar-large" style="font-size: 1.5rem; font-weight: 800; color: var(--navy-primary);">${escapeHtml(studentInitials)}</div>
           <div class="profile-student-name">${escapeHtml(student.name)}</div>
           <div class="profile-student-id">${escapeHtml(student.id)}</div>
 
@@ -3727,9 +3790,15 @@ class OLAGApp {
             </div>
           </div>
 
-          <button class="btn-navy-action" style="width: 100%;" onclick="app.openEditStudentModal('${student.id}')">
-            ✏️ Edit Student
-          </button>
+          ${isCurrentlyAdmin ? `
+            <button class="btn-navy-action" style="width: 100%;" onclick="app.openEditStudentModal('${student.id}')">
+              ${APP_ICONS.edit} Edit Student
+            </button>
+          ` : `
+            <button class="btn-navy-action" style="width: 100%;" onclick="app.scoreStudent('${student.id}')">
+              ${APP_ICONS.assessment} Evaluate Student
+            </button>
+          `}
         </div>
 
         <div class="profile-performance-card">
@@ -3821,13 +3890,13 @@ class OLAGApp {
 
         <div class="report-action-buttons">
           <button type="button" class="btn-export-csv" onclick="app.exportCsvReport()">
-            <span>📥 Export CSV</span>
+            <span>${APP_ICONS.download} Export CSV</span>
           </button>
           <button type="button" class="btn-export-pdf" onclick="app.printCertificate()">
-            <span>📄 Export PDF</span>
+            <span>${APP_ICONS.fileText} Export PDF</span>
           </button>
           <button type="button" class="btn-print-report" onclick="app.printCertificate()">
-            <span>🖨️ Print Certificate</span>
+            <span>${APP_ICONS.printer} Print Certificate</span>
           </button>
         </div>
       </div>
@@ -3877,7 +3946,7 @@ class OLAGApp {
               ${reportStudents.length === 0 ? `
                 <tr>
                   <td colspan="6" style="text-align: center; padding: 2.5rem; color: #64748b;">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📋</div>
+                    <div style="display: inline-flex; color: #64748b; margin-bottom: 0.5rem;">${APP_ICONS.reports}</div><br>
                     No official student scores recorded for ${currentWeek ? escapeHtml(currentWeek.name) : 'this cycle'} yet.<br>
                     <small>Once scores are submitted in the Assessment portal, certificates will generate automatically.</small>
                   </td>
@@ -3994,34 +4063,34 @@ class OLAGApp {
         <div class="scoring-table-card" style="border: 1.5px solid ${dbConfig.connected ? (this.store.tableNeedsSetup ? '#fde68a' : '#86efac') : 'var(--card-border)'};">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 1.3rem;">⚡</span>
+              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.database}</span>
               <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin: 0;">Cloud Database (Supabase)</h3>
             </div>
             <span class="status-badge-${dbConfig.connected ? (this.store.tableNeedsSetup ? 'pending' : 'active') : 'pending'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; ${this.store.tableNeedsSetup ? 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;' : ''}">
-              ${dbConfig.connected ? (this.store.tableNeedsSetup ? '🟡 SQL Setup Pending' : '🟢 Connected Live') : '⚪ Local Storage Mode'}
+              ● ${dbConfig.connected ? (this.store.tableNeedsSetup ? 'SQL Setup Pending' : 'Connected Live') : 'Local Storage Mode'}
             </span>
           </div>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.45;">
             ${dbConfig.connected 
               ? (this.store.tableNeedsSetup 
-                  ? `Connected to <code>${escapeHtml(dbConfig.url)}</code>.<br><span style="color: #b45309; font-weight: 700;">⚠️ Tables need to be created in Supabase. Click "Open SQL Editor" below, paste the schema, and click Run.</span>`
+                  ? `Connected to <code>${escapeHtml(dbConfig.url)}</code>.<br><span style="color: #b45309; font-weight: 700;">Tables need to be created in Supabase. Click "Open SQL Editor" below, paste the schema, and click Run.</span>`
                   : `Connected to <code>${escapeHtml(dbConfig.url)}</code>.<br><span style="font-size: 0.78rem;">Last synchronized: <strong>${dbConfig.lastSyncedAt ? new Date(dbConfig.lastSyncedAt).toLocaleTimeString() : 'Active'}</strong></span>`)
               : 'Connect Supabase Cloud PostgreSQL to synchronize all students, week intervals, and scores in real-time across phones, tablets, and computers.'}
           </p>
 
           <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
             <button type="button" class="btn-navy-action" onclick="app.openDatabaseModal()">
-              ⚡ ${dbConfig.connected ? 'Database Settings' : 'Connect Database'}
+              ${APP_ICONS.database} ${dbConfig.connected ? 'Database Settings' : 'Connect Database'}
             </button>
             <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" onclick="app.copySupabaseSchema()">
-              📋 Copy SQL Schema
+              ${APP_ICONS.copy} Copy SQL Schema
             </button>
             <a href="https://supabase.com/dashboard/project/${this.getSupabaseProjectRef(dbConfig.url)}/sql/new" target="_blank" rel="noopener" class="btn-navy-action" style="background: #0284c7; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
-              🚀 Open SQL Editor
+              ${APP_ICONS.externalLink} Open SQL Editor
             </a>
             ${dbConfig.connected ? `
               <button type="button" class="btn-navy-action" style="background: #e0f2fe; color: #0369a1;" onclick="app.syncDatabaseNow()">
-                🔄 Sync Now
+                ${APP_ICONS.sync} Sync Now
               </button>
               <button type="button" class="btn-navy-action" style="background: #fee2e2; color: #991b1b;" onclick="app.disconnectDatabase()">
                 Disconnect
@@ -4048,10 +4117,10 @@ class OLAGApp {
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Choose between clean light mode or elegant dark mode.</p>
           <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
             <button type="button" class="btn-navy-action" style="${this.store.state.theme === 'light' ? 'border: 2px solid var(--accent-yellow);' : 'opacity: 0.75;'}" onclick="app.setTheme('light')">
-              ☀️ Light Mode
+              ${APP_ICONS.sun} Light Mode
             </button>
             <button type="button" class="btn-navy-action" style="${this.store.state.theme === 'dark' ? 'border: 2px solid var(--accent-yellow);' : 'opacity: 0.75;'}" onclick="app.setTheme('dark')">
-              🌙 Dark Mode
+              ${APP_ICONS.moon} Dark Mode
             </button>
           </div>
         </div>
@@ -4087,7 +4156,11 @@ class OLAGApp {
     const dot = document.getElementById('headerDbStatusDot');
     const text = document.getElementById('headerDbStatusText');
 
-    if (dot) dot.textContent = isConn ? (needsSetup ? '🟡' : '🟢') : '⚪';
+    if (dot) {
+      dot.textContent = '';
+      dot.classList.toggle('connected', isConn && !needsSetup);
+      dot.classList.toggle('pending', isConn && needsSetup);
+    }
     if (text) {
       if (!isConn) {
         text.textContent = 'Local Storage';
@@ -4139,7 +4212,10 @@ class OLAGApp {
       banner.style.background = isConn ? (needsSetup ? '#fef3c7' : '#dcfce7') : '#f8fafc';
       banner.style.borderColor = isConn ? (needsSetup ? '#fde68a' : '#86efac') : 'var(--card-border)';
     }
-    if (statusIcon) statusIcon.textContent = isConn ? (needsSetup ? '⚠️' : '🟢') : '🟡';
+    if (statusIcon) {
+      statusIcon.innerHTML = APP_ICONS.database;
+      statusIcon.style.color = isConn ? (needsSetup ? '#b45309' : '#166534') : '#92400e';
+    }
     if (statusTitle) {
       if (!isConn) {
         statusTitle.textContent = 'Database Mode: Local Browser Storage';
@@ -4168,7 +4244,7 @@ class OLAGApp {
     if (btnDisconnect) btnDisconnect.style.display = isConn ? 'inline-flex' : 'none';
     if (btnSyncNow) btnSyncNow.style.display = isConn ? 'inline-flex' : 'none';
     if (btnConnect) {
-      btnConnect.innerHTML = isConn ? '<span>⚡ Re-Verify &amp; Sync</span>' : '<span>⚡ Connect &amp; Sync</span>';
+      btnConnect.innerHTML = isConn ? '<span>Re-Verify &amp; Sync</span>' : '<span>Connect &amp; Sync</span>';
     }
 
     modal.classList.add('active');
@@ -4194,7 +4270,7 @@ class OLAGApp {
     const origText = btnConnect ? btnConnect.innerHTML : '';
     if (btnConnect) {
       btnConnect.disabled = true;
-      btnConnect.innerHTML = '<span>⏳ Testing Connection...</span>';
+      btnConnect.innerHTML = '<span>Testing Connection...</span>';
     }
 
     try {
@@ -4219,7 +4295,7 @@ class OLAGApp {
         this.copySupabaseSchema();
 
         alert(
-          "⚡ Connected to Supabase Project!\n\n" +
+          "Connected to Supabase Project!\n\n" +
           "Your database credentials are valid, but the tables have not been created yet.\n\n" +
           "We have copied the SQL Schema to your clipboard.\n\n" +
           "1. Open your Supabase SQL Editor:\n" + sqlUrl + "\n\n" +
@@ -4244,7 +4320,7 @@ class OLAGApp {
       await this.store.syncToSupabase(true);
       await this.store.fetchFromSupabase();
 
-      this.showToast('✓ Successfully connected to Supabase Cloud Database! Live sync active.');
+      this.showToast('Successfully connected to Supabase Cloud Database! Live sync active.');
       this.closeModals();
       this.updateDatabaseStatusUI();
       this.render();
@@ -4281,12 +4357,12 @@ class OLAGApp {
       this.showToast('No database connected. Please connect Supabase first.');
       return;
     }
-    this.showToast('🔄 Synchronizing with Supabase Cloud...');
+    this.showToast('Synchronizing with Supabase Cloud...');
     await this.store.syncToSupabase(true);
     await this.store.fetchFromSupabase();
     this.updateDatabaseStatusUI();
     this.render();
-    this.showToast('✓ Cloud Database sync complete!');
+    this.showToast('Cloud Database sync complete!');
   }
 
   copySupabaseSchema() {
@@ -4387,7 +4463,7 @@ on conflict (id) do nothing;`;
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(schemaSql).then(() => {
-        this.showToast('✓ Supabase SQL Schema copied to clipboard! Paste into Supabase SQL Editor.');
+        this.showToast('Supabase SQL Schema copied to clipboard! Paste into Supabase SQL Editor.');
       }).catch(() => {
         this.fallbackCopyText(schemaSql);
       });
@@ -4403,7 +4479,7 @@ on conflict (id) do nothing;`;
     area.select();
     try {
       document.execCommand('copy');
-      this.showToast('✓ Supabase SQL Schema copied to clipboard!');
+      this.showToast('Supabase SQL Schema copied to clipboard!');
     } catch (e) {
       this.showToast('Please open supabase_schema.sql file in the project.');
     }
@@ -4411,6 +4487,10 @@ on conflict (id) do nothing;`;
   }
 
   resetDemoData() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can reset system data.');
+      return;
+    }
     if (confirm('Reset all scores, students, and committee members to initial screenshot state?')) {
       this.store.resetAll();
       this.showToast('Data reset to default.');
@@ -4419,6 +4499,10 @@ on conflict (id) do nothing;`;
   }
 
   openAddStudentModal() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can add student records.');
+      return;
+    }
     this.populateAddStudentClasses();
     const modal = document.getElementById('modalAddStudent');
     if (modal) modal.classList.add('active');
@@ -4442,6 +4526,10 @@ on conflict (id) do nothing;`;
   // CLASS MANAGEMENT (ADMIN)
   // =========================================================================
   openAddClassModal(returnToModal = null) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can manage classes.');
+      return;
+    }
     this.returnToModal = returnToModal;
     const modal = document.getElementById('modalAddClass');
     if (!modal) return;
@@ -4467,6 +4555,7 @@ on conflict (id) do nothing;`;
     const countEl = document.getElementById('existingClassesCount');
     if (!container) return;
 
+    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const classes = this.store.state.classes || [];
     if (countEl) countEl.textContent = classes.length;
 
@@ -4479,18 +4568,18 @@ on conflict (id) do nothing;`;
 
     container.innerHTML = classes.map(c => {
       const studentCount = students.filter(s => s.class === c).length;
-      const canDelete = studentCount === 0;
       return `
         <div class="class-pill-badge" title="${escapeHtml(c)}: ${studentCount} enrolled student${studentCount === 1 ? '' : 's'}">
           <span>${escapeHtml(c)}</span>
           <span class="pill-count">${studentCount}</span>
-          ${canDelete ? `<button type="button" class="btn-pill-del" onclick="app.deleteClass('${escapeHtml(c)}')" title="Delete empty class">🗑️</button>` : ''}
+          ${isCurrentlyAdmin ? `<button type="button" class="btn-pill-del" data-class-name="${escapeHtml(c)}" onclick="app.deleteClass(this.getAttribute('data-class-name'))" title="Delete class ${escapeHtml(c)}" style="display: inline-flex; align-items: center; justify-content: center;">${APP_ICONS.trash}</button>` : ''}
         </div>
       `;
     }).join('');
   }
 
   setNewClassPreset(presetName) {
+    if (this.store.state.currentRoleKey !== 'admin') return;
     const input = document.getElementById('newClassNameInput');
     if (input) {
       input.value = presetName;
@@ -4499,6 +4588,10 @@ on conflict (id) do nothing;`;
   }
 
   saveNewClass(rawName) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can add classes.');
+      return;
+    }
     if (!rawName) return;
     const name = rawName.trim();
     if (!name) return;
@@ -4510,6 +4603,9 @@ on conflict (id) do nothing;`;
       return;
     }
 
+    if (Array.isArray(this.store.state.deletedClasses)) {
+      this.store.state.deletedClasses = this.store.state.deletedClasses.filter(c => String(c).toLowerCase() !== name.toLowerCase());
+    }
     this.store.state.classes.push(name);
     this.store.save();
 
@@ -4533,23 +4629,53 @@ on conflict (id) do nothing;`;
   }
 
   deleteClass(className) {
-    const studentsInClass = (this.store.state.students || []).filter(s => s.class === className);
-    if (studentsInClass.length > 0) {
-      this.showToast(`Cannot delete "${className}" because ${studentsInClass.length} student(s) are assigned to it.`);
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can delete classes.');
       return;
     }
+    if (!className) return;
 
-    if (confirm(`Are you sure you want to remove empty class "${className}"?`)) {
-      this.store.state.classes = this.store.state.classes.filter(c => c !== className);
+    const studentsInClass = (this.store.state.students || []).filter(s => s.class === className);
+    const confirmMsg = studentsInClass.length > 0
+      ? `Are you sure you want to delete class "${className}" from the class list? (${studentsInClass.length} student(s) currently in this class will be marked Unassigned.)`
+      : `Are you sure you want to remove class "${className}" from the class list?`;
+
+    if (confirm(confirmMsg)) {
+      if (!Array.isArray(this.store.state.deletedClasses)) {
+        this.store.state.deletedClasses = [];
+      }
+      if (!this.store.state.deletedClasses.includes(className)) {
+        this.store.state.deletedClasses.push(className);
+      }
+      this.store.state.classes = (this.store.state.classes || []).filter(c => c !== className);
+      if (studentsInClass.length > 0) {
+        const nowIso = new Date().toISOString();
+        this.store.state.students.forEach(s => {
+          if (s && s.class === className) {
+            s.class = 'Unassigned';
+            s.updatedAt = nowIso;
+          }
+        });
+      }
+      if (this.store.state.selectedClass === className) {
+        this.store.state.selectedClass = 'All Classes';
+      }
+      if (this.store.state.studentClassFilter === className) {
+        this.store.state.studentClassFilter = 'All Classes';
+      }
       this.store.save();
       this.renderExistingClassesPills();
       this.populateAddStudentClasses();
-      this.showToast(`Class "${className}" removed.`);
+      this.showToast(`Class "${className}" deleted.`);
       this.render();
     }
   }
 
   openEditStudentModal(studentId) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can edit student information.');
+      return;
+    }
     const student = this.store.state.students.find(s => s.id === studentId);
     if (!student) return;
 
@@ -4575,6 +4701,10 @@ on conflict (id) do nothing;`;
   }
 
   deleteStudent(studentId) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can delete student records.');
+      return;
+    }
     if (confirm('Are you sure you want to remove this student?')) {
       if (!Array.isArray(this.store.state.deletedStudentIds)) {
         this.store.state.deletedStudentIds = [];
@@ -4623,6 +4753,10 @@ on conflict (id) do nothing;`;
   }
 
   activateUpcomingWeek(weekId) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can activate assessment intervals.');
+      return;
+    }
     const week = (this.store.state.weeks || []).find(w => w.id === weekId);
     if (!week) return;
 
@@ -4640,11 +4774,15 @@ on conflict (id) do nothing;`;
 
     this.store.state.selectedWeekId = week.id;
     this.store.save();
-    this.showToast(`🚀 ${week.name} (${week.dateRange}) is now ACTIVE! Committee members can now enter scores.`, 'success');
+    this.showToast(`${week.name} (${week.dateRange}) is now ACTIVE! Committee members can now enter scores.`, 'success');
     this.render();
   }
 
   scheduleNextWeekInterval() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can schedule week intervals.');
+      return;
+    }
     this.openSetWeekIntervalModal('new');
     this.applyUpcomingPreset();
   }
@@ -4714,13 +4852,13 @@ on conflict (id) do nothing;`;
     if (!statusSelect || !hintEl) return;
     const val = statusSelect.value;
     if (val === 'Upcoming') {
-      hintEl.innerHTML = '⏳ <strong>Upcoming:</strong> Scheduled for next assessment. Active week remains open for ongoing evaluations.';
+      hintEl.innerHTML = '<strong>Upcoming:</strong> Scheduled for next assessment. Active week remains open for ongoing evaluations.';
       hintEl.style.color = '#2563eb';
     } else if (val === 'Open') {
-      hintEl.innerHTML = '🟢 <strong>Open:</strong> Active for scoring. Committee members can enter and submit scores.';
+      hintEl.innerHTML = '<strong>Open:</strong> Active for scoring. Committee members can enter and submit scores.';
       hintEl.style.color = '#15803d';
     } else if (val === 'Closed') {
-      hintEl.innerHTML = '🔒 <strong>Closed:</strong> Results sealed. Scoring forms locked in read-only mode.';
+      hintEl.innerHTML = '<strong>Closed:</strong> Results sealed. Scoring forms locked in read-only mode.';
       hintEl.style.color = '#b91c1c';
     }
   }
@@ -4729,7 +4867,7 @@ on conflict (id) do nothing;`;
     const week = (this.store.state.weeks || []).find(w => w.id === weekId);
     if (!week) return;
     this.store.state.selectedWeekId = week.id;
-    this.showToast(`⏳ Showing upcoming schedule for ${week.name} (${week.dateRange})`);
+    this.showToast(`Showing upcoming schedule for ${week.name} (${week.dateRange})`);
     this.navigateTo('assessment');
   }
 
@@ -4737,12 +4875,16 @@ on conflict (id) do nothing;`;
     const active = this.getActiveWeek();
     if (active) {
       this.store.state.selectedWeekId = active.id;
-      this.showToast(`🟢 Switched to active assessment interval: ${active.name}`);
+      this.showToast(`Switched to active assessment interval: ${active.name}`);
       this.render();
     }
   }
 
   openSetWeekIntervalModal(targetWeekId = null) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can configure week intervals.');
+      return;
+    }
     const modal = document.getElementById('modalSetWeekInterval');
     if (!modal) return;
 
@@ -4750,10 +4892,10 @@ on conflict (id) do nothing;`;
     if (select) {
       const weeks = this.store.state.weeks || [];
       select.innerHTML = `
-        <option value="new">➕ + Create New Week Interval</option>
+        <option value="new">+ Create New Week Interval</option>
         ${weeks.map(w => `
           <option value="${w.id}">
-            ${escapeHtml(w.name)} (${escapeHtml(w.dateRange)}) [${w.status || 'Open'}] ${w.isCurrent ? '★ Current' : ''}
+            ${escapeHtml(w.name)} (${escapeHtml(w.dateRange)}) [${w.status || 'Open'}] ${w.isCurrent ? '(Current)' : ''}
           </option>
         `).join('')}
       `;
@@ -4863,6 +5005,10 @@ on conflict (id) do nothing;`;
 
   saveWeekInterval(e) {
     e.preventDefault();
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can save week intervals.');
+      return;
+    }
     const targetSelect = document.getElementById('setWeekTargetSelect');
     const nameInp = document.getElementById('weekNameInput');
     const statusSelect = document.getElementById('weekStatusSelect');
@@ -4918,11 +5064,11 @@ on conflict (id) do nothing;`;
       }
       this.recalculateWeekResults(newWeek.id);
       if (status === 'Upcoming') {
-        this.showToast(`⏳ Scheduled upcoming assessment cycle: ${weekName} (${dateRange})`);
+        this.showToast(`Scheduled upcoming assessment cycle: ${weekName} (${dateRange})`);
       } else if (status === 'Closed') {
-        this.showToast(`🔒 Created ${weekName} [CLOSED]: Scoring is sealed for all committee members.`);
+        this.showToast(`Created ${weekName} [CLOSED]: Scoring is sealed for all committee members.`);
       } else {
-        this.showToast(`✓ Created new week interval: ${weekName} (${dateRange})`);
+        this.showToast(`Created new week interval: ${weekName} (${dateRange})`);
       }
     } else {
       const existing = (this.store.state.weeks || []).find(w => w.id === targetVal);
@@ -4943,11 +5089,11 @@ on conflict (id) do nothing;`;
         }
         this.recalculateWeekResults(existing.id);
         if (status === 'Upcoming') {
-          this.showToast(`⏳ Updated upcoming week schedule: ${weekName} (${dateRange})`);
+          this.showToast(`Updated upcoming week schedule: ${weekName} (${dateRange})`);
         } else if (status === 'Closed') {
-          this.showToast(`🔒 Scoring for ${weekName} is now CLOSED (Results Sealed). Committee scoring is locked.`);
+          this.showToast(`Scoring for ${weekName} is now CLOSED (Results Sealed). Committee scoring is locked.`);
         } else {
-          this.showToast(`✓ Updated week interval: ${weekName} (${dateRange}) — ${status}`);
+          this.showToast(`Updated week interval: ${weekName} (${dateRange}) — ${status}`);
         }
       }
     }
@@ -4958,6 +5104,10 @@ on conflict (id) do nothing;`;
   }
 
   deleteSelectedWeekInterval() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can delete week intervals.');
+      return;
+    }
     const targetSelect = document.getElementById('setWeekTargetSelect');
     const targetVal = targetSelect ? targetSelect.value : 'new';
     if (targetVal === 'new') return;
@@ -5015,6 +5165,10 @@ on conflict (id) do nothing;`;
   }
 
   quickToggleWeekStatus(weekId) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can change week interval status.');
+      return;
+    }
     if (!weekId) return;
     const week = (this.store.state.weeks || []).find(w => w.id === weekId);
     if (!week) return;
@@ -5026,9 +5180,9 @@ on conflict (id) do nothing;`;
     this.store.save();
 
     if (newStatus === 'Closed') {
-      this.showToast(`🔒 Scoring for ${week.name} is now CLOSED. Committee member scoring is locked.`);
+      this.showToast(`Scoring for ${week.name} is now CLOSED. Committee member scoring is locked.`);
     } else {
-      this.showToast(`🟢 Scoring for ${week.name} is now OPEN for all committee members.`);
+      this.showToast(`Scoring for ${week.name} is now OPEN for all committee members.`);
     }
     this.render();
   }
@@ -5037,6 +5191,10 @@ on conflict (id) do nothing;`;
   // COMMITTEE MEMBER MANAGEMENT (INTERACTIVE MODAL)
   // =========================================================================
   openAddMemberModal() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can add committee members.');
+      return;
+    }
     const modal = document.getElementById('modalAddMember');
     if (!modal) return;
 
@@ -5065,6 +5223,10 @@ on conflict (id) do nothing;`;
   }
 
   openEditMemberModal(memberId) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can edit committee member details.');
+      return;
+    }
     const modal = document.getElementById('modalAddMember');
     if (!modal) return;
 
@@ -5096,6 +5258,10 @@ on conflict (id) do nothing;`;
   }
 
   deleteCurrentMember() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can delete committee members.');
+      return;
+    }
     const editIdEl = document.getElementById('editMemberId');
     const memberId = editIdEl ? editIdEl.value : '';
     if (!memberId) return;
@@ -5134,6 +5300,10 @@ on conflict (id) do nothing;`;
 
   saveMember(e) {
     e.preventDefault();
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can modify committee members.');
+      return;
+    }
     const editIdEl = document.getElementById('editMemberId');
     const nameInp = document.getElementById('addMemberName');
     const roleSelect = document.getElementById('addMemberRole');
@@ -5182,10 +5352,10 @@ on conflict (id) do nothing;`;
     this.addNotification({
       id: `notif-member-${newMember.id}`,
       type: 'member',
-      icon: '👥',
+      icon: 'member',
       title: `Committee Member Registered: ${newMember.name}`,
       message: `${newMember.name} (${newMember.role}) registered with username "${newMember.username}" and is Active for student assessments.`,
-      actionLabel: 'View in Directory ➜',
+      actionLabel: 'View in Directory',
       actionView: 'committee'
     });
       this.showToast(`Added committee member: ${name}`);
@@ -5282,6 +5452,10 @@ function initOLAGApp() {
   if (formAddStudent) {
     formAddStudent.addEventListener('submit', (e) => {
       e.preventDefault();
+      if (app.store.state.currentRoleKey !== 'admin') {
+        app.showToast('Only administrators can add student records.');
+        return;
+      }
       const name = document.getElementById('addStudentName').value.trim();
       const sClass = (document.getElementById('addStudentClass').value || '').trim();
       const sHouse = document.getElementById('addStudentHouse').value;
@@ -5293,6 +5467,9 @@ function initOLAGApp() {
       }
 
       if (sClass && !app.store.state.classes.includes(sClass)) {
+        if (Array.isArray(app.store.state.deletedClasses)) {
+          app.store.state.deletedClasses = app.store.state.deletedClasses.filter(c => String(c).toLowerCase() !== sClass.toLowerCase());
+        }
         app.store.state.classes.push(sClass);
       }
       if (!app.store.state.selectedClass) {
@@ -5313,10 +5490,10 @@ function initOLAGApp() {
       app.addNotification({
         id: `notif-student-${newStudent.id}`,
         type: 'student',
-        icon: '🎓',
+        icon: 'student',
         title: `New Student Enrolled: ${newStudent.name}`,
         message: `${newStudent.name} (${newStudent.id}) enrolled in ${newStudent.class}, ${newStudent.house}.`,
-        actionLabel: 'View Students ➜',
+        actionLabel: 'View Students',
         actionView: 'students'
       });
       app.store.state.totalStudentsCount = app.store.state.students.length;
@@ -5328,7 +5505,7 @@ function initOLAGApp() {
 
       app.closeModals();
       formAddStudent.reset();
-      app.showToast(`✓ Added student: ${name} (${newId}) — ${sClass}, ${sHouse}`);
+      app.showToast(`Added student: ${name} (${newId}) — ${sClass}, ${sHouse}`);
       app.render();
     });
   }
