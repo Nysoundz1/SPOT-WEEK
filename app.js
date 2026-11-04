@@ -3136,7 +3136,7 @@ class OLAGApp {
     if (!member) return;
     this.store.state.selectedEvaluatorId = member.id;
     this.store.save();
-    this.showToast(`Switched active evaluator to ${member.name}`);
+    this.showToast(`Viewing scores submitted by ${member.name}`);
     this.navigateTo('assessment');
   }
 
@@ -3415,8 +3415,8 @@ class OLAGApp {
     const isCommitteeUser = this.store.state.currentRoleKey === 'committee';
     const loginEvaluator = this.getCurrentLoginEvaluator();
     let evaluator = loginEvaluator;
-    if (isCurrentlyAdmin && this.store.state.selectedEvaluatorId && this.store.state.selectedEvaluatorId !== 'role-admin') {
-      const selectedMem = members.find(m => m && m.id === this.store.state.selectedEvaluatorId);
+    if (isCurrentlyAdmin) {
+      const selectedMem = members.find(m => m && m.id === this.store.state.selectedEvaluatorId) || members[0] || null;
       if (selectedMem) {
         const memInitials = (selectedMem.name || 'CM').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
         evaluator = {
@@ -3428,8 +3428,18 @@ class OLAGApp {
           avatarBg: '#059669',
           status: selectedMem.status || 'Active'
         };
+        this.store.state.selectedEvaluatorId = selectedMem.id;
       } else {
-        this.store.state.selectedEvaluatorId = loginEvaluator.id;
+        evaluator = {
+          id: 'no-member',
+          name: 'No Committee Evaluator Selected',
+          role: 'Committee Evaluator',
+          username: '',
+          avatar: 'CM',
+          avatarBg: '#64748b',
+          status: 'Pending'
+        };
+        this.store.state.selectedEvaluatorId = null;
       }
     } else {
       this.store.state.selectedEvaluatorId = loginEvaluator.id;
@@ -3438,7 +3448,7 @@ class OLAGApp {
     const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
     const isWeekClosed = currentWeekObj && currentWeekObj.status === 'Closed';
     const isWeekUpcoming = currentWeekObj && currentWeekObj.status === 'Upcoming';
-    const isScoringLocked = isWeekClosed || isWeekUpcoming;
+    const isScoringLocked = isWeekClosed || isWeekUpcoming || isCurrentlyAdmin;
 
     const classStudents = (currentClass === 'All Classes' || !currentClass)
       ? this.store.state.students
@@ -3456,8 +3466,10 @@ class OLAGApp {
 
     container.innerHTML = `
       <div class="view-header">
-        <h2>Enter Weekly Assessment Scores</h2>
-        <p>Select the week interval, class, evaluator and student to enter scores.</p>
+        <h2>${isCurrentlyAdmin ? 'View Weekly Assessment Scores' : 'Enter Weekly Assessment Scores'}</h2>
+        <p>${isCurrentlyAdmin
+          ? 'Select the week interval, class, committee evaluator, and student to view submitted assessment scores.'
+          : 'Select the week interval, class, evaluator and student to enter scores.'}</p>
       </div>
 
       ${isWeekClosed ? `
@@ -3520,10 +3532,10 @@ class OLAGApp {
           <div class="evaluator-avatar" style="background: ${evaluator.avatarBg}; color: #ffffff;">${escapeHtml(evaluator.avatar)}</div>
           <div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">
-              Scoring as: ${escapeHtml(evaluator.name)}
+              ${isCurrentlyAdmin ? `Viewing Evaluator: ${escapeHtml(evaluator.name)}` : `Scoring as: ${escapeHtml(evaluator.name)}`}
             </div>
             <div style="font-size: 0.78rem; color: var(--text-muted);">
-              ${escapeHtml(evaluator.role)} • <span style="color: var(--stat-green); font-weight: 700;">● Active Evaluator Panel</span>
+              ${escapeHtml(evaluator.role)} • <span style="color: ${isCurrentlyAdmin ? '#0369a1' : 'var(--stat-green)'}; font-weight: 700;">● ${isCurrentlyAdmin ? 'Read-Only Committee Score View' : 'Active Evaluator Panel'}</span>
             </div>
           </div>
         </div>
@@ -3572,8 +3584,9 @@ class OLAGApp {
           <label>Committee Evaluator</label>
           ${isCurrentlyAdmin ? `
             <select id="assessMemberSelect" class="form-select">
-              <option value="role-admin" ${evaluator.id === 'role-admin' ? 'selected' : ''}>Administrator (Admin Override)</option>
-              ${members.map(m => `<option value="${escapeHtml(m.id)}" ${evaluator.id === m.id ? 'selected' : ''}>${escapeHtml(m.name)} (${escapeHtml(m.role || 'Evaluator')})</option>`).join('')}
+              ${members.length === 0
+                ? '<option value="">-- No Committee Evaluators Registered --</option>'
+                : members.map(m => `<option value="${escapeHtml(m.id)}" ${evaluator.id === m.id ? 'selected' : ''}>${escapeHtml(m.name)} (${escapeHtml(m.role || 'Evaluator')})</option>`).join('')}
             </select>
           ` : `
             <div id="assessCurrentEvaluatorDisplay" style="font-size: 0.88rem; font-weight: 700; color: var(--navy-primary); padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.5rem; height: 38px;">
@@ -3607,7 +3620,7 @@ class OLAGApp {
       ${selectedStudent ? `
         <div class="scoring-table-card">
           <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-            <span>Assessment Criteria (Each / 10) — Evaluating: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)})</span>
+            <span>Assessment Criteria (Each / 10) — ${isCurrentlyAdmin ? 'Viewing' : 'Evaluating'}: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)})</span>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               ${normalizedStudentScore && normalizedStudentScore.evaluatorCount > 0 ? `
                 <span style="font-size: 0.75rem; font-weight: 700; background: #dcfce7; color: #15803d; padding: 0.2rem 0.6rem; border-radius: 999px;">
@@ -3656,7 +3669,13 @@ class OLAGApp {
                 ${isWeekClosed ? '<span style="color: #991b1b; font-weight: 800; margin-left: 0.5rem;">Sealed</span>' : ''}
               </div>
 
-              ${isScoringLocked ? `
+              ${isCurrentlyAdmin ? `
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <span style="font-size: 0.8rem; color: #0369a1; font-weight: 700;">
+                    ● View-Only Mode (Only Committee Members Submit Scores)
+                  </span>
+                </div>
+              ` : isScoringLocked ? `
                 <div style="display: flex; align-items: center; gap: 0.65rem;">
                   <span style="font-size: 0.8rem; color: ${isWeekClosed ? '#991b1b' : '#2563eb'}; font-weight: 700;">
                     ${isWeekClosed ? '● Scoring Closed by Admin' : '● Scheduled for Upcoming Cycle'}
@@ -3731,7 +3750,7 @@ class OLAGApp {
         this.store.state.selectedEvaluatorId = e.target.value;
         const mem = this.store.state.members.find(m => m.id === e.target.value);
         this.renderAssessment();
-        if (mem) this.showToast(`Switched evaluator to ${mem.name}`);
+        if (mem) this.showToast(`Viewing scores for ${mem.name}`);
       });
     }
 
@@ -3768,6 +3787,10 @@ class OLAGApp {
     if (formSubmit && selectedStudent) {
       formSubmit.addEventListener('submit', (e) => {
         e.preventDefault();
+        if (isCurrentlyAdmin) {
+          this.showToast('Only committee members can submit or modify assessment scores.');
+          return;
+        }
         if (isScoringLocked) {
           if (isWeekClosed) {
             alert(`Scoring for ${currentWeekObj.name} has been closed by the Administrator. Evaluations cannot be submitted or changed.`);
@@ -4232,7 +4255,7 @@ class OLAGApp {
                     </td>
                     <td style="text-align: center;">
                       <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
-                        <button type="button" class="action-icon-btn" title="Evaluate as this Member" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
+                        <button type="button" class="action-icon-btn" title="View Member's Scores" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
                           ${APP_ICONS.assessment}
                         </button>
                         <button type="button" class="action-icon-btn" title="Edit Member" onclick="app.openEditMemberModal('${m.id}')">
