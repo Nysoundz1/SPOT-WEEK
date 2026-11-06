@@ -2561,7 +2561,7 @@ class OLAGApp {
         ${upcomingWeek ? `
           <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: var(--card-bg); border: 1px solid var(--card-border); border-left: 4px solid #2563eb; border-radius: var(--radius-lg); padding: 1.1rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
             <div style="display: flex; align-items: center; gap: 0.95rem;">
-              <div style="width: 42px; height: 42px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="upcoming-assessment-icon-box" style="width: 42px; height: 42px;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
@@ -2581,7 +2581,7 @@ class OLAGApp {
               <button type="button" class="btn-navy-action" style="background: #2563eb; color: #fff; height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="app.activateUpcomingWeek('${upcomingWeek.id}')">
                 Activate Now
               </button>
-              <button type="button" class="btn-navy-action" style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; height: 36px; padding: 0 0.85rem; font-size: 0.82rem;" onclick="app.openSetWeekIntervalModal('${upcomingWeek.id}')">
+              <button type="button" class="btn-navy-action upcoming-edit-btn" onclick="app.openSetWeekIntervalModal('${upcomingWeek.id}')">
                 Edit Schedule
               </button>
             </div>
@@ -2589,7 +2589,7 @@ class OLAGApp {
         ` : `
           <div class="upcoming-assessment-card" style="margin-top: 1.25rem; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 1rem 1.35rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
             <div style="display: flex; align-items: center; gap: 0.85rem;">
-              <div style="width: 40px; height: 40px; border-radius: 10px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <div class="upcoming-assessment-icon-box">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
@@ -2601,7 +2601,7 @@ class OLAGApp {
                 </div>
               </div>
             </div>
-            <button type="button" class="btn-demo-pill" style="border: 1px solid #bfdbfe; color: #1d4ed8; font-weight: 700; background: #eff6ff; padding: 0.45rem 0.95rem; border-radius: 8px;" onclick="app.scheduleNextWeekInterval()">
+            <button type="button" class="btn-demo-pill upcoming-schedule-btn" onclick="app.scheduleNextWeekInterval()">
               + Schedule Next Week Interval
             </button>
           </div>
