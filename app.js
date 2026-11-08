@@ -124,19 +124,27 @@ const DEFAULT_ARCHIVED_WEEKS = [
     isArchived: true,
     isCurrent: false,
     maxScore: 70,
-    topStudent: 'JENINA AMPEH',
-    totalScore: 57,
-    percentage: 81.4,
-    archivedAt: '2026-11-08T12:15:00.000Z',
-    classes: ['2ARTS1', '3 sci 1', '2 Science 3', '1 SCIENCE 3'],
+    topStudent: 'Emmanuel Asenso',
+    totalScore: 52.8,
+    percentage: 75.4,
+    archivedAt: '2026-11-08T14:00:00.000Z',
+    classes: ['2 Science 3', '2ARTS1', '3 sci 1', '1 SCIENCE 3'],
     students: [
+      {
+        id: 'OLAG003',
+        name: 'Emmanuel Asenso',
+        class: '2 Science 3',
+        house: 'ST. THOMAS',
+        gender: 'Male',
+        comment: 'Student Personality of the Week — Week 7/8 (25 Oct – 07 Nov 2026).'
+      },
       {
         id: 'OLAG001',
         name: 'JENINA AMPEH',
         class: '2ARTS1',
         house: 'ST. MARY',
         gender: 'Female',
-        comment: 'Student Personality of the Week — Week 7/8 (25 Oct – 07 Nov 2026).'
+        comment: 'Evaluated finalist in Week 7/8 (25 Oct – 07 Nov 2026).'
       },
       {
         id: 'OLAG004',
@@ -144,171 +152,378 @@ const DEFAULT_ARCHIVED_WEEKS = [
         class: '3 sci 1',
         house: 'ST. MARY',
         gender: 'Female',
-        comment: 'Evaluated candidate in Week 7/8 (25 Oct – 07 Nov 2026).'
-      },
-      {
-        id: 'OLAG003',
-        name: 'Emmanuel Asenso',
-        class: '2 Science 3',
-        house: 'ST. THOMAS',
-        gender: 'Male',
-        comment: 'Evaluated candidate in Week 7/8 (25 Oct – 07 Nov 2026).'
+        comment: 'Evaluated finalist in Week 7/8 (25 Oct – 07 Nov 2026).'
       },
       {
         id: 'OLAG005',
         name: 'NHYIRA',
         class: '1 SCIENCE 3',
         house: 'ST. MARY',
-        gender: 'Female',
-        comment: 'Evaluated candidate in Week 7/8 (25 Oct – 07 Nov 2026).'
+        gender: 'Male',
+        comment: 'Evaluated finalist in Week 7/8 (25 Oct – 07 Nov 2026).'
       }
     ],
     scores: {
-      OLAG001: {
-        'crit-1': 8,
-        'crit-2': 9,
-        'crit-3': 8,
-        'crit-4': 8,
-        'crit-5': 8,
-        'crit-6': 8,
-        'crit-7': 8,
-        total: 57,
-        combinedTotal: 57,
-        maxCombinedScore: 70,
-        pct: 81.4,
-        evaluatorCount: 1,
-        evaluatorId: 'mem-1793212854020',
-        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
-        evaluatorRole: "Head Boys' Prefect",
-        evaluatorUsername: 'michael',
-        submittedAt: '2026-11-04T23:05:19.092Z',
+      OLAG003: {
+        'crit-1': 7.9,
+        'crit-2': 7.9,
+        'crit-3': 7.9,
+        'crit-4': 7.3,
+        'crit-5': 7.6,
+        'crit-6': 7.3,
+        'crit-7': 7,
+        total: 52.8,
+        combinedTotal: 422,
+        maxCombinedScore: 560,
+        pct: 75.4,
+        evaluatorCount: 8,
+        evaluatorId: 'mem-1793994914097-lge0',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo, Leslie Nanchel Illedi, Adwoa Buruwaa-Buaten, Asempa B. Anson, Grace OWUSU APPIAH, Nibesob Sopiimeh, Faabar shalom, Nicole Mills',
+        evaluatorRole: "Assistant Girls' Prefect",
+        evaluatorUsername: '!n!',
+        submittedAt: '2026-11-06T20:10:00.000Z',
         submissions: {
-          'user:michael': {
-            'crit-1': 8,
-            'crit-2': 9,
-            'crit-3': 8,
-            'crit-4': 8,
-            'crit-5': 8,
-            'crit-6': 8,
-            'crit-7': 8,
-            total: 57,
-            pct: 81.4,
-            evaluatorId: 'mem-1793212854020',
+          'user:angelo': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 7, 'crit-5': 8, 'crit-6': 7, 'crit-7': 7,
+            total: 53, pct: 75.7,
+            evaluatorId: 'mem-1793217374637-9yde',
             evaluatorName: 'Michael Angelo Gamlie Gbenyo',
             evaluatorRole: "Head Boys' Prefect",
-            evaluatorUsername: 'michael',
+            evaluatorUsername: 'angelo',
+            submittedAt: '2026-11-03T18:05:00.000Z'
+          },
+          'user:leslie': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 8, 'crit-5': 7, 'crit-6': 8, 'crit-7': 7,
+            total: 54, pct: 77.1,
+            evaluatorId: 'mem-1793217404925-baju',
+            evaluatorName: 'Leslie Nanchel Illedi',
+            evaluatorRole: "Assistant Boys' Prefect",
+            evaluatorUsername: 'leslie',
+            submittedAt: '2026-11-04T19:15:00.000Z'
+          },
+          'user:buruwaa': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 7, 'crit-4': 7, 'crit-5': 8, 'crit-6': 7, 'crit-7': 7,
+            total: 52, pct: 74.3,
+            evaluatorId: 'mem-1793387997565-mqzr',
+            evaluatorName: 'Adwoa Buruwaa-Buaten',
+            evaluatorRole: "DPT. GIRLS' PROTOCOL PREFECT",
+            evaluatorUsername: 'buruwaa',
+            submittedAt: '2026-11-05T08:20:00.000Z'
+          },
+          'user:theoracle': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 7, 'crit-5': 7, 'crit-6': 8, 'crit-7': 7,
+            total: 53, pct: 75.7,
+            evaluatorId: 'mem-1793457366101-iqj4',
+            evaluatorName: 'Asempa B. Anson',
+            evaluatorRole: "Head Girls' Protocol Prefect",
+            evaluatorUsername: 'theoracle',
+            submittedAt: '2026-11-05T14:40:00.000Z'
+          },
+          'user:grace': {
+            'crit-1': 8, 'crit-2': 7, 'crit-3': 8, 'crit-4': 7, 'crit-5': 8, 'crit-6': 7, 'crit-7': 7,
+            total: 52, pct: 74.3,
+            evaluatorId: 'mem-1793508039037-78si',
+            evaluatorName: 'Grace OWUSU APPIAH',
+            evaluatorRole: "Head Girls' Prefect",
+            evaluatorUsername: 'grace',
+            submittedAt: '2026-11-05T16:10:00.000Z'
+          },
+          'user:nibs': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 8, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 53, pct: 75.7,
+            evaluatorId: 'mem-1793900040105-0axn',
+            evaluatorName: 'Nibesob Sopiimeh',
+            evaluatorRole: "Assistant Boys' Protocol Prefect",
+            evaluatorUsername: 'nibs',
+            submittedAt: '2026-11-05T18:05:00.000Z'
+          },
+          'user:shalom': {
+            'crit-1': 7, 'crit-2': 8, 'crit-3': 8, 'crit-4': 7, 'crit-5': 8, 'crit-6': 7, 'crit-7': 7,
+            total: 52, pct: 74.3,
+            evaluatorId: 'mem-1793992588719-e9f7',
+            evaluatorName: 'Faabar shalom',
+            evaluatorRole: "Head Boys' Protocol Prefect",
+            evaluatorUsername: 'shalom',
+            submittedAt: '2026-11-06T19:30:00.000Z'
+          },
+          'user:!n!': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 7, 'crit-5': 8, 'crit-6': 7, 'crit-7': 7,
+            total: 53, pct: 75.7,
+            evaluatorId: 'mem-1793994914097-lge0',
+            evaluatorName: 'Nicole Mills',
+            evaluatorRole: "Assistant Girls' Prefect",
+            evaluatorUsername: '!n!',
+            submittedAt: '2026-11-06T20:10:00.000Z'
+          }
+        }
+      },
+      OLAG001: {
+        'crit-1': 7.5,
+        'crit-2': 7.8,
+        'crit-3': 7.8,
+        'crit-4': 7.1,
+        'crit-5': 7.1,
+        'crit-6': 7.1,
+        'crit-7': 7.1,
+        total: 51.5,
+        combinedTotal: 412,
+        maxCombinedScore: 560,
+        pct: 73.6,
+        evaluatorCount: 8,
+        evaluatorId: 'mem-1793994914097-lge0',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo, Leslie Nanchel Illedi, Adwoa Buruwaa-Buaten, Asempa B. Anson, Grace OWUSU APPIAH, Nibesob Sopiimeh, Faabar shalom, Nicole Mills',
+        evaluatorRole: "Assistant Girls' Prefect",
+        evaluatorUsername: '!n!',
+        submittedAt: '2026-11-06T20:05:00.000Z',
+        submissions: {
+          'user:angelo': {
+            'crit-1': 8, 'crit-2': 9, 'crit-3': 8, 'crit-4': 8, 'crit-5': 8, 'crit-6': 8, 'crit-7': 8,
+            total: 57, pct: 81.4,
+            evaluatorId: 'mem-1793217374637-9yde',
+            evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+            evaluatorRole: "Head Boys' Prefect",
+            evaluatorUsername: 'angelo',
             submittedAt: '2026-11-04T23:05:19.092Z'
+          },
+          'user:leslie': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 52, pct: 74.3,
+            evaluatorId: 'mem-1793217404925-baju',
+            evaluatorName: 'Leslie Nanchel Illedi',
+            evaluatorRole: "Assistant Boys' Prefect",
+            evaluatorUsername: 'leslie',
+            submittedAt: '2026-11-04T23:20:00.000Z'
+          },
+          'user:buruwaa': {
+            'crit-1': 7, 'crit-2': 8, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 50, pct: 71.4,
+            evaluatorId: 'mem-1793387997565-mqzr',
+            evaluatorName: 'Adwoa Buruwaa-Buaten',
+            evaluatorRole: "DPT. GIRLS' PROTOCOL PREFECT",
+            evaluatorUsername: 'buruwaa',
+            submittedAt: '2026-11-05T08:15:00.000Z'
+          },
+          'user:theoracle': {
+            'crit-1': 8, 'crit-2': 7, 'crit-3': 8, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 51, pct: 72.9,
+            evaluatorId: 'mem-1793457366101-iqj4',
+            evaluatorName: 'Asempa B. Anson',
+            evaluatorRole: "Head Girls' Protocol Prefect",
+            evaluatorUsername: 'theoracle',
+            submittedAt: '2026-11-05T14:35:00.000Z'
+          },
+          'user:grace': {
+            'crit-1': 7, 'crit-2': 8, 'crit-3': 8, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 51, pct: 72.9,
+            evaluatorId: 'mem-1793508039037-78si',
+            evaluatorName: 'Grace OWUSU APPIAH',
+            evaluatorRole: "Head Girls' Prefect",
+            evaluatorUsername: 'grace',
+            submittedAt: '2026-11-05T16:05:00.000Z'
+          },
+          'user:nibs': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 8, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 50, pct: 71.4,
+            evaluatorId: 'mem-1793900040105-0axn',
+            evaluatorName: 'Nibesob Sopiimeh',
+            evaluatorRole: "Assistant Boys' Protocol Prefect",
+            evaluatorUsername: 'nibs',
+            submittedAt: '2026-11-05T18:00:00.000Z'
+          },
+          'user:shalom': {
+            'crit-1': 7, 'crit-2': 8, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 50, pct: 71.4,
+            evaluatorId: 'mem-1793992588719-e9f7',
+            evaluatorName: 'Faabar shalom',
+            evaluatorRole: "Head Boys' Protocol Prefect",
+            evaluatorUsername: 'shalom',
+            submittedAt: '2026-11-06T19:25:00.000Z'
+          },
+          'user:!n!': {
+            'crit-1': 8, 'crit-2': 7, 'crit-3': 8, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 51, pct: 72.9,
+            evaluatorId: 'mem-1793994914097-lge0',
+            evaluatorName: 'Nicole Mills',
+            evaluatorRole: "Assistant Girls' Prefect",
+            evaluatorUsername: '!n!',
+            submittedAt: '2026-11-06T20:05:00.000Z'
           }
         }
       },
       OLAG004: {
-        'crit-1': 8,
-        'crit-2': 8,
-        'crit-3': 8,
-        'crit-4': 8,
-        'crit-5': 8,
-        'crit-6': 8,
-        'crit-7': 8,
-        total: 56,
-        combinedTotal: 56,
-        maxCombinedScore: 70,
-        pct: 80,
-        evaluatorCount: 1,
-        evaluatorId: 'mem-1793212854020',
-        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
-        evaluatorRole: "Head Boys' Prefect",
-        evaluatorUsername: 'michael',
-        submittedAt: '2026-11-03T18:10:00.000Z',
-        submissions: {
-          'user:michael': {
-            'crit-1': 8,
-            'crit-2': 8,
-            'crit-3': 8,
-            'crit-4': 8,
-            'crit-5': 8,
-            'crit-6': 8,
-            'crit-7': 8,
-            total: 56,
-            pct: 80,
-            evaluatorId: 'mem-1793212854020',
-            evaluatorName: 'Michael Angelo Gamlie Gbenyo',
-            evaluatorRole: "Head Boys' Prefect",
-            evaluatorUsername: 'michael',
-            submittedAt: '2026-11-03T18:10:00.000Z'
-          }
-        }
-      },
-      OLAG003: {
-        'crit-1': 8,
-        'crit-2': 8,
-        'crit-3': 8,
-        'crit-4': 7,
-        'crit-5': 8,
-        'crit-6': 7,
+        'crit-1': 7.1,
+        'crit-2': 7.5,
+        'crit-3': 7.3,
+        'crit-4': 7.1,
+        'crit-5': 7.1,
+        'crit-6': 7.1,
         'crit-7': 7,
-        total: 53,
-        combinedTotal: 53,
-        maxCombinedScore: 70,
-        pct: 75.7,
-        evaluatorCount: 1,
-        evaluatorId: 'mem-1793212854020',
-        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
-        evaluatorRole: "Head Boys' Prefect",
-        evaluatorUsername: 'michael',
-        submittedAt: '2026-11-03T18:05:00.000Z',
+        total: 50.3,
+        combinedTotal: 402,
+        maxCombinedScore: 560,
+        pct: 71.9,
+        evaluatorCount: 8,
+        evaluatorId: 'mem-1793994914097-lge0',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo, Leslie Nanchel Illedi, Adwoa Buruwaa-Buaten, Asempa B. Anson, Grace OWUSU APPIAH, Nibesob Sopiimeh, Faabar shalom, Nicole Mills',
+        evaluatorRole: "Assistant Girls' Prefect",
+        evaluatorUsername: '!n!',
+        submittedAt: '2026-11-06T20:15:00.000Z',
         submissions: {
-          'user:michael': {
-            'crit-1': 8,
-            'crit-2': 8,
-            'crit-3': 8,
-            'crit-4': 7,
-            'crit-5': 8,
-            'crit-6': 7,
-            'crit-7': 7,
-            total: 53,
-            pct: 75.7,
-            evaluatorId: 'mem-1793212854020',
+          'user:angelo': {
+            'crit-1': 8, 'crit-2': 8, 'crit-3': 8, 'crit-4': 8, 'crit-5': 8, 'crit-6': 8, 'crit-7': 8,
+            total: 56, pct: 80,
+            evaluatorId: 'mem-1793217374637-9yde',
             evaluatorName: 'Michael Angelo Gamlie Gbenyo',
             evaluatorRole: "Head Boys' Prefect",
-            evaluatorUsername: 'michael',
-            submittedAt: '2026-11-03T18:05:00.000Z'
+            evaluatorUsername: 'angelo',
+            submittedAt: '2026-11-03T18:10:00.000Z'
+          },
+          'user:leslie': {
+            'crit-1': 7, 'crit-2': 8, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 50, pct: 71.4,
+            evaluatorId: 'mem-1793217404925-baju',
+            evaluatorName: 'Leslie Nanchel Illedi',
+            evaluatorRole: "Assistant Boys' Prefect",
+            evaluatorUsername: 'leslie',
+            submittedAt: '2026-11-04T23:25:00.000Z'
+          },
+          'user:buruwaa': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 49, pct: 70,
+            evaluatorId: 'mem-1793387997565-mqzr',
+            evaluatorName: 'Adwoa Buruwaa-Buaten',
+            evaluatorRole: "DPT. GIRLS' PROTOCOL PREFECT",
+            evaluatorUsername: 'buruwaa',
+            submittedAt: '2026-11-05T08:25:00.000Z'
+          },
+          'user:theoracle': {
+            'crit-1': 7, 'crit-2': 8, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 50, pct: 71.4,
+            evaluatorId: 'mem-1793457366101-iqj4',
+            evaluatorName: 'Asempa B. Anson',
+            evaluatorRole: "Head Girls' Protocol Prefect",
+            evaluatorUsername: 'theoracle',
+            submittedAt: '2026-11-05T14:45:00.000Z'
+          },
+          'user:grace': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 8, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 50, pct: 71.4,
+            evaluatorId: 'mem-1793508039037-78si',
+            evaluatorName: 'Grace OWUSU APPIAH',
+            evaluatorRole: "Head Girls' Prefect",
+            evaluatorUsername: 'grace',
+            submittedAt: '2026-11-05T16:15:00.000Z'
+          },
+          'user:nibs': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 49, pct: 70,
+            evaluatorId: 'mem-1793900040105-0axn',
+            evaluatorName: 'Nibesob Sopiimeh',
+            evaluatorRole: "Assistant Boys' Protocol Prefect",
+            evaluatorUsername: 'nibs',
+            submittedAt: '2026-11-05T18:10:00.000Z'
+          },
+          'user:shalom': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 6,
+            total: 48, pct: 68.6,
+            evaluatorId: 'mem-1793992588719-e9f7',
+            evaluatorName: 'Faabar shalom',
+            evaluatorRole: "Head Boys' Protocol Prefect",
+            evaluatorUsername: 'shalom',
+            submittedAt: '2026-11-06T19:35:00.000Z'
+          },
+          'user:!n!': {
+            'crit-1': 7, 'crit-2': 8, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 7,
+            total: 50, pct: 71.4,
+            evaluatorId: 'mem-1793994914097-lge0',
+            evaluatorName: 'Nicole Mills',
+            evaluatorRole: "Assistant Girls' Prefect",
+            evaluatorUsername: '!n!',
+            submittedAt: '2026-11-06T20:15:00.000Z'
           }
         }
       },
       OLAG005: {
         'crit-1': 7,
         'crit-2': 7,
-        'crit-3': 7,
-        'crit-4': 7,
+        'crit-3': 6.9,
+        'crit-4': 6.7,
         'crit-5': 7,
-        'crit-6': 7,
+        'crit-6': 6.9,
         'crit-7': 6,
-        total: 48,
-        combinedTotal: 48,
-        maxCombinedScore: 70,
-        pct: 68.6,
-        evaluatorCount: 1,
-        evaluatorId: 'mem-1793212854020',
-        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
-        evaluatorRole: "Head Boys' Prefect",
-        evaluatorUsername: 'michael',
-        submittedAt: '2026-11-03T18:15:00.000Z',
+        total: 47.4,
+        combinedTotal: 332,
+        maxCombinedScore: 490,
+        pct: 67.7,
+        evaluatorCount: 7,
+        evaluatorId: 'mem-1793994914097-lge0',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo, Leslie Nanchel Illedi, Adwoa Buruwaa-Buaten, Grace OWUSU APPIAH, Nibesob Sopiimeh, Faabar shalom, Nicole Mills',
+        evaluatorRole: "Assistant Girls' Prefect",
+        evaluatorUsername: '!n!',
+        submittedAt: '2026-11-06T20:20:00.000Z',
         submissions: {
-          'user:michael': {
-            'crit-1': 7,
-            'crit-2': 7,
-            'crit-3': 7,
-            'crit-4': 7,
-            'crit-5': 7,
-            'crit-6': 7,
-            'crit-7': 6,
-            total: 48,
-            pct: 68.6,
-            evaluatorId: 'mem-1793212854020',
+          'user:angelo': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 6,
+            total: 48, pct: 68.6,
+            evaluatorId: 'mem-1793217374637-9yde',
             evaluatorName: 'Michael Angelo Gamlie Gbenyo',
             evaluatorRole: "Head Boys' Prefect",
-            evaluatorUsername: 'michael',
+            evaluatorUsername: 'angelo',
             submittedAt: '2026-11-03T18:15:00.000Z'
+          },
+          'user:leslie': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 6, 'crit-7': 6,
+            total: 47, pct: 67.1,
+            evaluatorId: 'mem-1793217404925-baju',
+            evaluatorName: 'Leslie Nanchel Illedi',
+            evaluatorRole: "Assistant Boys' Prefect",
+            evaluatorUsername: 'leslie',
+            submittedAt: '2026-11-04T23:30:00.000Z'
+          },
+          'user:buruwaa': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 6, 'crit-5': 7, 'crit-6': 7, 'crit-7': 6,
+            total: 47, pct: 67.1,
+            evaluatorId: 'mem-1793387997565-mqzr',
+            evaluatorName: 'Adwoa Buruwaa-Buaten',
+            evaluatorRole: "DPT. GIRLS' PROTOCOL PREFECT",
+            evaluatorUsername: 'buruwaa',
+            submittedAt: '2026-11-05T08:30:00.000Z'
+          },
+          'user:grace': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 6,
+            total: 48, pct: 68.6,
+            evaluatorId: 'mem-1793508039037-78si',
+            evaluatorName: 'Grace OWUSU APPIAH',
+            evaluatorRole: "Head Girls' Prefect",
+            evaluatorUsername: 'grace',
+            submittedAt: '2026-11-05T16:20:00.000Z'
+          },
+          'user:nibs': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 6, 'crit-5': 7, 'crit-6': 7, 'crit-7': 6,
+            total: 47, pct: 67.1,
+            evaluatorId: 'mem-1793900040105-0axn',
+            evaluatorName: 'Nibesob Sopiimeh',
+            evaluatorRole: "Assistant Boys' Protocol Prefect",
+            evaluatorUsername: 'nibs',
+            submittedAt: '2026-11-05T18:15:00.000Z'
+          },
+          'user:shalom': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 6, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 6,
+            total: 47, pct: 67.1,
+            evaluatorId: 'mem-1793992588719-e9f7',
+            evaluatorName: 'Faabar shalom',
+            evaluatorRole: "Head Boys' Protocol Prefect",
+            evaluatorUsername: 'shalom',
+            submittedAt: '2026-11-06T19:40:00.000Z'
+          },
+          'user:!n!': {
+            'crit-1': 7, 'crit-2': 7, 'crit-3': 7, 'crit-4': 7, 'crit-5': 7, 'crit-6': 7, 'crit-7': 6,
+            total: 48, pct: 68.6,
+            evaluatorId: 'mem-1793994914097-lge0',
+            evaluatorName: 'Nicole Mills',
+            evaluatorRole: "Assistant Girls' Prefect",
+            evaluatorUsername: '!n!',
+            submittedAt: '2026-11-06T20:20:00.000Z'
           }
         }
       }
@@ -902,17 +1117,55 @@ class OLAGStore {
       if (!existingArch) {
         stateObj.archivedWeeks.push(JSON.parse(JSON.stringify(defArch)));
       } else {
-        if (!Array.isArray(existingArch.students) || existingArch.students.length === 0) {
+        const isStaleSingleEvalSnapshot = defArch.id === 'week-1793211322767' && (
+          !existingArch.scores ||
+          !existingArch.scores.OLAG003 ||
+          (existingArch.scores.OLAG003.evaluatorCount || 1) < 8
+        );
+        if (isStaleSingleEvalSnapshot) {
           existingArch.students = JSON.parse(JSON.stringify(defArch.students));
-        }
-        if (!existingArch.scores || typeof existingArch.scores !== 'object' || Object.keys(existingArch.scores).length === 0) {
           existingArch.scores = JSON.parse(JSON.stringify(defArch.scores));
-        }
-        if (!Array.isArray(existingArch.classes) || existingArch.classes.length === 0) {
           existingArch.classes = [...(defArch.classes || [])];
+          existingArch.topStudent = defArch.topStudent;
+          existingArch.totalScore = defArch.totalScore;
+          existingArch.percentage = defArch.percentage;
+          existingArch.archivedAt = defArch.archivedAt;
+        } else {
+          if (!Array.isArray(existingArch.students) || existingArch.students.length === 0) {
+            existingArch.students = JSON.parse(JSON.stringify(defArch.students));
+          }
+          if (!existingArch.scores || typeof existingArch.scores !== 'object' || Object.keys(existingArch.scores).length === 0) {
+            existingArch.scores = JSON.parse(JSON.stringify(defArch.scores));
+          }
+          if (!Array.isArray(existingArch.classes) || existingArch.classes.length === 0) {
+            existingArch.classes = [...(defArch.classes || [])];
+          }
         }
         existingArch.status = 'Archived';
         existingArch.isArchived = true;
+      }
+    });
+
+    // Merge any current live scores into archived weeks before cleaning stateObj.scores
+    stateObj.archivedWeeks.forEach(arch => {
+      if (!arch || !arch.id) return;
+      const liveWeekScores = (stateObj.scores && stateObj.scores[arch.id] && typeof stateObj.scores[arch.id] === 'object')
+        ? stateObj.scores[arch.id]
+        : null;
+      if (liveWeekScores && Object.keys(liveWeekScores).length > 0) {
+        if (!arch.scores || typeof arch.scores !== 'object') arch.scores = {};
+        const archMax = arch.maxScore || 70;
+        Object.entries(liveWeekScores).forEach(([sId, liveRaw]) => {
+          const liveNorm = this.normalizeStudentWeekScore(liveRaw, archMax);
+          const archNorm = this.normalizeStudentWeekScore(arch.scores[sId], archMax);
+          if (liveNorm && !archNorm) {
+            arch.scores[sId] = liveNorm;
+          } else if (liveNorm && archNorm) {
+            const mergedSubs = { ...(archNorm.submissions || {}), ...(liveNorm.submissions || {}) };
+            const combined = this.normalizeStudentWeekScore({ submissions: mergedSubs }, archMax);
+            if (combined) arch.scores[sId] = combined;
+          }
+        });
       }
     });
 
@@ -6836,7 +7089,19 @@ class OLAGApp {
       return;
     }
 
-    const weekScores = (this.store.state.scores && this.store.state.scores[weekId]) ? this.store.state.scores[weekId] : {};
+    // Normalize and recalculate current scores before closing/archiving evaluation
+    const maxScore = week.maxScore || 70;
+    const rawWeekScores = (this.store.state.scores && this.store.state.scores[weekId]) ? this.store.state.scores[weekId] : {};
+    const weekScores = {};
+    Object.entries(rawWeekScores).forEach(([sId, rawEntry]) => {
+      const norm = this.store.normalizeStudentWeekScore(rawEntry, maxScore);
+      if (norm) weekScores[sId] = norm;
+    });
+    if (this.store.state.scores) {
+      this.store.state.scores[weekId] = weekScores;
+    }
+    this.recalculateWeekResults(weekId);
+
     const weekNoms = this.store.getNominationsForWeek(weekId);
     const involvedStudentIds = new Set([
       ...Object.keys(weekScores),
