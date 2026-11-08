@@ -3765,6 +3765,71 @@ a {
   color: #fef3c7;
 }
 
+.nominate-mode-tabs {
+  display: flex;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+  padding: 0.3rem;
+  border-radius: var(--radius-sm);
+  background: #f1f5f9;
+  border: 1px solid var(--card-border);
+}
+
+[data-theme="dark"] .nominate-mode-tabs {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+.btn-nominate-mode-tab {
+  flex: 1;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+}
+
+.btn-nominate-mode-tab:hover {
+  color: var(--navy-primary);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.btn-nominate-mode-tab.active {
+  background: #ffffff;
+  color: var(--navy-primary);
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="dark"] .btn-nominate-mode-tab {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .btn-nominate-mode-tab:hover {
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.6);
+}
+
+[data-theme="dark"] .btn-nominate-mode-tab.active {
+  background: #1e293b;
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .nominate-new-student-panel {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
 /* ==========================================================================
    PERFECT PRINT CERTIFICATE RULES
    Guarantees clean, single-page official school certificate output without UI clutter

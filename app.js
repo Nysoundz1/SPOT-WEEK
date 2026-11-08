@@ -92,6 +92,40 @@ const COMMITTEE_MEMBERS = [];
 const INITIAL_STUDENTS = [];
 const INITIAL_SCORES = {};
 
+// Legacy demo/test student records & classes hidden so new student entries start fresh
+const LEGACY_HIDDEN_STUDENT_NAMES = new Set([
+  'jenina ampeh',
+  'emmanuel asenso',
+  'genevieve olo yeng',
+  'nhyira'
+]);
+
+const LEGACY_HIDDEN_CLASSES = new Set([
+  '2arts1',
+  '2 science 3',
+  '3 sci 1',
+  '1 science 3'
+]);
+
+function isLegacyHiddenStudent(studentOrName) {
+  if (!studentOrName) return false;
+  const rawName = typeof studentOrName === 'string'
+    ? studentOrName
+    : (studentOrName.name || studentOrName.studentName || '');
+  const cleanName = String(rawName).trim().toLowerCase();
+  if (!cleanName) return false;
+  return LEGACY_HIDDEN_STUDENT_NAMES.has(cleanName);
+}
+
+function containsLegacyHiddenStudentName(text) {
+  if (!text) return false;
+  const lower = String(text).toLowerCase();
+  for (const legacyName of LEGACY_HIDDEN_STUDENT_NAMES) {
+    if (lower.includes(legacyName)) return true;
+  }
+  return false;
+}
+
 // Default Cloud Database Configuration (Supabase PostgreSQL)
 const DEFAULT_SUPABASE_CONFIG = {
   url: 'https://apygtjveliipzjbzmiyn.supabase.co',
@@ -273,10 +307,28 @@ class OLAGStore {
       this.state.members = [...mergedMap.values()].map((m, idx) => ({ ...m, no: idx + 1 }));
     }
 
-    // 2. Merge Students non-destructively
+    // 2. Merge Students non-destructively (filtering out hidden legacy test students)
+    const remoteLegacyStudentIds = new Set();
     if (Array.isArray(remoteState.students)) {
-      const remoteStudents = remoteState.students.filter(s => s && s.id && !deletedStudents.has(s.id));
-      const localStudents = (Array.isArray(this.state.students) ? this.state.students : []).filter(s => s && s.id && !deletedStudents.has(s.id));
+      remoteState.students.forEach(s => {
+        if (s && s.id && isLegacyHiddenStudent(s)) {
+          remoteLegacyStudentIds.add(s.id);
+          hasLocalOnlyItems = true;
+        }
+      });
+    }
+    const localLegacyStudentIds = new Set();
+    if (Array.isArray(this.state.students)) {
+      this.state.students.forEach(s => {
+        if (s && s.id && isLegacyHiddenStudent(s)) {
+          localLegacyStudentIds.add(s.id);
+        }
+      });
+    }
+
+    if (Array.isArray(remoteState.students)) {
+      const remoteStudents = remoteState.students.filter(s => s && s.id && !deletedStudents.has(s.id) && !isLegacyHiddenStudent(s));
+      const localStudents = (Array.isArray(this.state.students) ? this.state.students : []).filter(s => s && s.id && !deletedStudents.has(s.id) && !isLegacyHiddenStudent(s));
       const studentMap = new Map();
       remoteStudents.forEach(s => studentMap.set(s.id, s));
       localStudents.forEach(s => {
@@ -298,6 +350,12 @@ class OLAGStore {
     if (Array.isArray(remoteState.weeks)) {
       const remoteWeeks = remoteState.weeks.filter(w => w && w.id && !deletedWeeks.has(w.id)).map(w => {
         if (w.maxScore === 80 || !w.maxScore) w.maxScore = 70;
+        if (w.topStudent && isLegacyHiddenStudent(w.topStudent)) {
+          w.topStudent = null;
+          w.totalScore = null;
+          w.percentage = null;
+          hasLocalOnlyItems = true;
+        }
         return w;
       });
       const localWeeks = (Array.isArray(this.state.weeks) ? this.state.weeks : []).filter(w => w && w.id && !deletedWeeks.has(w.id));
@@ -318,12 +376,13 @@ class OLAGStore {
       this.state.weeks = [...weekMap.values()];
     }
 
-    // 4. Merge Scores (Preserving every committee member's score submission per student)
+    // 4. Merge Scores (Preserving every committee member's score submission per active student)
     if ((remoteState.scores && typeof remoteState.scores === 'object') || (this.state.scores && typeof this.state.scores === 'object')) {
       const remoteScores = (remoteState.scores && typeof remoteState.scores === 'object') ? remoteState.scores : {};
       const localScores = (this.state.scores && typeof this.state.scores === 'object') ? this.state.scores : {};
       const allWeekIds = new Set([...Object.keys(remoteScores), ...Object.keys(localScores)]);
       const mergedScores = {};
+      const activeStudentIds = new Set((this.state.students || []).map(s => s && s.id).filter(Boolean));
 
       allWeekIds.forEach(wId => {
         const rWeekMap = (remoteScores[wId] && typeof remoteScores[wId] === 'object') ? remoteScores[wId] : {};
@@ -334,8 +393,14 @@ class OLAGStore {
         mergedScores[wId] = {};
 
         allStudentIds.forEach(sId => {
-          const rNorm = this.normalizeStudentWeekScore(rWeekMap[sId], maxScore);
-          const lNorm = this.normalizeStudentWeekScore(lWeekMap[sId], maxScore);
+          if (!activeStudentIds.has(sId)) {
+            if (rWeekMap[sId]) hasLocalOnlyItems = true;
+            return;
+          }
+          const rRaw = remoteLegacyStudentIds.has(sId) ? null : rWeekMap[sId];
+          const lRaw = localLegacyStudentIds.has(sId) ? null : lWeekMap[sId];
+          const rNorm = this.normalizeStudentWeekScore(rRaw, maxScore);
+          const lNorm = this.normalizeStudentWeekScore(lRaw, maxScore);
           if (!rNorm && lNorm) {
             mergedScores[wId][sId] = lNorm;
             hasLocalOnlyItems = true;
@@ -375,10 +440,12 @@ class OLAGStore {
       const localNotifs = Array.isArray(this.state.notifications) ? this.state.notifications : [];
       const notifMap = new Map();
       remoteState.notifications.forEach(n => {
-        if (n && n.id && !dismissedNotifs.has(n.id)) notifMap.set(n.id, n);
+        if (n && n.id && !dismissedNotifs.has(n.id) && !containsLegacyHiddenStudentName(n.title) && !containsLegacyHiddenStudentName(n.message)) {
+          notifMap.set(n.id, n);
+        }
       });
       localNotifs.forEach(n => {
-        if (n && n.id && !dismissedNotifs.has(n.id) && !notifMap.has(n.id)) {
+        if (n && n.id && !dismissedNotifs.has(n.id) && !notifMap.has(n.id) && !containsLegacyHiddenStudentName(n.title) && !containsLegacyHiddenStudentName(n.message)) {
           notifMap.set(n.id, n);
           hasLocalOnlyItems = true;
         }
@@ -386,10 +453,18 @@ class OLAGStore {
       this.state.notifications = [...notifMap.values()];
     }
 
-    // 7. Merge Nominations non-destructively
+    // 7. Merge Nominations non-destructively (excluding hidden legacy test students)
     if (Array.isArray(remoteState.nominations) || Array.isArray(this.state.nominations)) {
-      const remoteNoms = (Array.isArray(remoteState.nominations) ? remoteState.nominations : []).filter(n => n && n.id && !deletedNominations.has(n.id));
-      const localNoms = (Array.isArray(this.state.nominations) ? this.state.nominations : []).filter(n => n && n.id && !deletedNominations.has(n.id));
+      const activeStudentIds = new Set((this.state.students || []).map(s => s && s.id).filter(Boolean));
+      const isValidNomination = (n) => {
+        if (!n || !n.id || deletedNominations.has(n.id)) return false;
+        if (isLegacyHiddenStudent(n)) return false;
+        if (String(n.id).startsWith('nom-week-')) return false;
+        if (!activeStudentIds.has(n.studentId)) return false;
+        return true;
+      };
+      const remoteNoms = (Array.isArray(remoteState.nominations) ? remoteState.nominations : []).filter(isValidNomination);
+      const localNoms = (Array.isArray(this.state.nominations) ? this.state.nominations : []).filter(isValidNomination);
       const nomMap = new Map();
 
       remoteNoms.forEach(n => nomMap.set(n.id, n));
@@ -444,18 +519,14 @@ class OLAGStore {
     if (!Array.isArray(stateObj.deletedClasses)) stateObj.deletedClasses = [];
     const deletedClassesSet = new Set(stateObj.deletedClasses);
 
-    if (!Array.isArray(stateObj.classes)) {
-      stateObj.classes = CLASSES_LIST.filter(c => !deletedClassesSet.has(c));
-    } else {
-      stateObj.classes = stateObj.classes.filter(c => c && !deletedClassesSet.has(c));
-    }
-
-    // Ensure every student class exists in stateObj.classes (unless deleted by admin or unassigned)
+    // Filter out hidden legacy demo/test students so fresh student entries start cleanly
+    const legacyStudentIds = new Set();
     stateObj.students.forEach(s => {
-      if (s && s.class && s.class !== 'Unassigned' && !deletedClassesSet.has(s.class) && !stateObj.classes.includes(s.class)) {
-        stateObj.classes.push(s.class);
+      if (s && s.id && isLegacyHiddenStudent(s)) {
+        legacyStudentIds.add(s.id);
       }
     });
+    stateObj.students = stateObj.students.filter(s => s && !isLegacyHiddenStudent(s));
 
     // Deduplicate student IDs if any collision occurred (e.g. two OLAG003 entries)
     const seenIds = new Set();
@@ -482,7 +553,32 @@ class OLAGStore {
       seenIds.add(s.id);
     });
 
-    // Normalize all weekly student score records so multi-evaluator submissions are preserved
+    const activeStudentIds = new Set(stateObj.students.map(s => s && s.id).filter(Boolean));
+    const activeStudentClassesLower = new Set(
+      stateObj.students.map(s => String(s && s.class ? s.class : '').trim().toLowerCase()).filter(Boolean)
+    );
+
+    if (!Array.isArray(stateObj.classes)) {
+      stateObj.classes = CLASSES_LIST.filter(c => !deletedClassesSet.has(c));
+    } else {
+      stateObj.classes = stateObj.classes.filter(c => {
+        if (!c || deletedClassesSet.has(c)) return false;
+        const cLower = String(c).trim().toLowerCase();
+        if (LEGACY_HIDDEN_CLASSES.has(cLower) && !activeStudentClassesLower.has(cLower)) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // Ensure every active student class exists in stateObj.classes (unless deleted by admin or unassigned)
+    stateObj.students.forEach(s => {
+      if (s && s.class && s.class !== 'Unassigned' && !deletedClassesSet.has(s.class) && !stateObj.classes.includes(s.class)) {
+        stateObj.classes.push(s.class);
+      }
+    });
+
+    // Normalize all weekly student score records (excluding hidden legacy or non-enrolled student IDs)
     if (!stateObj.scores || typeof stateObj.scores !== 'object') {
       stateObj.scores = {};
     } else {
@@ -492,6 +588,10 @@ class OLAGStore {
         const wObj = weeks.find(w => w && w.id === wId);
         const maxScore = (wObj && wObj.maxScore) ? wObj.maxScore : 70;
         Object.entries(wMap).forEach(([sId, rawEntry]) => {
+          if (legacyStudentIds.has(sId) || !activeStudentIds.has(sId)) {
+            delete wMap[sId];
+            return;
+          }
           const norm = this.normalizeStudentWeekScore(rawEntry, maxScore);
           if (norm) {
             wMap[sId] = norm;
@@ -502,47 +602,52 @@ class OLAGStore {
       });
     }
 
-    // Ensure stateObj.nominations and stateObj.deletedNominationIds exist
+    // Recalculate week winners so hidden legacy students do not appear on week cards
+    if (Array.isArray(stateObj.weeks)) {
+      stateObj.weeks.forEach(w => {
+        if (!w || !w.id) return;
+        const wScores = (stateObj.scores && stateObj.scores[w.id]) || {};
+        let bestTotal = -1;
+        let bestName = null;
+        let bestPct = null;
+        Object.entries(wScores).forEach(([sId, sc]) => {
+          if (sc && typeof sc.total === 'number' && sc.total > bestTotal) {
+            const st = stateObj.students.find(s => s && s.id === sId);
+            if (st) {
+              bestTotal = sc.total;
+              bestName = st.name;
+              bestPct = sc.pct;
+            }
+          }
+        });
+        if (bestName) {
+          w.topStudent = bestName;
+          w.totalScore = bestTotal;
+          w.percentage = bestPct;
+        } else {
+          w.topStudent = null;
+          w.totalScore = null;
+          w.percentage = null;
+        }
+      });
+    }
+
+    // Ensure stateObj.nominations and stateObj.deletedNominationIds exist & strip hidden legacy nominations
     if (!Array.isArray(stateObj.nominations)) stateObj.nominations = [];
     if (!Array.isArray(stateObj.deletedNominationIds)) stateObj.deletedNominationIds = [];
     const deletedNomsSet = new Set(stateObj.deletedNominationIds);
-    stateObj.nominations = stateObj.nominations.filter(n => n && n.id && !deletedNomsSet.has(n.id));
-
-    // Seed initial nominations for students who have scored assessments in any week if not already nominated
-    const existingScores = (stateObj.scores && typeof stateObj.scores === 'object') ? stateObj.scores : {};
-    const existingStudents = Array.isArray(stateObj.students) ? stateObj.students : [];
-
-    Object.entries(existingScores).forEach(([wId, wMap]) => {
-      if (!wMap || typeof wMap !== 'object') return;
-      Object.keys(wMap).forEach(sId => {
-        const isNominated = stateObj.nominations.some(n => n && n.studentId === sId && n.weekId === wId);
-        if (!isNominated && !deletedNomsSet.has(`nom-${wId}-${sId}`)) {
-          const st = existingStudents.find(s => s && s.id === sId);
-          if (st) {
-            const sc = wMap[sId];
-            const evalName = (sc && sc.evaluatorName) ? sc.evaluatorName : "Michael Angelo Gamlie Gbenyo";
-            const evalRole = (sc && sc.evaluatorRole) ? sc.evaluatorRole : "Head Boys' Prefect";
-            const evalUser = (sc && sc.evaluatorUsername) ? sc.evaluatorUsername : "michael";
-            stateObj.nominations.push({
-              id: `nom-${wId}-${sId}`,
-              studentId: sId,
-              studentName: st.name,
-              studentClass: st.class,
-              studentHouse: st.house,
-              weekId: wId,
-              nominatedById: (sc && sc.evaluatorId) || 'evaluator',
-              nominatedByName: evalName,
-              nominatedByRole: evalRole,
-              nominatedByUsername: evalUser,
-              citation: 'Consistently demonstrates exemplary character, punctuality, and commendable adherence to school conduct values.',
-              tags: ['Exemplary Conduct', 'Punctuality', 'Discipline'],
-              nominatedAt: (sc && sc.submittedAt) || new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            });
-          }
-        }
-      });
+    stateObj.nominations = stateObj.nominations.filter(n => {
+      if (!n || !n.id || deletedNomsSet.has(n.id)) return false;
+      if (isLegacyHiddenStudent(n)) return false;
+      if (String(n.id).startsWith('nom-week-')) return false;
+      if (!activeStudentIds.has(n.studentId)) return false;
+      return true;
     });
+
+    stateObj.totalStudentsCount = stateObj.students.length;
+    if (stateObj.selectedStudentId && !activeStudentIds.has(stateObj.selectedStudentId)) {
+      stateObj.selectedStudentId = stateObj.students[0] ? stateObj.students[0].id : null;
+    }
 
     this.syncDerivedNotifications(stateObj);
   }
@@ -732,11 +837,24 @@ class OLAGStore {
       }
     });
 
-    // Filter out any notification that was dismissed or whose member was deleted
+    // Filter out any notification that was dismissed or whose member/student/nomination was deleted or hidden
     const activeMemberIds = new Set(members.map(m => `notif-member-${m.id}`));
+    const activeStudentIds = new Set(students.map(s => s && s.id).filter(Boolean));
+    const activeStudentNotifIds = new Set(students.map(s => `notif-student-${s.id}`));
+    const activeNomNotifIds = new Set(nominations.map(nom => `notif-nom-${nom.id}`));
     stateObj.notifications = stateObj.notifications.filter(n => {
       if (!n || !n.id || dismissed.has(n.id)) return false;
+      if (containsLegacyHiddenStudentName(n.title) || containsLegacyHiddenStudentName(n.message)) return false;
       if (n.id.startsWith('notif-member-') && !activeMemberIds.has(n.id)) return false;
+      if (n.id.startsWith('notif-student-') && !activeStudentNotifIds.has(n.id)) return false;
+      if (n.id.startsWith('notif-nom-') && !activeNomNotifIds.has(n.id)) return false;
+      if (n.id.startsWith('notif-score-')) {
+        let belongsToActiveStudent = false;
+        activeStudentIds.forEach(sId => {
+          if (n.id.includes(`-${sId}-`) || n.id.endsWith(`-${sId}`)) belongsToActiveStudent = true;
+        });
+        if (!belongsToActiveStudent) return false;
+      }
       return true;
     });
   }
@@ -811,6 +929,8 @@ class OLAGStore {
       deletedStudentIds: this.state.deletedStudentIds || [],
       deletedWeekIds: this.state.deletedWeekIds || [],
       deletedClasses: this.state.deletedClasses || [],
+      nominations: this.state.nominations || [],
+      deletedNominationIds: this.state.deletedNominationIds || [],
       selectedWeekId: this.state.selectedWeekId
     };
 
@@ -2405,7 +2525,7 @@ class OLAGApp {
   }
 
   // =========================================================================
-  // WEEKLY STUDENT NOMINATION MODAL & WORKFLOW
+  // WEEKLY STUDENT NOMINATION MODAL & WORKFLOW (SUPPORTS NEW & EXISTING ENTRIES)
   // =========================================================================
   ensureNominateModalExists() {
     let modal = document.getElementById('modalNominateStudent');
@@ -2414,7 +2534,7 @@ class OLAGApp {
       modal.className = 'modal-overlay';
       modal.id = 'modalNominateStudent';
       modal.innerHTML = `
-        <div class="modal-container" style="max-width: 580px; width: 95%;">
+        <div class="modal-container" style="max-width: 600px; width: 95%;">
           <div class="modal-header-row">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span style="display: inline-flex; align-items: center; color: #d97706;">${APP_ICONS.award}</span>
@@ -2424,6 +2544,8 @@ class OLAGApp {
           </div>
 
           <form id="formNominateStudent" onsubmit="event.preventDefault(); app.handleNominateStudentSubmit();" style="margin-top: 0.85rem;">
+            <input type="hidden" id="nominateEntryMode" value="new" />
+
             <!-- Week Interval Select -->
             <div class="filter-field" style="margin-bottom: 0.85rem;">
               <label for="nominateWeekSelect">Assessment Week Interval *</label>
@@ -2432,12 +2554,55 @@ class OLAGApp {
               </select>
             </div>
 
-            <!-- Student Select -->
-            <div class="filter-field" style="margin-bottom: 0.85rem;">
-              <label for="nominateStudentSelect">Student to Nominate *</label>
-              <select id="nominateStudentSelect" class="form-select" required onchange="app.handleNominateStudentChange()">
-                <!-- Populated dynamically -->
-              </select>
+            <!-- Mode Switcher: New Student Entry vs Existing Enrolled Student -->
+            <div class="nominate-mode-tabs" style="display: flex; gap: 0.45rem; margin-bottom: 0.85rem; padding: 0.3rem; border-radius: var(--radius-sm); background: #f1f5f9; border: 1px solid var(--card-border);">
+              <button type="button" id="tabNominateModeNew" class="btn-nominate-mode-tab active" onclick="app.switchNominateModalMode('new')">
+                ${APP_ICONS.userPlus} + Enter New Student
+              </button>
+              <button type="button" id="tabNominateModeExisting" class="btn-nominate-mode-tab" onclick="app.switchNominateModalMode('existing')">
+                ${APP_ICONS.students} Select Enrolled Student
+              </button>
+            </div>
+
+            <!-- Panel A: New Student Entry Fields -->
+            <div id="nominateNewStudentPanel" class="nominate-new-student-panel" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 0.85rem;">
+              <div class="filter-field" style="margin-bottom: 0.75rem;">
+                <label for="nominateNewStudentName">Student Full Name *</label>
+                <input type="text" id="nominateNewStudentName" class="form-input" placeholder="Enter student's full name (e.g. Kwame Mensah)" autocomplete="off" />
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.65rem;">
+                <div class="filter-field">
+                  <label for="nominateNewStudentClass">Class / Form *</label>
+                  <input type="text" id="nominateNewStudentClass" class="form-input" list="nominateClassesDatalist" placeholder="e.g. 2 Science 1" autocomplete="off" />
+                  <datalist id="nominateClassesDatalist"></datalist>
+                </div>
+                <div class="filter-field">
+                  <label for="nominateNewStudentHouse">House *</label>
+                  <select id="nominateNewStudentHouse" class="form-select">
+                    <option value="ST. THOMAS">ST. THOMAS</option>
+                    <option value="ST. PAUL">ST. PAUL</option>
+                    <option value="ST. MARY">ST. MARY</option>
+                    <option value="ST. JOSEPH">ST. JOSEPH</option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label for="nominateNewStudentGender">Gender *</label>
+                  <select id="nominateNewStudentGender" class="form-select">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel B: Select Existing Enrolled Student -->
+            <div id="nominateExistingStudentPanel" style="display: none; margin-bottom: 0.85rem;">
+              <div class="filter-field">
+                <label for="nominateStudentSelect">Student to Nominate *</label>
+                <select id="nominateStudentSelect" class="form-select" onchange="app.handleNominateStudentChange()">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
             </div>
 
             <!-- Nominator Identity Card -->
@@ -2506,6 +2671,38 @@ class OLAGApp {
     return modal;
   }
 
+  switchNominateModalMode(mode = 'new') {
+    const modeInput = document.getElementById('nominateEntryMode');
+    const tabNew = document.getElementById('tabNominateModeNew');
+    const tabExisting = document.getElementById('tabNominateModeExisting');
+    const panelNew = document.getElementById('nominateNewStudentPanel');
+    const panelExisting = document.getElementById('nominateExistingStudentPanel');
+    const students = this.store.state.students || [];
+
+    if (mode === 'existing' && students.length === 0) {
+      this.showToast('No students enrolled yet. Please enter a new student below.');
+      mode = 'new';
+    }
+
+    if (modeInput) modeInput.value = mode;
+    if (tabNew) tabNew.classList.toggle('active', mode === 'new');
+    if (tabExisting) tabExisting.classList.toggle('active', mode === 'existing');
+    if (panelNew) panelNew.style.display = mode === 'new' ? 'block' : 'none';
+    if (panelExisting) panelExisting.style.display = mode === 'existing' ? 'block' : 'none';
+
+    const weekSelect = document.getElementById('nominateWeekSelect');
+    const studentSelect = document.getElementById('nominateStudentSelect');
+    const weekId = weekSelect ? weekSelect.value : null;
+
+    if (mode === 'existing' && studentSelect && studentSelect.value) {
+      this.syncNominationModalFormState(studentSelect.value, weekId);
+    } else {
+      this.syncNominationModalFormState(null, weekId);
+      const nameInput = document.getElementById('nominateNewStudentName');
+      if (nameInput) setTimeout(() => nameInput.focus(), 80);
+    }
+  }
+
   toggleNominationTag(el) {
     if (!el) return;
     el.classList.toggle('active');
@@ -2531,7 +2728,24 @@ class OLAGApp {
 
     const weeks = this.store.state.weeks || [];
     const students = this.store.state.students || [];
+    const classes = this.store.state.classes || [];
+    const houses = (this.store.state.houses && this.store.state.houses.length > 0) ? this.store.state.houses : HOUSES_LIST;
     const currentEvaluator = this.getCurrentLoginEvaluator();
+
+    const datalist = document.getElementById('nominateClassesDatalist');
+    if (datalist) {
+      datalist.innerHTML = classes.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+    }
+
+    const houseSelect = document.getElementById('nominateNewStudentHouse');
+    if (houseSelect) {
+      houseSelect.innerHTML = houses.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+    }
+
+    const newNameInput = document.getElementById('nominateNewStudentName');
+    const newClassInput = document.getElementById('nominateNewStudentClass');
+    if (newNameInput) newNameInput.value = '';
+    if (newClassInput) newClassInput.value = '';
 
     const weekSelect = document.getElementById('nominateWeekSelect');
     if (weekSelect) {
@@ -2548,16 +2762,23 @@ class OLAGApp {
           }).join('');
     }
 
+    const hasPreselectedStudent = Boolean(preselectedStudentId && students.some(s => s && s.id === preselectedStudentId));
+
     const studentSelect = document.getElementById('nominateStudentSelect');
     if (studentSelect) {
-      const targetStudentId = preselectedStudentId || this.store.state.selectedStudentId || (students[0] ? students[0].id : null);
+      const targetStudentId = hasPreselectedStudent ? preselectedStudentId : (this.store.state.selectedStudentId || (students[0] ? students[0].id : null));
       const targetWeekId = weekSelect ? weekSelect.value : null;
       studentSelect.innerHTML = students.length === 0
-        ? '<option value="">No students enrolled in database</option>'
+        ? '<option value="">No students enrolled yet — use "+ Enter New Student"</option>'
         : students.map(s => {
             const isNom = targetWeekId ? this.store.isStudentNominated(s.id, targetWeekId) : false;
             return `<option value="${escapeHtml(s.id)}" ${s.id === targetStudentId ? 'selected' : ''}>${escapeHtml(s.name)} (${escapeHtml(s.id)}) — ${escapeHtml(s.class)}, ${escapeHtml(s.house)}${isNom ? ' [Nominated]' : ''}</option>`;
           }).join('');
+    }
+
+    const tabExisting = document.getElementById('tabNominateModeExisting');
+    if (tabExisting) {
+      tabExisting.innerHTML = `${APP_ICONS.students} Select Enrolled Student (${students.length})`;
     }
 
     const nomAvatar = document.getElementById('nominateNominatorAvatar');
@@ -2570,18 +2791,26 @@ class OLAGApp {
     if (nomName) nomName.textContent = currentEvaluator.name || 'Committee Member';
     if (nomRole) nomRole.textContent = currentEvaluator.role || 'Evaluator';
 
-    const selectedWeekVal = weekSelect ? weekSelect.value : null;
-    const selectedStudentVal = studentSelect ? studentSelect.value : null;
-    this.syncNominationModalFormState(selectedStudentVal, selectedWeekVal);
+    if (hasPreselectedStudent) {
+      this.switchNominateModalMode('existing');
+    } else {
+      this.switchNominateModalMode('new');
+    }
 
     modal.classList.add('active');
   }
 
   handleNominateWeekChange() {
+    const modeInput = document.getElementById('nominateEntryMode');
+    const mode = (modeInput && modeInput.value) || 'new';
     const weekSelect = document.getElementById('nominateWeekSelect');
     const studentSelect = document.getElementById('nominateStudentSelect');
-    if (!weekSelect || !studentSelect) return;
-    this.syncNominationModalFormState(studentSelect.value, weekSelect.value);
+    if (!weekSelect) return;
+    if (mode === 'existing' && studentSelect) {
+      this.syncNominationModalFormState(studentSelect.value, weekSelect.value);
+    } else {
+      this.syncNominationModalFormState(null, weekSelect.value);
+    }
   }
 
   handleNominateStudentChange() {
@@ -2592,8 +2821,7 @@ class OLAGApp {
   }
 
   syncNominationModalFormState(studentId, weekId) {
-    if (!studentId || !weekId) return;
-    const existingNom = this.store.getNominationForStudent(studentId, weekId);
+    const existingNom = (studentId && weekId) ? this.store.getNominationForStudent(studentId, weekId) : null;
     const citationInput = document.getElementById('nominateCitationInput');
     const titleEl = document.getElementById('nominateModalTitle');
     const tagsContainer = document.getElementById('nominateTagsContainer');
@@ -2627,27 +2855,107 @@ class OLAGApp {
   }
 
   handleNominateStudentSubmit() {
+    const modeInput = document.getElementById('nominateEntryMode');
+    const entryMode = (modeInput && modeInput.value) || 'new';
     const weekSelect = document.getElementById('nominateWeekSelect');
     const studentSelect = document.getElementById('nominateStudentSelect');
     const citationInput = document.getElementById('nominateCitationInput');
     const tagsContainer = document.getElementById('nominateTagsContainer');
 
-    if (!weekSelect || !studentSelect || !citationInput) return;
+    if (!weekSelect || !citationInput) return;
     const weekId = weekSelect.value;
-    const studentId = studentSelect.value;
     const citation = citationInput.value.trim();
 
     if (!weekId) {
       this.showToast('Please select an assessment week interval.');
       return;
     }
-    if (!studentId) {
-      this.showToast('Please select a student to nominate.');
-      return;
-    }
     if (!citation || citation.length < 5) {
       this.showToast('Please enter a citation or reason for nomination.');
       return;
+    }
+
+    let student = null;
+    let isNewlyCreated = false;
+
+    if (entryMode === 'new') {
+      const nameInput = document.getElementById('nominateNewStudentName');
+      const classInput = document.getElementById('nominateNewStudentClass');
+      const houseSelect = document.getElementById('nominateNewStudentHouse');
+      const genderSelect = document.getElementById('nominateNewStudentGender');
+
+      const newName = (nameInput ? nameInput.value : '').trim();
+      const newClass = (classInput ? classInput.value : '').trim();
+      const newHouse = (houseSelect ? houseSelect.value : 'ST. THOMAS').trim() || 'ST. THOMAS';
+      const newGender = (genderSelect ? genderSelect.value : 'Male').trim() || 'Male';
+
+      if (!newName) {
+        this.showToast('Please enter the student\'s full name.');
+        if (nameInput) nameInput.focus();
+        return;
+      }
+      if (!newClass) {
+        this.showToast('Please enter or select the student\'s class.');
+        if (classInput) classInput.focus();
+        return;
+      }
+
+      student = (this.store.state.students || []).find(s =>
+        s &&
+        String(s.name || '').trim().toLowerCase() === newName.toLowerCase() &&
+        String(s.class || '').trim().toLowerCase() === newClass.toLowerCase()
+      );
+
+      if (!student) {
+        const newId = this.store.getNextStudentId();
+        student = {
+          id: newId,
+          name: newName,
+          class: newClass,
+          house: newHouse,
+          gender: newGender,
+          comment: citation,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        if (!Array.isArray(this.store.state.students)) this.store.state.students = [];
+        this.store.state.students.push(student);
+        isNewlyCreated = true;
+
+        if (!Array.isArray(this.store.state.classes)) this.store.state.classes = [];
+        if (Array.isArray(this.store.state.deletedClasses)) {
+          this.store.state.deletedClasses = this.store.state.deletedClasses.filter(c => String(c).toLowerCase() !== newClass.toLowerCase());
+        }
+        if (!this.store.state.classes.some(c => String(c).toLowerCase() === newClass.toLowerCase())) {
+          this.store.state.classes.push(newClass);
+        }
+
+        this.store.state.totalStudentsCount = this.store.state.students.length;
+        this.addNotification({
+          id: `notif-student-${student.id}`,
+          type: 'student',
+          icon: 'student',
+          title: `New Student Enrolled: ${student.name}`,
+          message: `${student.name} (${student.id}) enrolled in ${student.class}, ${student.house}.`,
+          actionLabel: 'View Students',
+          actionView: 'students'
+        });
+      } else {
+        student.house = newHouse || student.house;
+        student.gender = newGender || student.gender;
+        student.updatedAt = new Date().toISOString();
+      }
+    } else {
+      const studentId = studentSelect ? studentSelect.value : '';
+      if (!studentId) {
+        this.showToast('Please select a student or switch to "+ Enter New Student".');
+        return;
+      }
+      student = (this.store.state.students || []).find(s => s && s.id === studentId);
+      if (!student) {
+        this.showToast('Selected student not found. Please enter a new student.');
+        return;
+      }
     }
 
     const selectedTags = [];
@@ -2659,14 +2967,13 @@ class OLAGApp {
     }
 
     const currentEvaluator = this.getCurrentLoginEvaluator();
-    const student = this.store.state.students.find(s => s.id === studentId);
     const week = this.store.state.weeks.find(w => w.id === weekId);
 
     this.store.addNomination({
-      studentId,
-      studentName: student ? student.name : 'Student',
-      studentClass: student ? student.class : '',
-      studentHouse: student ? student.house : '',
+      studentId: student.id,
+      studentName: student.name,
+      studentClass: student.class,
+      studentHouse: student.house,
       weekId,
       nominatedById: currentEvaluator.id,
       nominatedByName: currentEvaluator.name,
@@ -2679,12 +2986,17 @@ class OLAGApp {
     const modal = document.getElementById('modalNominateStudent');
     if (modal) modal.classList.remove('active');
 
-    const sName = student ? student.name : 'Student';
     const wName = week ? week.name : 'Weekly Assessment';
-    this.showToast(`Nominated ${sName} for evaluation in ${wName}!`, 'success');
+    this.showToast(
+      isNewlyCreated
+        ? `Added & nominated ${student.name} (${student.id}) for evaluation in ${wName}!`
+        : `Nominated ${student.name} for evaluation in ${wName}!`,
+      'success'
+    );
 
     this.store.state.selectedWeekId = weekId;
-    this.store.state.selectedStudentId = studentId;
+    this.store.state.selectedClass = 'All Classes';
+    this.store.state.selectedStudentId = student.id;
     this.store.save();
     this.render();
   }
@@ -3795,11 +4107,15 @@ class OLAGApp {
               ${allHouses.map(h => `<option value="${escapeHtml(h)}" ${houseFilter === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
             </select>
 
-            ${isCurrentlyAdmin ? `
-              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddStudentModal()">
-                ${APP_ICONS.userPlus} + Add Student
-              </button>
+            <button type="button" class="btn-nominate-gold" style="height: 32px; padding: 0 0.75rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
+              ${APP_ICONS.award} + Nominate Student
+            </button>
 
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddStudentModal()">
+              ${APP_ICONS.userPlus} + Add Student
+            </button>
+
+            ${isCurrentlyAdmin ? `
               <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; background: #334155; white-space: nowrap;" onclick="app.openAddClassModal()">
                 ${APP_ICONS.school} Classes (${allClasses.length})
               </button>
@@ -3829,16 +4145,21 @@ class OLAGApp {
                     <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">
                       ${allStudents.length === 0 ? 'No Students Enrolled Yet' : 'No Matching Students Found'}
                     </div>
-                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
+                    <div style="font-size: 0.82rem; max-width: 440px; margin: 0 auto 0.95rem;">
                       ${allStudents.length === 0
-                        ? (isCurrentlyAdmin ? 'Add students to the database to begin weekly personality evaluations.' : 'Students added by the administrator will appear here.')
+                        ? 'Enter and nominate new students to begin weekly personality evaluations.'
                         : 'Try clearing your search or class/house filter to see all enrolled students.'}
                     </div>
-                    ${allStudents.length === 0 ? (isCurrentlyAdmin ? `
-                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
-                        ${APP_ICONS.userPlus} + Add First Student
-                      </button>
-                    ` : '') : `
+                    ${allStudents.length === 0 ? `
+                      <div style="display: inline-flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
+                        <button type="button" class="btn-nominate-gold" style="font-size: 0.8rem; padding: 0 1.15rem;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
+                          ${APP_ICONS.award} + Nominate New Student
+                        </button>
+                        <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.15rem;" onclick="app.openAddStudentModal()">
+                          ${APP_ICONS.userPlus} + Add Student
+                        </button>
+                      </div>
+                    ` : `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('students')">
                         Clear Filters (Show All ${allStudents.length})
                       </button>
@@ -4189,7 +4510,7 @@ class OLAGApp {
           <button type="button" class="btn-navy-action" id="btnLoadStudentScores" ${!selectedStudent ? 'disabled' : ''}>
             Load Student
           </button>
-          <button type="button" class="btn-nominate-gold" style="height: 38px; white-space: nowrap;" onclick="app.openNominateStudentModal('${selectedStudent ? selectedStudent.id : ''}', '${currentWeekId}')">
+          <button type="button" class="btn-nominate-gold" style="height: 38px; white-space: nowrap;" onclick="app.openNominateStudentModal('', '${currentWeekId || ''}')">
             ${APP_ICONS.award} + Nominate
           </button>
         </div>
@@ -4328,16 +4649,17 @@ class OLAGApp {
         <div class="scoring-table-card" style="text-align: center; padding: 3rem 1.5rem;">
           <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.75rem;">${APP_ICONS.committee}</div>
           <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Students Found in ${escapeHtml(currentClass)}</h3>
-          <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
-            ${isCurrentlyAdmin
-              ? 'There are currently no students registered in this class. You can add new students using the button below or pick another class from the filter above.'
-              : 'There are currently no students registered in this class. Please pick another class from the filter above.'}
+          <p style="color: var(--text-muted); max-width: 460px; margin: 0 auto 1.25rem;">
+            There are currently no student entries in this view. Click below to nominate and enter a new student for weekly evaluation.
           </p>
-          ${isCurrentlyAdmin ? `
-            <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
-              + Add Student to Database
+          <div style="display: inline-flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center;">
+            <button type="button" class="btn-nominate-gold" onclick="app.openNominateStudentModal('', '${currentWeekId || ''}')">
+              ${APP_ICONS.award} + Nominate / Enter New Student
             </button>
-          ` : ''}
+            <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
+              ${APP_ICONS.userPlus} + Add Student to Database
+            </button>
+          </div>
         </div>
       `}
     `;
@@ -5841,13 +6163,13 @@ on conflict (id) do nothing;`;
   }
 
   openAddStudentModal() {
-    if (this.store.state.currentRoleKey !== 'admin') {
-      this.showToast('Only administrators can add student records.');
+    const modal = document.getElementById('modalAddStudent');
+    if (!modal) {
+      this.openNominateStudentModal();
       return;
     }
     this.populateAddStudentClasses();
-    const modal = document.getElementById('modalAddStudent');
-    if (modal) modal.classList.add('active');
+    modal.classList.add('active');
     const nameInp = document.getElementById('addStudentName');
     if (nameInp) setTimeout(() => nameInp.focus(), 120);
   }
@@ -6503,6 +6825,10 @@ on conflict (id) do nothing;`;
       week.totalScore = highestTotal;
       week.percentage = highestPct;
       week.maxScore = week.maxScore || this.getMaxCriteriaScore();
+    } else {
+      week.topStudent = null;
+      week.totalScore = null;
+      week.percentage = null;
     }
   }
 
@@ -6794,10 +7120,6 @@ function initOLAGApp() {
   if (formAddStudent) {
     formAddStudent.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (app.store.state.currentRoleKey !== 'admin') {
-        app.showToast('Only administrators can add student records.');
-        return;
-      }
       const name = document.getElementById('addStudentName').value.trim();
       const sClass = (document.getElementById('addStudentClass').value || '').trim();
       const sHouse = document.getElementById('addStudentHouse').value;
@@ -6825,7 +7147,9 @@ function initOLAGApp() {
         class: sClass,
         house: sHouse,
         gender: sGender,
-        comment: 'Newly enrolled student for assessment.'
+        comment: 'Newly enrolled student for assessment.',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
       app.store.state.students.push(newStudent);
@@ -6838,6 +7162,25 @@ function initOLAGApp() {
         actionLabel: 'View Students',
         actionView: 'students'
       });
+
+      const activeWeek = app.getActiveWeek();
+      if (activeWeek && app.store.state.currentRoleKey === 'committee') {
+        const currentEvaluator = app.getCurrentLoginEvaluator();
+        app.store.addNomination({
+          studentId: newStudent.id,
+          studentName: newStudent.name,
+          studentClass: newStudent.class,
+          studentHouse: newStudent.house,
+          weekId: activeWeek.id,
+          nominatedById: currentEvaluator.id,
+          nominatedByName: currentEvaluator.name,
+          nominatedByRole: currentEvaluator.role,
+          nominatedByUsername: currentEvaluator.username,
+          citation: 'Consistently demonstrates exemplary character, punctuality, and commendable adherence to school conduct values.',
+          tags: ['Exemplary Conduct', 'Punctuality']
+        });
+      }
+
       app.store.state.totalStudentsCount = app.store.state.students.length;
       app.store.state.selectedStudentId = newId;
       app.store.state.studentClassFilter = 'All Classes';
