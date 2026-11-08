@@ -37,7 +37,9 @@ const APP_ICONS = {
   sun: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
   moon: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
   logout: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
-  play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
+  play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+  award: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
+  star: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
 };
 
 // --- Pre-configured Roles & Accounts ---
@@ -235,6 +237,12 @@ class OLAGStore {
     ]);
     this.state.dismissedNotificationIds = [...dismissedNotifs];
 
+    const deletedNominations = new Set([
+      ...(Array.isArray(this.state.deletedNominationIds) ? this.state.deletedNominationIds : []),
+      ...(Array.isArray(remoteState.deletedNominationIds) ? remoteState.deletedNominationIds : [])
+    ]);
+    this.state.deletedNominationIds = [...deletedNominations];
+
     // 1. Merge Members non-destructively so all 8 registered committee members are preserved
     if (Array.isArray(remoteState.members)) {
       const remoteMembers = remoteState.members.filter(m => m && m.id && !deletedMembers.has(m.id));
@@ -378,6 +386,28 @@ class OLAGStore {
       this.state.notifications = [...notifMap.values()];
     }
 
+    // 7. Merge Nominations non-destructively
+    if (Array.isArray(remoteState.nominations) || Array.isArray(this.state.nominations)) {
+      const remoteNoms = (Array.isArray(remoteState.nominations) ? remoteState.nominations : []).filter(n => n && n.id && !deletedNominations.has(n.id));
+      const localNoms = (Array.isArray(this.state.nominations) ? this.state.nominations : []).filter(n => n && n.id && !deletedNominations.has(n.id));
+      const nomMap = new Map();
+
+      remoteNoms.forEach(n => nomMap.set(n.id, n));
+      localNoms.forEach(n => {
+        if (!nomMap.has(n.id)) {
+          nomMap.set(n.id, n);
+          hasLocalOnlyItems = true;
+        } else {
+          const existing = nomMap.get(n.id);
+          if (n.updatedAt && (!existing.updatedAt || n.updatedAt > existing.updatedAt)) {
+            nomMap.set(n.id, n);
+            hasLocalOnlyItems = true;
+          }
+        }
+      });
+      this.state.nominations = [...nomMap.values()];
+    }
+
     if (remoteState.selectedWeekId) this.state.selectedWeekId = remoteState.selectedWeekId;
 
     const isLegacyCriteria = !Array.isArray(remoteState.criteria) ||
@@ -471,6 +501,48 @@ class OLAGStore {
         });
       });
     }
+
+    // Ensure stateObj.nominations and stateObj.deletedNominationIds exist
+    if (!Array.isArray(stateObj.nominations)) stateObj.nominations = [];
+    if (!Array.isArray(stateObj.deletedNominationIds)) stateObj.deletedNominationIds = [];
+    const deletedNomsSet = new Set(stateObj.deletedNominationIds);
+    stateObj.nominations = stateObj.nominations.filter(n => n && n.id && !deletedNomsSet.has(n.id));
+
+    // Seed initial nominations for students who have scored assessments in any week if not already nominated
+    const existingScores = (stateObj.scores && typeof stateObj.scores === 'object') ? stateObj.scores : {};
+    const existingStudents = Array.isArray(stateObj.students) ? stateObj.students : [];
+
+    Object.entries(existingScores).forEach(([wId, wMap]) => {
+      if (!wMap || typeof wMap !== 'object') return;
+      Object.keys(wMap).forEach(sId => {
+        const isNominated = stateObj.nominations.some(n => n && n.studentId === sId && n.weekId === wId);
+        if (!isNominated && !deletedNomsSet.has(`nom-${wId}-${sId}`)) {
+          const st = existingStudents.find(s => s && s.id === sId);
+          if (st) {
+            const sc = wMap[sId];
+            const evalName = (sc && sc.evaluatorName) ? sc.evaluatorName : "Michael Angelo Gamlie Gbenyo";
+            const evalRole = (sc && sc.evaluatorRole) ? sc.evaluatorRole : "Head Boys' Prefect";
+            const evalUser = (sc && sc.evaluatorUsername) ? sc.evaluatorUsername : "michael";
+            stateObj.nominations.push({
+              id: `nom-${wId}-${sId}`,
+              studentId: sId,
+              studentName: st.name,
+              studentClass: st.class,
+              studentHouse: st.house,
+              weekId: wId,
+              nominatedById: (sc && sc.evaluatorId) || 'evaluator',
+              nominatedByName: evalName,
+              nominatedByRole: evalRole,
+              nominatedByUsername: evalUser,
+              citation: 'Consistently demonstrates exemplary character, punctuality, and commendable adherence to school conduct values.',
+              tags: ['Exemplary Conduct', 'Punctuality', 'Discipline'],
+              nominatedAt: (sc && sc.submittedAt) || new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            });
+          }
+        }
+      });
+    });
 
     this.syncDerivedNotifications(stateObj);
   }
@@ -632,6 +704,32 @@ class OLAGStore {
           }
         });
       });
+    });
+
+    // 3. Ensure notification exists for student nominations
+    const nominations = Array.isArray(stateObj.nominations) ? stateObj.nominations : [];
+    nominations.forEach(nom => {
+      if (!nom || !nom.id) return;
+      const notifId = `notif-nom-${nom.id}`;
+      if (!existingIds.has(notifId) && !dismissed.has(notifId)) {
+        const st = students.find(s => s && s.id === nom.studentId);
+        const sName = st ? `${st.name} (${st.class})` : (nom.studentName || nom.studentId);
+        const wk = weeks.find(w => w && w.id === nom.weekId);
+        const wName = wk ? wk.name : 'Weekly Assessment';
+        const nomByName = nom.nominatedByName || 'Committee Member';
+        stateObj.notifications.unshift({
+          id: notifId,
+          type: 'nomination',
+          icon: 'award',
+          title: `Student Nominated: ${sName}`,
+          message: `${nomByName} nominated ${sName} for evaluation in ${wName}. Citation: "${nom.citation || 'Outstanding character and conduct'}"`,
+          actionLabel: 'Evaluate',
+          actionView: 'assessment',
+          unread: true,
+          createdAt: nom.nominatedAt || nom.createdAt || new Date().toISOString()
+        });
+        existingIds.add(notifId);
+      }
     });
 
     // Filter out any notification that was dismissed or whose member was deleted
@@ -943,6 +1041,8 @@ class OLAGStore {
       deletedMemberIds: [],
       deletedStudentIds: [],
       deletedWeekIds: [],
+      nominations: [],
+      deletedNominationIds: [],
       theme: localStorage.getItem('olag_theme') || 'light',
       sidebarCollapsed: false,
       dashInfoHidden: false
@@ -974,6 +1074,81 @@ class OLAGStore {
       console.error('Save failed:', e);
     }
     this.scheduleSupabaseSync();
+  }
+
+  getNominationsForWeek(weekId) {
+    if (!weekId || !Array.isArray(this.state.nominations)) return [];
+    return this.state.nominations.filter(n => n && n.weekId === weekId);
+  }
+
+  getNominatedStudentIds(weekId) {
+    const noms = this.getNominationsForWeek(weekId);
+    return noms.map(n => n.studentId);
+  }
+
+  isStudentNominated(studentId, weekId) {
+    if (!studentId || !weekId || !Array.isArray(this.state.nominations)) return false;
+    return this.state.nominations.some(n => n && n.studentId === studentId && n.weekId === weekId);
+  }
+
+  getNominationForStudent(studentId, weekId) {
+    if (!studentId || !weekId || !Array.isArray(this.state.nominations)) return null;
+    return this.state.nominations.find(n => n && n.studentId === studentId && n.weekId === weekId) || null;
+  }
+
+  addNomination(data) {
+    if (!data || !data.studentId || !data.weekId) return null;
+    if (!Array.isArray(this.state.nominations)) this.state.nominations = [];
+    if (!Array.isArray(this.state.deletedNominationIds)) this.state.deletedNominationIds = [];
+
+    const existingIdx = this.state.nominations.findIndex(n => n && n.studentId === data.studentId && n.weekId === data.weekId);
+    const id = (existingIdx >= 0 && this.state.nominations[existingIdx].id)
+      ? this.state.nominations[existingIdx].id
+      : (data.id || `nom-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`);
+
+    const student = (Array.isArray(this.state.students) ? this.state.students : []).find(s => s && s.id === data.studentId);
+    const nomRecord = {
+      id,
+      studentId: data.studentId,
+      studentName: student ? student.name : (data.studentName || 'Student'),
+      studentClass: student ? student.class : (data.studentClass || ''),
+      studentHouse: student ? student.house : (data.studentHouse || ''),
+      weekId: data.weekId,
+      nominatedById: data.nominatedById || (this.state.currentUser ? this.state.currentUser.id : 'evaluator'),
+      nominatedByName: data.nominatedByName || (this.state.currentUser ? this.state.currentUser.name : 'Committee Member'),
+      nominatedByRole: data.nominatedByRole || (this.state.currentUser ? (this.state.currentUser.title || this.state.currentUser.roleTag) : 'Evaluator'),
+      nominatedByUsername: data.nominatedByUsername || (this.state.currentUser ? this.state.currentUser.username : ''),
+      citation: String(data.citation || data.reason || 'Outstanding character, punctuality, and exemplary conduct.').trim(),
+      tags: Array.isArray(data.tags) && data.tags.length > 0 ? data.tags : ['Exemplary Conduct'],
+      nominatedAt: (existingIdx >= 0 && this.state.nominations[existingIdx].nominatedAt) ? this.state.nominations[existingIdx].nominatedAt : (data.nominatedAt || new Date().toISOString()),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existingIdx >= 0) {
+      this.state.nominations[existingIdx] = nomRecord;
+    } else {
+      this.state.nominations.unshift(nomRecord);
+    }
+
+    this.state.deletedNominationIds = this.state.deletedNominationIds.filter(dId => dId !== nomRecord.id);
+    this.syncDerivedNotifications(this.state);
+    this.save();
+    return nomRecord;
+  }
+
+  removeNomination(nominationId) {
+    if (!nominationId || !Array.isArray(this.state.nominations)) return false;
+    const initialLen = this.state.nominations.length;
+    this.state.nominations = this.state.nominations.filter(n => n && n.id !== nominationId);
+    if (this.state.nominations.length < initialLen) {
+      if (!Array.isArray(this.state.deletedNominationIds)) this.state.deletedNominationIds = [];
+      if (!this.state.deletedNominationIds.includes(nominationId)) {
+        this.state.deletedNominationIds.push(nominationId);
+      }
+      this.save();
+      return true;
+    }
+    return false;
   }
 
   resetAll() {
@@ -2229,6 +2404,305 @@ class OLAGApp {
     modal.classList.add('active');
   }
 
+  // =========================================================================
+  // WEEKLY STUDENT NOMINATION MODAL & WORKFLOW
+  // =========================================================================
+  ensureNominateModalExists() {
+    let modal = document.getElementById('modalNominateStudent');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.id = 'modalNominateStudent';
+      modal.innerHTML = `
+        <div class="modal-container" style="max-width: 580px; width: 95%;">
+          <div class="modal-header-row">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="display: inline-flex; align-items: center; color: #d97706;">${APP_ICONS.award}</span>
+              <h3 style="margin: 0;" id="nominateModalTitle">Nominate Student for Evaluation</h3>
+            </div>
+            <button type="button" class="btn-close-x" onclick="document.getElementById('modalNominateStudent').classList.remove('active')">&times;</button>
+          </div>
+
+          <form id="formNominateStudent" onsubmit="event.preventDefault(); app.handleNominateStudentSubmit();" style="margin-top: 0.85rem;">
+            <!-- Week Interval Select -->
+            <div class="filter-field" style="margin-bottom: 0.85rem;">
+              <label for="nominateWeekSelect">Assessment Week Interval *</label>
+              <select id="nominateWeekSelect" class="form-select" required onchange="app.handleNominateWeekChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <!-- Student Select -->
+            <div class="filter-field" style="margin-bottom: 0.85rem;">
+              <label for="nominateStudentSelect">Student to Nominate *</label>
+              <select id="nominateStudentSelect" class="form-select" required onchange="app.handleNominateStudentChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <!-- Nominator Identity Card -->
+            <div id="nominateEvaluatorInfoBox" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; margin-bottom: 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <div class="evaluator-avatar" id="nominateNominatorAvatar" style="background: #059669; color: #fff; width: 34px; height: 34px; font-size: 0.78rem;">CM</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 0.86rem; color: var(--navy-primary);" id="nominateNominatorName">Committee Member</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);" id="nominateNominatorRole">Evaluator</div>
+                </div>
+              </div>
+              <span class="badge-nominee" style="font-size: 0.68rem;">Official Nominator</span>
+            </div>
+
+            <!-- Merit Tags / Commendations Selection -->
+            <div class="filter-field" style="margin-bottom: 0.85rem;">
+              <label style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Commendation &amp; Merit Tags</span>
+                <span style="font-weight: normal; font-size: 0.72rem; color: var(--text-muted);">Click to toggle tags</span>
+              </label>
+              <div id="nominateTagsContainer" style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.35rem;">
+                <span class="nomination-tag-pill active" onclick="app.toggleNominationTag(this)" data-tag="Exemplary Conduct">Exemplary Conduct</span>
+                <span class="nomination-tag-pill active" onclick="app.toggleNominationTag(this)" data-tag="Punctuality">Punctuality</span>
+                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Discipline">Discipline</span>
+                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Leadership">Leadership</span>
+                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Appearance">Appearance</span>
+                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Social Interactions">Social Interactions</span>
+                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Spiritual Life">Spiritual Life</span>
+                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Dining Etiquette">Dining Etiquette</span>
+                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Academic Excellence">Academic Excellence</span>
+              </div>
+            </div>
+
+            <!-- Citation / Reason for Nomination -->
+            <div class="filter-field" style="margin-bottom: 0.85rem;">
+              <label for="nominateCitationInput" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Citation / Reason for Nomination *</span>
+                <span style="font-weight: normal; font-size: 0.72rem; color: var(--text-muted);">Describe specific merits</span>
+              </label>
+              <textarea id="nominateCitationInput" class="form-input" rows="3" placeholder="Describe why this student deserves to be evaluated for Student Personality of the Week..." required style="resize: vertical; font-size: 0.82rem; line-height: 1.45;"></textarea>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; align-items: center;">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Quick Presets:</span>
+                <button type="button" class="btn-demo-pill" style="height: 24px; font-size: 0.7rem; padding: 0 0.5rem;" onclick="app.setNominationCitationPreset('leadership')">Leadership &amp; Service</button>
+                <button type="button" class="btn-demo-pill" style="height: 24px; font-size: 0.7rem; padding: 0 0.5rem;" onclick="app.setNominationCitationPreset('punctuality')">Punctuality &amp; Devotion</button>
+                <button type="button" class="btn-demo-pill" style="height: 24px; font-size: 0.7rem; padding: 0 0.5rem;" onclick="app.setNominationCitationPreset('conduct')">Exemplary Discipline</button>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1.25rem;">
+              <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 36px;" onclick="document.getElementById('modalNominateStudent').classList.remove('active')">
+                Cancel
+              </button>
+              <button type="submit" class="btn-nominate-gold" style="height: 36px; padding: 0 1.25rem;">
+                ${APP_ICONS.award} Submit Nomination
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
+      });
+    }
+    return modal;
+  }
+
+  toggleNominationTag(el) {
+    if (!el) return;
+    el.classList.toggle('active');
+  }
+
+  setNominationCitationPreset(presetKey) {
+    const citationInput = document.getElementById('nominateCitationInput');
+    if (!citationInput) return;
+    if (presetKey === 'leadership') {
+      citationInput.value = 'Demonstrated outstanding peer leadership, voluntary service, and proactive support during school assemblies and campus events.';
+    } else if (presetKey === 'punctuality') {
+      citationInput.value = 'Maintains 100% punctuality across morning devotion, classes, and dining sessions with prompt and orderly attendance.';
+    } else if (presetKey === 'conduct') {
+      citationInput.value = 'Exhibits exemplary personal discipline, neat and proper school attire, respectful social demeanor, and high ethical conduct.';
+    }
+    citationInput.focus();
+  }
+
+  openNominateStudentModal(preselectedStudentId = null, preselectedWeekId = null) {
+    this.ensureNominateModalExists();
+    const modal = document.getElementById('modalNominateStudent');
+    if (!modal) return;
+
+    const weeks = this.store.state.weeks || [];
+    const students = this.store.state.students || [];
+    const currentEvaluator = this.getCurrentLoginEvaluator();
+
+    const weekSelect = document.getElementById('nominateWeekSelect');
+    if (weekSelect) {
+      const activeWeek = this.getActiveWeek();
+      const targetWeekId = preselectedWeekId || this.store.state.selectedWeekId || (activeWeek ? activeWeek.id : (weeks[0] ? weeks[0].id : null));
+      weekSelect.innerHTML = weeks.length === 0
+        ? '<option value="">No week intervals created yet</option>'
+        : weeks.map(w => {
+            let label = `${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})`;
+            if (w.status === 'Closed') label += ' [Closed - Read Only]';
+            else if (w.status === 'Upcoming') label += ' [Upcoming]';
+            else if (w.isCurrent) label += ' [Active Cycle]';
+            return `<option value="${escapeHtml(w.id)}" ${w.id === targetWeekId ? 'selected' : ''}>${label}</option>`;
+          }).join('');
+    }
+
+    const studentSelect = document.getElementById('nominateStudentSelect');
+    if (studentSelect) {
+      const targetStudentId = preselectedStudentId || this.store.state.selectedStudentId || (students[0] ? students[0].id : null);
+      const targetWeekId = weekSelect ? weekSelect.value : null;
+      studentSelect.innerHTML = students.length === 0
+        ? '<option value="">No students enrolled in database</option>'
+        : students.map(s => {
+            const isNom = targetWeekId ? this.store.isStudentNominated(s.id, targetWeekId) : false;
+            return `<option value="${escapeHtml(s.id)}" ${s.id === targetStudentId ? 'selected' : ''}>${escapeHtml(s.name)} (${escapeHtml(s.id)}) — ${escapeHtml(s.class)}, ${escapeHtml(s.house)}${isNom ? ' [Nominated]' : ''}</option>`;
+          }).join('');
+    }
+
+    const nomAvatar = document.getElementById('nominateNominatorAvatar');
+    const nomName = document.getElementById('nominateNominatorName');
+    const nomRole = document.getElementById('nominateNominatorRole');
+    if (nomAvatar) {
+      nomAvatar.textContent = currentEvaluator.avatar || 'CM';
+      nomAvatar.style.background = currentEvaluator.avatarBg || '#059669';
+    }
+    if (nomName) nomName.textContent = currentEvaluator.name || 'Committee Member';
+    if (nomRole) nomRole.textContent = currentEvaluator.role || 'Evaluator';
+
+    const selectedWeekVal = weekSelect ? weekSelect.value : null;
+    const selectedStudentVal = studentSelect ? studentSelect.value : null;
+    this.syncNominationModalFormState(selectedStudentVal, selectedWeekVal);
+
+    modal.classList.add('active');
+  }
+
+  handleNominateWeekChange() {
+    const weekSelect = document.getElementById('nominateWeekSelect');
+    const studentSelect = document.getElementById('nominateStudentSelect');
+    if (!weekSelect || !studentSelect) return;
+    this.syncNominationModalFormState(studentSelect.value, weekSelect.value);
+  }
+
+  handleNominateStudentChange() {
+    const weekSelect = document.getElementById('nominateWeekSelect');
+    const studentSelect = document.getElementById('nominateStudentSelect');
+    if (!weekSelect || !studentSelect) return;
+    this.syncNominationModalFormState(studentSelect.value, weekSelect.value);
+  }
+
+  syncNominationModalFormState(studentId, weekId) {
+    if (!studentId || !weekId) return;
+    const existingNom = this.store.getNominationForStudent(studentId, weekId);
+    const citationInput = document.getElementById('nominateCitationInput');
+    const titleEl = document.getElementById('nominateModalTitle');
+    const tagsContainer = document.getElementById('nominateTagsContainer');
+
+    if (existingNom) {
+      if (titleEl) titleEl.textContent = 'Edit Weekly Student Nomination';
+      if (citationInput) citationInput.value = existingNom.citation || '';
+      if (tagsContainer) {
+        const activeTags = new Set(existingNom.tags || []);
+        tagsContainer.querySelectorAll('.nomination-tag-pill').forEach(pill => {
+          const tag = pill.getAttribute('data-tag');
+          if (activeTags.has(tag)) {
+            pill.classList.add('active');
+          } else {
+            pill.classList.remove('active');
+          }
+        });
+      }
+    } else {
+      if (titleEl) titleEl.textContent = 'Nominate Student for Evaluation';
+      if (citationInput) {
+        citationInput.value = 'Demonstrated outstanding character, punctuality, and exemplary adherence to school values throughout the week.';
+      }
+      if (tagsContainer) {
+        tagsContainer.querySelectorAll('.nomination-tag-pill').forEach((pill, idx) => {
+          if (idx < 2) pill.classList.add('active');
+          else pill.classList.remove('active');
+        });
+      }
+    }
+  }
+
+  handleNominateStudentSubmit() {
+    const weekSelect = document.getElementById('nominateWeekSelect');
+    const studentSelect = document.getElementById('nominateStudentSelect');
+    const citationInput = document.getElementById('nominateCitationInput');
+    const tagsContainer = document.getElementById('nominateTagsContainer');
+
+    if (!weekSelect || !studentSelect || !citationInput) return;
+    const weekId = weekSelect.value;
+    const studentId = studentSelect.value;
+    const citation = citationInput.value.trim();
+
+    if (!weekId) {
+      this.showToast('Please select an assessment week interval.');
+      return;
+    }
+    if (!studentId) {
+      this.showToast('Please select a student to nominate.');
+      return;
+    }
+    if (!citation || citation.length < 5) {
+      this.showToast('Please enter a citation or reason for nomination.');
+      return;
+    }
+
+    const selectedTags = [];
+    if (tagsContainer) {
+      tagsContainer.querySelectorAll('.nomination-tag-pill.active').forEach(pill => {
+        const tag = pill.getAttribute('data-tag');
+        if (tag) selectedTags.push(tag);
+      });
+    }
+
+    const currentEvaluator = this.getCurrentLoginEvaluator();
+    const student = this.store.state.students.find(s => s.id === studentId);
+    const week = this.store.state.weeks.find(w => w.id === weekId);
+
+    this.store.addNomination({
+      studentId,
+      studentName: student ? student.name : 'Student',
+      studentClass: student ? student.class : '',
+      studentHouse: student ? student.house : '',
+      weekId,
+      nominatedById: currentEvaluator.id,
+      nominatedByName: currentEvaluator.name,
+      nominatedByRole: currentEvaluator.role,
+      nominatedByUsername: currentEvaluator.username,
+      citation,
+      tags: selectedTags.length > 0 ? selectedTags : ['Exemplary Conduct']
+    });
+
+    const modal = document.getElementById('modalNominateStudent');
+    if (modal) modal.classList.remove('active');
+
+    const sName = student ? student.name : 'Student';
+    const wName = week ? week.name : 'Weekly Assessment';
+    this.showToast(`Nominated ${sName} for evaluation in ${wName}!`, 'success');
+
+    this.store.state.selectedWeekId = weekId;
+    this.store.state.selectedStudentId = studentId;
+    this.store.save();
+    this.render();
+  }
+
+  handleWithdrawNomination(nominationId) {
+    if (!nominationId) return;
+    const nom = (this.store.state.nominations || []).find(n => n.id === nominationId);
+    const sName = nom ? nom.studentName : 'this student';
+    if (!confirm(`Are you sure you want to withdraw the nomination for ${sName}?`)) {
+      return;
+    }
+    const removed = this.store.removeNomination(nominationId);
+    if (removed) {
+      this.showToast(`Withdrew nomination for ${sName}.`);
+      this.render();
+    }
+  }
+
   renderTopHeader() {
     const evaluator = this.getCurrentLoginEvaluator();
     const user = this.store.state.currentUser;
@@ -2653,6 +3127,13 @@ class OLAGApp {
             <div class="quick-action-label">View Rankings</div>
           </div>
 
+          <div class="quick-action-card" onclick="app.openNominateStudentModal()">
+            <div class="quick-action-icon-box tone-amber">
+              ${APP_ICONS.award}
+            </div>
+            <div class="quick-action-label">Nominate Student</div>
+          </div>
+
           <div class="quick-action-card" onclick="app.openAddStudentModal()">
             <div class="quick-action-icon-box tone-blue">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
@@ -2720,7 +3201,8 @@ class OLAGApp {
               member: { bg: '#f0fdf4', border: '#bbf7d0', iconBg: '#059669' },
               score: { bg: '#eff6ff', border: '#bfdbfe', iconBg: '#2563eb' },
               student: { bg: '#f8fafc', border: '#cbd5e1', iconBg: '#0c2340' },
-              interval: { bg: '#fefce8', border: '#fde047', iconBg: '#ca8a04' }
+              interval: { bg: '#fefce8', border: '#fde047', iconBg: '#ca8a04' },
+              nomination: { bg: '#fffbeb', border: '#fde68a', iconBg: '#d97706' }
             };
             const palette = bgMap[n.type] || bgMap.score;
             return `
@@ -2862,19 +3344,24 @@ class OLAGApp {
     const weekStatus = currentWeek ? (currentWeek.status || 'Open') : 'Pending';
 
     const currentEvaluator = this.getCurrentLoginEvaluator();
-    const evaluatedStudents = allStudents.filter(s => {
+    const weeklyNominations = this.store.getNominationsForWeek(currentWeek ? currentWeek.id : null);
+    const nominatedStudentIds = new Set(weeklyNominations.map(n => n.studentId));
+    const nomineeStudents = allStudents.filter(s => nominatedStudentIds.has(s.id));
+
+    const evaluatedStudents = nomineeStudents.filter(s => {
       const sScores = weekScores[s.id];
       return !!this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
     const evaluatedCount = evaluatedStudents.length;
-    const totalAssigned = allStudents.length;
-    const pendingStudents = allStudents.filter(s => {
+    const totalAssigned = nomineeStudents.length;
+    const pendingStudents = nomineeStudents.filter(s => {
       const sScores = weekScores[s.id];
       return !this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
     const pendingCount = pendingStudents.length;
     const completionPct = totalAssigned > 0 ? Math.round((evaluatedCount / totalAssigned) * 100) : 0;
     const isHidden = !!this.store.state.dashInfoHidden;
+    const maxScore = (currentWeek && currentWeek.maxScore) ? currentWeek.maxScore : this.getMaxCriteriaScore();
 
     const isWeekClosed = currentWeek && currentWeek.status === 'Closed';
     const isWeekUpcoming = currentWeek && currentWeek.status === 'Upcoming';
@@ -2949,6 +3436,9 @@ class OLAGApp {
               </select>
             </div>
           ` : ''}
+          <button type="button" class="btn-nominate-gold" style="height: 34px;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
+            ${APP_ICONS.award} + Nominate Student
+          </button>
           <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
             ${isWeekClosed ? `${APP_ICONS.eye} View Sealed Scores` : (isWeekUpcoming ? `${APP_ICONS.eye} Preview Criteria` : `${APP_ICONS.edit} Enter Scores`)}
           </button>
@@ -2987,8 +3477,8 @@ class OLAGApp {
           <div class="committee-progress-text">
             <h3>Assessment Quorum: ${escapeHtml(weekLabel)} Cycle ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</h3>
             <p>${totalAssigned > 0 
-              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} assigned students</strong> for ${escapeHtml(weekLabel)}.` 
-              : `No students have been enrolled in the assessment database yet.`}</p>
+              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} nominated students</strong> for ${escapeHtml(weekLabel)}.` 
+              : `No students have been nominated for evaluation in this interval yet.`}</p>
           </div>
           <div class="committee-progress-ring-block">
             <div class="committee-progress-pct">${completionPct}%</div>
@@ -3016,22 +3506,22 @@ class OLAGApp {
             </div>
           </div>
 
-          <!-- Card 2: Assigned Students -->
-          <div class="stat-card card-blue">
+          <!-- Card 2: Nominated Students -->
+          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')" title="Click to Nominate Student for Evaluation">
             <div class="stat-card-text">
-              <span class="stat-card-title">Assigned Students</span>
+              <span class="stat-card-title">Weekly Nominees</span>
               <span class="stat-card-value">${totalAssigned}</span>
-              <span class="stat-card-sub">In evaluation queue</span>
+              <span class="stat-card-sub">Nominated for evaluation</span>
             </div>
             <div class="stat-card-icon-badge">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
             </div>
           </div>
 
           <!-- Card 3: Evaluated Students -->
           <div class="stat-card card-green">
             <div class="stat-card-text">
-              <span class="stat-card-title">Evaluated</span>
+              <span class="stat-card-title">Evaluated Nominees</span>
               <span class="stat-card-value">${evaluatedCount}</span>
               <span class="stat-card-sub">${completionPct}% completed</span>
             </div>
@@ -3043,7 +3533,7 @@ class OLAGApp {
           <!-- Card 4: Pending Students -->
           <div class="stat-card card-orange">
             <div class="stat-card-text">
-              <span class="stat-card-title">Pending</span>
+              <span class="stat-card-title">Pending Evaluations</span>
               <span class="stat-card-value">${pendingCount}</span>
               <span class="stat-card-sub">${pendingCount === 0 && totalAssigned > 0 ? 'All caught up!' : 'Awaiting grading'}</span>
             </div>
@@ -3054,66 +3544,127 @@ class OLAGApp {
         </div>
       </div>
 
-      <!-- Next Pending Nominees to Assess -->
+      <!-- Weekly Nominees & Evaluation Queue -->
       <div class="scoring-table-card">
-        <div class="scoring-table-title">
-          <span>Pending Student Evaluations for ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <button class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
+        <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="display: inline-flex; color: #d97706;">${APP_ICONS.award}</span>
+            <span>Weekly Student Nominees &amp; Evaluation Queue for ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
+            <span class="badge-nominee">${totalAssigned} Nominee${totalAssigned === 1 ? '' : 's'}</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-nominate-gold" style="height: 32px; font-size: 0.76rem;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
+              ${APP_ICONS.award} + Nominate Student
+            </button>
+            <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.76rem;" onclick="app.navigateTo('assessment')">
               Open Full Rubric
             </button>
           </div>
         </div>
 
-        <table class="table-standard">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Student Name</th>
-              <th>Class</th>
-              <th>House</th>
-              <th>Status</th>
-              <th style="text-align: center;">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${totalAssigned === 0 ? `
+        <div style="overflow-x: auto;">
+          <table class="table-standard">
+            <thead>
               <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                  <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.reports}</div><br>
-                  No students currently enrolled in the system.<br>
-                  <small>Students added by administrators will automatically appear here for evaluation.</small>
-                </td>
+                <th style="width: 50px;">No.</th>
+                <th>Nominated Student</th>
+                <th>Nominated By</th>
+                <th>Citation &amp; Merit Tags</th>
+                <th>Your Score</th>
+                <th style="text-align: center; width: 140px;">Action</th>
               </tr>
-            ` : (pendingStudents.length === 0 ? `
-              <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--stat-green);">
-                  <div style="display: inline-flex; color: var(--stat-green); margin-bottom: 0.5rem;">${APP_ICONS.check}</div><br>
-                  <strong>All caught up!</strong> All ${totalAssigned} students have been evaluated for ${escapeHtml(weekLabel)}.
-                </td>
-              </tr>
-            ` : pendingStudents.map(s => `
-              <tr>
-                <td><strong>${escapeHtml(s.id)}</strong></td>
-                <td>${escapeHtml(s.name)}</td>
-                <td>${escapeHtml(s.class)}</td>
-                <td>${escapeHtml(s.house)}</td>
-                <td><span class="status-badge-pending">Pending</span></td>
-                <td style="text-align: center;">
-                  ${isWeekClosed ? `
-                    <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #94a3b8; cursor: not-allowed; opacity: 0.75;" disabled title="Scoring closed by administrator">
-                      ${APP_ICONS.lock} Closed
+            </thead>
+            <tbody>
+              ${totalAssigned === 0 ? `
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; color: #d97706; margin-bottom: 0.75rem;">
+                      ${APP_ICONS.award}
+                    </div>
+                    <div style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary); margin-bottom: 0.35rem;">
+                      No Students Nominated Yet for ${escapeHtml(weekLabel)}
+                    </div>
+                    <div style="font-size: 0.84rem; max-width: 480px; margin: 0 auto 1.25rem; line-height: 1.5;">
+                      Committee members nominate deserving students across all classes and houses who demonstrated outstanding character, punctuality, and leadership during this week interval.
+                    </div>
+                    <button type="button" class="btn-nominate-gold" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
+                      ${APP_ICONS.award} + Nominate First Student for ${escapeHtml(weekLabel)}
                     </button>
-                  ` : `
-                    <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
-                      Assess
-                    </button>
-                  `}
-                </td>
-              </tr>
-            `).join(''))}
-          </tbody>
-        </table>
+                  </td>
+                </tr>
+              ` : nomineeStudents.map((s, idx) => {
+                const nom = weeklyNominations.find(n => n && n.studentId === s.id);
+                const sub = this.findSubmissionForEvaluator(weekScores[s.id], currentEvaluator);
+                const isEvaluated = !!sub;
+                return `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    <td>
+                      <div>
+                        <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 800; color: var(--navy-primary); font-size: 0.92rem;">
+                          ${escapeHtml(s.name)}
+                        </a>
+                      </div>
+                      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem;">
+                        <strong>${escapeHtml(s.id)}</strong> • ${escapeHtml(s.class)} • <span style="color: #64748b;">${escapeHtml(s.house)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div><strong>${escapeHtml(nom ? nom.nominatedByName : 'Committee Member')}</strong></div>
+                      <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.1rem;">
+                        ${escapeHtml(nom ? nom.nominatedByRole : 'Evaluator')}
+                      </div>
+                      <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.1rem;">
+                        ${nom && nom.nominatedAt ? new Date(nom.nominatedAt).toLocaleDateString() : ''}
+                      </div>
+                    </td>
+                    <td style="max-width: 280px;">
+                      <div style="font-size: 0.82rem; color: #1e293b; font-style: italic; line-height: 1.4;">
+                        &ldquo;${escapeHtml(nom ? nom.citation : 'Exemplary character and school values')}&rdquo;
+                      </div>
+                      ${nom && nom.tags && nom.tags.length > 0 ? `
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem;">
+                          ${nom.tags.map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}
+                        </div>
+                      ` : ''}
+                    </td>
+                    <td>
+                      ${isEvaluated ? `
+                        <span class="status-badge-active" style="font-size: 0.76rem;">
+                          Scored: <strong>${sub.total}/${maxScore}</strong> (${sub.pct}%)
+                        </span>
+                      ` : `
+                        <span class="status-badge-pending">Pending</span>
+                      `}
+                    </td>
+                    <td style="text-align: center;">
+                      <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: center;">
+                        ${isWeekClosed ? `
+                          <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #94a3b8; cursor: not-allowed; opacity: 0.75;" disabled title="Scoring closed by administrator">
+                            ${APP_ICONS.lock} Closed
+                          </button>
+                        ` : isEvaluated ? `
+                          <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #0c2340;" onclick="app.startStudentAssessment('${s.id}')">
+                            ${APP_ICONS.edit} Edit Score
+                          </button>
+                        ` : `
+                          <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
+                            ${APP_ICONS.assessment} Assess Nominee
+                          </button>
+                        `}
+                        ${nom ? `
+                          <button type="button" class="btn-text-action" style="font-size: 0.72rem; color: #d97706; padding: 0;" onclick="app.openNominateStudentModal('${s.id}', '${currentWeek ? currentWeek.id : ''}')">
+                            Edit Citation
+                          </button>
+                        ` : ''}
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
     `;
   }
@@ -3300,6 +3851,7 @@ class OLAGApp {
                 const scoreData = rawScoreData ? this.store.normalizeStudentWeekScore(rawScoreData, maxPossible) : null;
                 const isEvaluated = scoreData && typeof scoreData.total === 'number' && (scoreData.evaluatorCount > 0 || scoreData.total > 0 || scoreData.evaluatorName);
                 const subList = (scoreData && scoreData.submissions) ? Object.values(scoreData.submissions) : [];
+                const isNom = currentWeek ? this.store.isStudentNominated(s.id, currentWeek.id) : false;
                 return `
                   <tr class="student-directory-row">
                     <td>${idx + 1}</td>
@@ -3313,43 +3865,49 @@ class OLAGApp {
                     <td>${escapeHtml(s.house)}</td>
                     <td>${escapeHtml(s.gender || '—')}</td>
                     <td>
-                      ${isEvaluated ? `
-                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                          <span class="status-badge-active" style="font-size: 0.72rem;">
-                            ${subList.length > 1 ? 'Avg:' : 'Scored:'} <strong>${scoreData.total}/${maxPossible}</strong> (${scoreData.pct}%)
-                          </span>
-                          ${isCurrentlyAdmin && currentWeek ? `
-                            <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 700;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View all committee members' scores for ${escapeHtml(s.name)}">
-                              ${APP_ICONS.eye} ${subList.length} Evaluator${subList.length === 1 ? '' : 's'}
-                            </button>
-                          ` : ''}
-                        </div>
-                        ${isCurrentlyAdmin && subList.length > 0 ? `
-                          <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
-                            ${subList.map(sub => `
-                              <span style="font-size: 0.67rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; padding: 0.08rem 0.4rem; border-radius: 999px; font-weight: 600;">
-                                ${escapeHtml(sub.evaluatorName || 'Evaluator')}: <strong>${sub.total}/${maxPossible}</strong> (${sub.pct}%)
-                              </span>
-                            `).join('')}
+                      <div style="display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start;">
+                        ${isNom ? `<span class="badge-nominee">${APP_ICONS.star} Nominated</span>` : ''}
+                        ${isEvaluated ? `
+                          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                            <span class="status-badge-active" style="font-size: 0.72rem;">
+                              ${subList.length > 1 ? 'Avg:' : 'Scored:'} <strong>${scoreData.total}/${maxPossible}</strong> (${scoreData.pct}%)
+                            </span>
+                            ${isCurrentlyAdmin && currentWeek ? `
+                              <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 700;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View all committee members' scores for ${escapeHtml(s.name)}">
+                                ${APP_ICONS.eye} ${subList.length} Evaluator${subList.length === 1 ? '' : 's'}
+                              </button>
+                            ` : ''}
                           </div>
-                        ` : (scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : '')}
-                      ` : `
-                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                          <span class="status-badge-pending" style="font-size: 0.72rem;">
-                            Pending Scoring
-                          </span>
-                          ${isCurrentlyAdmin && currentWeek ? `
-                            <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View committee member evaluation status">
-                              ${APP_ICONS.eye} Committee Scores
-                            </button>
-                          ` : ''}
-                        </div>
-                      `}
+                          ${isCurrentlyAdmin && subList.length > 0 ? `
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                              ${subList.map(sub => `
+                                <span style="font-size: 0.67rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; padding: 0.08rem 0.4rem; border-radius: 999px; font-weight: 600;">
+                                  ${escapeHtml(sub.evaluatorName || 'Evaluator')}: <strong>${sub.total}/${maxPossible}</strong> (${sub.pct}%)
+                                </span>
+                              `).join('')}
+                            </div>
+                          ` : (scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : '')}
+                        ` : `
+                          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                            <span class="status-badge-pending" style="font-size: 0.72rem;">
+                              Pending Scoring
+                            </span>
+                            ${isCurrentlyAdmin && currentWeek ? `
+                              <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View committee member evaluation status">
+                                ${APP_ICONS.eye} Committee Scores
+                              </button>
+                            ` : ''}
+                          </div>
+                        `}
+                      </div>
                     </td>
                     <td style="text-align: center;">
-                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center; flex-wrap: wrap;">
                         <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
                           ${APP_ICONS.eye}
+                        </button>
+                        <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${s.id}', '${currentWeek ? currentWeek.id : ''}')" title="${isNom ? 'View / Edit Nomination' : 'Nominate Student for Weekly Evaluation'}">
+                          ${APP_ICONS.award} ${isNom ? 'Nominated' : 'Nominate'}
                         </button>
                         ${isCurrentlyAdmin ? `
                           <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
@@ -3616,23 +4174,77 @@ class OLAGApp {
           <select id="assessStudentSelect" class="form-select">
             ${classStudents.length === 0 ? `
               <option value="">-- No Students in ${escapeHtml(currentClass)} --</option>
-            ` : classStudents.map(s => `
-              <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>
-                ${escapeHtml(s.name)} (${s.id})
-              </option>
-            `).join('')}
+            ` : classStudents.map(s => {
+              const isNom = currentWeekId ? this.store.isStudentNominated(s.id, currentWeekId) : false;
+              return `
+                <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>
+                  ${isNom ? '[Nominee] ' : ''}${escapeHtml(s.name)} (${s.id})
+                </option>
+              `;
+            }).join('')}
           </select>
         </div>
 
-        <div>
+        <div style="display: flex; gap: 0.45rem; align-items: flex-end;">
           <button type="button" class="btn-navy-action" id="btnLoadStudentScores" ${!selectedStudent ? 'disabled' : ''}>
             Load Student
+          </button>
+          <button type="button" class="btn-nominate-gold" style="height: 38px; white-space: nowrap;" onclick="app.openNominateStudentModal('${selectedStudent ? selectedStudent.id : ''}', '${currentWeekId}')">
+            ${APP_ICONS.award} + Nominate
           </button>
         </div>
       </div>
 
       ${selectedStudent ? `
         <div class="scoring-table-card">
+          ${(() => {
+            const studentNomination = (selectedStudent && currentWeekId) ? this.store.getNominationForStudent(selectedStudent.id, currentWeekId) : null;
+            if (studentNomination) {
+              return `
+                <div class="nomination-citation-banner" style="margin-bottom: 1.15rem;">
+                  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                      <span class="nomination-award-icon">${APP_ICONS.award}</span>
+                      <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                          <span style="font-weight: 800; font-size: 0.95rem; color: #92400e;">
+                            Official Nominee for ${escapeHtml(currentWeekObj ? currentWeekObj.name : 'This Interval')}
+                          </span>
+                          <span class="badge-nominee">${APP_ICONS.star} Nominated</span>
+                        </div>
+                        <div style="font-size: 0.83rem; color: #78350f; margin-top: 0.25rem; font-style: italic;">
+                          &ldquo;${escapeHtml(studentNomination.citation || 'Nominated for outstanding character, punctuality, and exemplary conduct.')}&rdquo;
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.65rem; margin-top: 0.4rem; font-size: 0.76rem; color: #92400e; flex-wrap: wrap;">
+                          <span>Nominated by: <strong>${escapeHtml(studentNomination.nominatedByName)}</strong> (${escapeHtml(studentNomination.nominatedByRole)})</span>
+                          ${studentNomination.tags && studentNomination.tags.length > 0 ? `<span>•</span> <span style="display: inline-flex; gap: 0.3rem; flex-wrap: wrap;">${studentNomination.tags.map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}</span>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${selectedStudent.id}', '${currentWeekId}')">
+                      ${APP_ICONS.edit} Edit Citation
+                    </button>
+                  </div>
+                </div>
+              `;
+            } else {
+              return `
+                <div class="nomination-citation-banner" style="background: #f8fafc; border-color: #cbd5e1; border-left-color: #64748b; margin-bottom: 1.15rem;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.65rem;">
+                      <span style="display: inline-flex; color: #64748b;">${APP_ICONS.award}</span>
+                      <span style="font-size: 0.82rem; color: var(--text-muted);">
+                        <strong>${escapeHtml(selectedStudent.name)}</strong> is enrolled but not yet officially nominated for this week interval.
+                      </span>
+                    </div>
+                    <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${selectedStudent.id}', '${currentWeekId}')">
+                      ${APP_ICONS.award} + Nominate for this Week
+                    </button>
+                  </div>
+                </div>
+              `;
+            }
+          })()}
           <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <span>Assessment Criteria (Each / 10) — ${isCurrentlyAdmin ? 'Viewing' : 'Evaluating'}: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)})</span>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
@@ -4410,6 +5022,7 @@ class OLAGApp {
     });
 
     const studentInitials = (student.name || 'ST').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ST';
+    const studentNominations = (this.store.state.nominations || []).filter(n => n && n.studentId === student.id);
 
     container.innerHTML = `
       <div class="breadcrumb-nav">
@@ -4446,6 +5059,9 @@ class OLAGApp {
               ${APP_ICONS.assessment} Evaluate Student
             </button>
           `}
+          <button class="btn-nominate-gold" style="width: 100%; margin-top: 0.5rem;" onclick="app.openNominateStudentModal('${student.id}')">
+            ${APP_ICONS.award} Nominate for Week
+          </button>
         </div>
 
         <div class="profile-performance-card">
@@ -4508,6 +5124,64 @@ class OLAGApp {
           <div class="profile-comments-box">
             <h4>Comments</h4>
             <p>"${escapeHtml(student.comment || 'No assessment comments recorded yet.')}"</p>
+          </div>
+
+          <!-- Weekly Nominations & Honors Section -->
+          <div class="scoring-table-card" style="margin-top: 1.25rem;">
+            <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="display: inline-flex; color: #d97706;">${APP_ICONS.award}</span>
+                <span>Weekly Committee Nominations &amp; Honors (${studentNominations.length})</span>
+              </div>
+              <button type="button" class="btn-nominate-gold" style="height: 30px; font-size: 0.74rem;" onclick="app.openNominateStudentModal('${student.id}')">
+                ${APP_ICONS.award} + Nominate for Week Interval
+              </button>
+            </div>
+
+            ${studentNominations.length === 0 ? `
+              <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+                No committee nominations recorded for ${escapeHtml(student.name)} yet.<br>
+                <button type="button" class="btn-nominate-action" style="margin-top: 0.75rem;" onclick="app.openNominateStudentModal('${student.id}')">
+                  ${APP_ICONS.award} Submit First Nomination
+                </button>
+              </div>
+            ` : `
+              <div style="overflow-x: auto;">
+                <table class="table-standard">
+                  <thead>
+                    <tr>
+                      <th>Week Interval</th>
+                      <th>Nominated By</th>
+                      <th>Citation / Reason</th>
+                      <th>Merit Tags</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${studentNominations.map(nom => {
+                      const wk = this.store.state.weeks.find(w => w.id === nom.weekId);
+                      const wkLabel = wk ? wk.name : nom.weekId;
+                      return `
+                        <tr>
+                          <td><strong>${escapeHtml(wkLabel)}</strong></td>
+                          <td>
+                            <div><strong>${escapeHtml(nom.nominatedByName)}</strong></div>
+                            <div style="font-size: 0.74rem; color: var(--text-muted);">${escapeHtml(nom.nominatedByRole)}</div>
+                          </td>
+                          <td style="font-style: italic; max-width: 320px;">&ldquo;${escapeHtml(nom.citation)}&rdquo;</td>
+                          <td>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                              ${(nom.tags || []).map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}
+                            </div>
+                          </td>
+                          <td style="font-size: 0.78rem; color: var(--text-muted);">${nom.nominatedAt ? new Date(nom.nominatedAt).toLocaleDateString() : '—'}</td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
           </div>
         </div>
       </div>
