@@ -39,7 +39,8 @@ const APP_ICONS = {
   logout: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
   award: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
-  star: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+  star: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  archive: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>'
 };
 
 // --- Pre-configured Roles & Accounts ---
@@ -91,6 +92,229 @@ const HOUSES_LIST = ['ST. THOMAS', 'ST. PAUL', 'ST. MARY', 'ST. JOSEPH'];
 const COMMITTEE_MEMBERS = [];
 const INITIAL_STUDENTS = [];
 const INITIAL_SCORES = {};
+
+// Default active open week interval for new entries (after past weeks moved to archive)
+const DEFAULT_ACTIVE_WEEK = {
+  id: 'week-current-9',
+  no: 1,
+  name: 'Week 9',
+  dateRange: '08 Nov – 14 Nov 2026',
+  startDate: '2026-11-08',
+  endDate: '2026-11-14',
+  topStudent: null,
+  totalScore: null,
+  maxScore: 70,
+  percentage: null,
+  status: 'Open',
+  isCurrent: true,
+  updatedAt: '2026-11-08T12:15:00.000Z'
+};
+
+// Default Past Weeks Evaluation Archive (Preserved historical evaluations for reference)
+const DEFAULT_ARCHIVED_WEEKS = [
+  {
+    id: 'week-1793211322767',
+    no: 1,
+    name: 'Week 7/8',
+    dateRange: '25 Oct – 07 Nov 2026',
+    startDate: '2026-10-25',
+    endDate: '2026-11-07',
+    status: 'Archived',
+    isArchived: true,
+    isCurrent: false,
+    maxScore: 70,
+    topStudent: 'JENINA AMPEH',
+    totalScore: 57,
+    percentage: 81.4,
+    archivedAt: '2026-11-08T12:15:00.000Z',
+    classes: ['2ARTS1', '3 sci 1', '2 Science 3', '1 SCIENCE 3'],
+    students: [
+      {
+        id: 'OLAG001',
+        name: 'JENINA AMPEH',
+        class: '2ARTS1',
+        house: 'ST. MARY',
+        gender: 'Female',
+        comment: 'Student Personality of the Week — Week 7/8 (25 Oct – 07 Nov 2026).'
+      },
+      {
+        id: 'OLAG004',
+        name: 'Genevieve Olo Yeng',
+        class: '3 sci 1',
+        house: 'ST. MARY',
+        gender: 'Female',
+        comment: 'Evaluated candidate in Week 7/8 (25 Oct – 07 Nov 2026).'
+      },
+      {
+        id: 'OLAG003',
+        name: 'Emmanuel Asenso',
+        class: '2 Science 3',
+        house: 'ST. THOMAS',
+        gender: 'Male',
+        comment: 'Evaluated candidate in Week 7/8 (25 Oct – 07 Nov 2026).'
+      },
+      {
+        id: 'OLAG005',
+        name: 'NHYIRA',
+        class: '1 SCIENCE 3',
+        house: 'ST. MARY',
+        gender: 'Female',
+        comment: 'Evaluated candidate in Week 7/8 (25 Oct – 07 Nov 2026).'
+      }
+    ],
+    scores: {
+      OLAG001: {
+        'crit-1': 8,
+        'crit-2': 9,
+        'crit-3': 8,
+        'crit-4': 8,
+        'crit-5': 8,
+        'crit-6': 8,
+        'crit-7': 8,
+        total: 57,
+        combinedTotal: 57,
+        maxCombinedScore: 70,
+        pct: 81.4,
+        evaluatorCount: 1,
+        evaluatorId: 'mem-1793212854020',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+        evaluatorRole: "Head Boys' Prefect",
+        evaluatorUsername: 'michael',
+        submittedAt: '2026-11-04T23:05:19.092Z',
+        submissions: {
+          'user:michael': {
+            'crit-1': 8,
+            'crit-2': 9,
+            'crit-3': 8,
+            'crit-4': 8,
+            'crit-5': 8,
+            'crit-6': 8,
+            'crit-7': 8,
+            total: 57,
+            pct: 81.4,
+            evaluatorId: 'mem-1793212854020',
+            evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+            evaluatorRole: "Head Boys' Prefect",
+            evaluatorUsername: 'michael',
+            submittedAt: '2026-11-04T23:05:19.092Z'
+          }
+        }
+      },
+      OLAG004: {
+        'crit-1': 8,
+        'crit-2': 8,
+        'crit-3': 8,
+        'crit-4': 8,
+        'crit-5': 8,
+        'crit-6': 8,
+        'crit-7': 8,
+        total: 56,
+        combinedTotal: 56,
+        maxCombinedScore: 70,
+        pct: 80,
+        evaluatorCount: 1,
+        evaluatorId: 'mem-1793212854020',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+        evaluatorRole: "Head Boys' Prefect",
+        evaluatorUsername: 'michael',
+        submittedAt: '2026-11-03T18:10:00.000Z',
+        submissions: {
+          'user:michael': {
+            'crit-1': 8,
+            'crit-2': 8,
+            'crit-3': 8,
+            'crit-4': 8,
+            'crit-5': 8,
+            'crit-6': 8,
+            'crit-7': 8,
+            total: 56,
+            pct: 80,
+            evaluatorId: 'mem-1793212854020',
+            evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+            evaluatorRole: "Head Boys' Prefect",
+            evaluatorUsername: 'michael',
+            submittedAt: '2026-11-03T18:10:00.000Z'
+          }
+        }
+      },
+      OLAG003: {
+        'crit-1': 8,
+        'crit-2': 8,
+        'crit-3': 8,
+        'crit-4': 7,
+        'crit-5': 8,
+        'crit-6': 7,
+        'crit-7': 7,
+        total: 53,
+        combinedTotal: 53,
+        maxCombinedScore: 70,
+        pct: 75.7,
+        evaluatorCount: 1,
+        evaluatorId: 'mem-1793212854020',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+        evaluatorRole: "Head Boys' Prefect",
+        evaluatorUsername: 'michael',
+        submittedAt: '2026-11-03T18:05:00.000Z',
+        submissions: {
+          'user:michael': {
+            'crit-1': 8,
+            'crit-2': 8,
+            'crit-3': 8,
+            'crit-4': 7,
+            'crit-5': 8,
+            'crit-6': 7,
+            'crit-7': 7,
+            total: 53,
+            pct: 75.7,
+            evaluatorId: 'mem-1793212854020',
+            evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+            evaluatorRole: "Head Boys' Prefect",
+            evaluatorUsername: 'michael',
+            submittedAt: '2026-11-03T18:05:00.000Z'
+          }
+        }
+      },
+      OLAG005: {
+        'crit-1': 7,
+        'crit-2': 7,
+        'crit-3': 7,
+        'crit-4': 7,
+        'crit-5': 7,
+        'crit-6': 7,
+        'crit-7': 6,
+        total: 48,
+        combinedTotal: 48,
+        maxCombinedScore: 70,
+        pct: 68.6,
+        evaluatorCount: 1,
+        evaluatorId: 'mem-1793212854020',
+        evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+        evaluatorRole: "Head Boys' Prefect",
+        evaluatorUsername: 'michael',
+        submittedAt: '2026-11-03T18:15:00.000Z',
+        submissions: {
+          'user:michael': {
+            'crit-1': 7,
+            'crit-2': 7,
+            'crit-3': 7,
+            'crit-4': 7,
+            'crit-5': 7,
+            'crit-6': 7,
+            'crit-7': 6,
+            total: 48,
+            pct: 68.6,
+            evaluatorId: 'mem-1793212854020',
+            evaluatorName: 'Michael Angelo Gamlie Gbenyo',
+            evaluatorRole: "Head Boys' Prefect",
+            evaluatorUsername: 'michael',
+            submittedAt: '2026-11-03T18:15:00.000Z'
+          }
+        }
+      }
+    },
+    nominations: []
+  }
+];
 
 // Legacy demo/test student records & classes hidden so new student entries start fresh
 const LEGACY_HIDDEN_STUDENT_NAMES = new Set([
@@ -277,6 +501,33 @@ class OLAGStore {
     ]);
     this.state.deletedNominationIds = [...deletedNominations];
 
+    const deletedArchives = new Set([
+      ...(Array.isArray(this.state.deletedArchiveIds) ? this.state.deletedArchiveIds : []),
+      ...(Array.isArray(remoteState.deletedArchiveIds) ? remoteState.deletedArchiveIds : [])
+    ]);
+    this.state.deletedArchiveIds = [...deletedArchives];
+
+    // 0. Merge Past Weeks Evaluation Archive non-destructively
+    if (Array.isArray(remoteState.archivedWeeks) || Array.isArray(this.state.archivedWeeks)) {
+      const remoteArch = (Array.isArray(remoteState.archivedWeeks) ? remoteState.archivedWeeks : []).filter(a => a && a.id && !deletedArchives.has(a.id));
+      const localArch = (Array.isArray(this.state.archivedWeeks) ? this.state.archivedWeeks : []).filter(a => a && a.id && !deletedArchives.has(a.id));
+      const archMap = new Map();
+      remoteArch.forEach(a => archMap.set(a.id, a));
+      localArch.forEach(a => {
+        if (!archMap.has(a.id)) {
+          archMap.set(a.id, a);
+          hasLocalOnlyItems = true;
+        } else {
+          const existing = archMap.get(a.id);
+          if (a.archivedAt && (!existing.archivedAt || a.archivedAt > existing.archivedAt)) {
+            archMap.set(a.id, a);
+            hasLocalOnlyItems = true;
+          }
+        }
+      });
+      this.state.archivedWeeks = [...archMap.values()];
+    }
+
     // 1. Merge Members non-destructively so all 8 registered committee members are preserved
     if (Array.isArray(remoteState.members)) {
       const remoteMembers = remoteState.members.filter(m => m && m.id && !deletedMembers.has(m.id));
@@ -346,9 +597,27 @@ class OLAGStore {
       this.state.students = [...studentMap.values()];
     }
 
-    // 3. Merge Weeks
+    // 3. Merge Weeks (excluding past archived weeks such as Week 7/8)
     if (Array.isArray(remoteState.weeks)) {
-      const remoteWeeks = remoteState.weeks.filter(w => w && w.id && !deletedWeeks.has(w.id)).map(w => {
+      const archivedIdSet = new Set(
+        (Array.isArray(this.state.archivedWeeks) ? this.state.archivedWeeks : [])
+          .concat(DEFAULT_ARCHIVED_WEEKS)
+          .map(a => a && a.id)
+          .filter(Boolean)
+      );
+      const isPastArchivedWeek = (w) => {
+        if (!w || !w.id) return true;
+        if (archivedIdSet.has(w.id)) return true;
+        if (String(w.name || '').trim().toLowerCase() === 'week 7/8') return true;
+        if (w.status === 'Archived' || w.isArchived) return true;
+        return false;
+      };
+      remoteState.weeks.forEach(w => {
+        if (w && isPastArchivedWeek(w)) {
+          hasLocalOnlyItems = true;
+        }
+      });
+      const remoteWeeks = remoteState.weeks.filter(w => w && w.id && !deletedWeeks.has(w.id) && !isPastArchivedWeek(w)).map(w => {
         if (w.maxScore === 80 || !w.maxScore) w.maxScore = 70;
         if (w.topStudent && isLegacyHiddenStudent(w.topStudent)) {
           w.topStudent = null;
@@ -358,7 +627,7 @@ class OLAGStore {
         }
         return w;
       });
-      const localWeeks = (Array.isArray(this.state.weeks) ? this.state.weeks : []).filter(w => w && w.id && !deletedWeeks.has(w.id));
+      const localWeeks = (Array.isArray(this.state.weeks) ? this.state.weeks : []).filter(w => w && w.id && !deletedWeeks.has(w.id) && !isPastArchivedWeek(w));
       const weekMap = new Map();
       remoteWeeks.forEach(w => weekMap.set(w.id, w));
       localWeeks.forEach(w => {
@@ -516,6 +785,7 @@ class OLAGStore {
   normalizeStudentsAndClasses(stateObj) {
     if (!stateObj || typeof stateObj !== 'object') return;
     if (!Array.isArray(stateObj.students)) stateObj.students = [];
+    if (!Array.isArray(stateObj.houses) || stateObj.houses.length === 0) stateObj.houses = [...HOUSES_LIST];
     if (!Array.isArray(stateObj.deletedClasses)) stateObj.deletedClasses = [];
     const deletedClassesSet = new Set(stateObj.deletedClasses);
 
@@ -603,6 +873,93 @@ class OLAGStore {
     }
 
     // Recalculate week winners so hidden legacy students do not appear on week cards
+    if (!Array.isArray(stateObj.deletedArchiveIds)) stateObj.deletedArchiveIds = [];
+    const deletedArchSet = new Set(stateObj.deletedArchiveIds);
+    if (!Array.isArray(stateObj.archivedWeeks)) stateObj.archivedWeeks = [];
+    stateObj.archivedWeeks = stateObj.archivedWeeks.filter(a => a && a.id && !deletedArchSet.has(a.id));
+
+    // Ensure DEFAULT_ARCHIVED_WEEKS (Week 7/8 evaluation) is always preserved in the Archive unless explicitly deleted
+    DEFAULT_ARCHIVED_WEEKS.forEach(defArch => {
+      if (!defArch || !defArch.id || deletedArchSet.has(defArch.id)) return;
+      const existingArch = stateObj.archivedWeeks.find(a => a && (a.id === defArch.id || String(a.name || '').trim().toLowerCase() === String(defArch.name || '').trim().toLowerCase()));
+      if (!existingArch) {
+        stateObj.archivedWeeks.push(JSON.parse(JSON.stringify(defArch)));
+      } else {
+        if (!Array.isArray(existingArch.students) || existingArch.students.length === 0) {
+          existingArch.students = JSON.parse(JSON.stringify(defArch.students));
+        }
+        if (!existingArch.scores || typeof existingArch.scores !== 'object' || Object.keys(existingArch.scores).length === 0) {
+          existingArch.scores = JSON.parse(JSON.stringify(defArch.scores));
+        }
+        if (!Array.isArray(existingArch.classes) || existingArch.classes.length === 0) {
+          existingArch.classes = [...(defArch.classes || [])];
+        }
+        existingArch.status = 'Archived';
+        existingArch.isArchived = true;
+      }
+    });
+
+    // Normalize scores and winners inside all archived weeks
+    stateObj.archivedWeeks.forEach(arch => {
+      if (!arch || !arch.id) return;
+      arch.status = 'Archived';
+      arch.isArchived = true;
+      arch.isCurrent = false;
+      const archMax = arch.maxScore || 70;
+      arch.maxScore = archMax;
+      if (!Array.isArray(arch.students)) arch.students = [];
+      if (!arch.scores || typeof arch.scores !== 'object') arch.scores = {};
+
+      let bestArchTotal = -1;
+      let bestArchName = null;
+      let bestArchPct = null;
+      Object.entries(arch.scores).forEach(([sId, rawSc]) => {
+        const normSc = this.normalizeStudentWeekScore(rawSc, archMax);
+        if (normSc) {
+          arch.scores[sId] = normSc;
+          if (typeof normSc.total === 'number' && normSc.total > bestArchTotal) {
+            const st = arch.students.find(s => s && s.id === sId);
+            bestArchTotal = normSc.total;
+            bestArchName = st ? st.name : (normSc.studentName || sId);
+            bestArchPct = normSc.pct;
+          }
+        } else {
+          delete arch.scores[sId];
+        }
+      });
+      if (bestArchName) {
+        arch.topStudent = bestArchName;
+        arch.totalScore = bestArchTotal;
+        arch.percentage = bestArchPct;
+      }
+    });
+
+    const archivedWeekIds = new Set(stateObj.archivedWeeks.map(a => a && a.id).filter(Boolean));
+    const archivedWeekNamesLower = new Set(stateObj.archivedWeeks.map(a => String((a && a.name) || '').trim().toLowerCase()).filter(Boolean));
+
+    // Remove any archived week (such as Week 7/8) from active stateObj.weeks
+    if (!Array.isArray(stateObj.weeks)) stateObj.weeks = [];
+    stateObj.weeks = stateObj.weeks.filter(w => {
+      if (!w || !w.id) return false;
+      if (archivedWeekIds.has(w.id)) return false;
+      if (archivedWeekNamesLower.has(String(w.name || '').trim().toLowerCase())) return false;
+      if (w.status === 'Archived' || w.isArchived) return false;
+      return true;
+    });
+
+    // Clean archived week IDs out of active stateObj.scores so active scores stay lean
+    archivedWeekIds.forEach(aId => {
+      if (stateObj.scores && stateObj.scores[aId]) {
+        delete stateObj.scores[aId];
+      }
+    });
+
+    // Ensure there is an active open week interval ready for new student nominations & evaluations
+    const deletedWeekIdsSet = new Set(Array.isArray(stateObj.deletedWeekIds) ? stateObj.deletedWeekIds : []);
+    if (stateObj.weeks.length === 0 && !deletedWeekIdsSet.has(DEFAULT_ACTIVE_WEEK.id)) {
+      stateObj.weeks.push({ ...DEFAULT_ACTIVE_WEEK });
+    }
+
     if (Array.isArray(stateObj.weeks)) {
       stateObj.weeks.forEach(w => {
         if (!w || !w.id) return;
@@ -630,6 +987,19 @@ class OLAGStore {
           w.percentage = null;
         }
       });
+    }
+
+    if (!stateObj.selectedArchiveWeekId || !archivedWeekIds.has(stateObj.selectedArchiveWeekId)) {
+      stateObj.selectedArchiveWeekId = stateObj.archivedWeeks[0] ? stateObj.archivedWeeks[0].id : null;
+    }
+
+    const activeWeekIds = new Set(stateObj.weeks.map(w => w && w.id).filter(Boolean));
+    if (!stateObj.selectedWeekId || (!activeWeekIds.has(stateObj.selectedWeekId) && !archivedWeekIds.has(stateObj.selectedWeekId))) {
+      const currentActive = stateObj.weeks.find(w => w && w.isCurrent) || stateObj.weeks[0] || null;
+      stateObj.selectedWeekId = currentActive ? currentActive.id : null;
+    } else if (archivedWeekIds.has(stateObj.selectedWeekId) && stateObj.currentView !== 'rankings' && stateObj.currentView !== 'reports') {
+      const currentActive = stateObj.weeks.find(w => w && w.isCurrent) || stateObj.weeks[0] || null;
+      if (currentActive) stateObj.selectedWeekId = currentActive.id;
     }
 
     // Ensure stateObj.nominations and stateObj.deletedNominationIds exist & strip hidden legacy nominations
@@ -931,6 +1301,9 @@ class OLAGStore {
       deletedClasses: this.state.deletedClasses || [],
       nominations: this.state.nominations || [],
       deletedNominationIds: this.state.deletedNominationIds || [],
+      archivedWeeks: this.state.archivedWeeks || [],
+      deletedArchiveIds: this.state.deletedArchiveIds || [],
+      selectedArchiveWeekId: this.state.selectedArchiveWeekId || null,
       selectedWeekId: this.state.selectedWeekId
     };
 
@@ -984,6 +1357,7 @@ class OLAGStore {
     }
     if (!parsed) {
       parsed = this.getInitialState();
+      this.normalizeStudentsAndClasses(parsed);
     }
     this.applyPortalSession(parsed);
     this.syncEvaluatorWithCurrentLogin(parsed);
@@ -1163,10 +1537,23 @@ class OLAGStore {
       deletedWeekIds: [],
       nominations: [],
       deletedNominationIds: [],
+      archivedWeeks: JSON.parse(JSON.stringify(DEFAULT_ARCHIVED_WEEKS)),
+      deletedArchiveIds: [],
+      selectedArchiveWeekId: DEFAULT_ARCHIVED_WEEKS[0] ? DEFAULT_ARCHIVED_WEEKS[0].id : null,
       theme: localStorage.getItem('olag_theme') || 'light',
       sidebarCollapsed: false,
       dashInfoHidden: false
     };
+  }
+
+  getArchivedWeeks() {
+    return Array.isArray(this.state.archivedWeeks) ? this.state.archivedWeeks : [];
+  }
+
+  getArchivedWeekById(weekId) {
+    if (!weekId) return null;
+    const archList = this.getArchivedWeeks();
+    return archList.find(a => a && a.id === weekId) || null;
   }
 
   save() {
@@ -2190,8 +2577,11 @@ class OLAGApp {
   }
 
   getStudentCommitteeScoresBreakdown(weekId, studentId) {
-    const weekScores = (weekId && this.store.state.scores && this.store.state.scores[weekId]) ? this.store.state.scores[weekId] : {};
-    const weekObj = (this.store.state.weeks || []).find(w => w && w.id === weekId);
+    const archWeek = weekId ? this.store.getArchivedWeekById(weekId) : null;
+    const weekScores = archWeek
+      ? (archWeek.scores || {})
+      : ((weekId && this.store.state.scores && this.store.state.scores[weekId]) ? this.store.state.scores[weekId] : {});
+    const weekObj = archWeek || (this.store.state.weeks || []).find(w => w && w.id === weekId);
     const maxScore = (weekObj && weekObj.maxScore) ? weekObj.maxScore : this.getMaxCriteriaScore();
     const scoreEntry = this.store.normalizeStudentWeekScore(weekScores[studentId], maxScore);
     const members = this.store.state.members || [];
@@ -2340,11 +2730,14 @@ class OLAGApp {
 
   renderWeekAllStudentsCommitteeMatrixHtml(weekId, classFilter = 'All') {
     const weeks = this.store.state.weeks || [];
-    const targetWeek = (weekId ? weeks.find(w => w.id === weekId) : null) || this.getActiveWeek() || weeks[0] || null;
+    const archivedWeeks = this.store.getArchivedWeeks();
+    const allSelectableWeeks = [...weeks, ...archivedWeeks];
+    const targetWeek = (weekId ? allSelectableWeeks.find(w => w.id === weekId) : null) || this.getActiveWeek() || weeks[0] || archivedWeeks[0] || null;
+    const isArchivedTarget = Boolean(targetWeek && (targetWeek.isArchived || targetWeek.status === 'Archived'));
     const effectiveWeekId = targetWeek ? targetWeek.id : null;
     const maxScore = (targetWeek && targetWeek.maxScore) ? targetWeek.maxScore : this.getMaxCriteriaScore();
     const members = this.store.state.members || [];
-    let students = [...(this.store.state.students || [])];
+    let students = isArchivedTarget ? [...(targetWeek.students || [])] : [...(this.store.state.students || [])];
     if (classFilter && classFilter !== 'All' && classFilter !== 'All Classes') {
       students = students.filter(s => s.class === classFilter);
     }
@@ -2357,8 +2750,8 @@ class OLAGApp {
               <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.committee}</span>
               <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary);">All Committee Members' Scores per Student</span>
               ${targetWeek ? `
-                <span style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
-                  ${escapeHtml(targetWeek.name)} (${escapeHtml(targetWeek.dateRange)})
+                <span style="background: ${isArchivedTarget ? '#fef3c7' : '#e0f2fe'}; color: ${isArchivedTarget ? '#b45309' : '#0369a1'}; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
+                  ${escapeHtml(targetWeek.name)} (${escapeHtml(targetWeek.dateRange)})${isArchivedTarget ? ' • Archived' : ''}
                 </span>
               ` : ''}
               <span style="background: #f1f5f9; color: var(--navy-primary); font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">
@@ -2370,11 +2763,12 @@ class OLAGApp {
             </div>
           </div>
 
-          ${weeks.length > 0 ? `
+          ${allSelectableWeeks.length > 0 ? `
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <label style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Week:</label>
-              <select class="form-select" style="height: 32px; font-size: 0.78rem; width: 210px; padding: 0 1.5rem 0 0.6rem;" onchange="app.changeAdminScoresMatrixWeek(this.value)">
+              <select class="form-select" style="height: 32px; font-size: 0.78rem; width: 245px; padding: 0 1.5rem 0 0.6rem;" onchange="app.changeAdminScoresMatrixWeek(this.value)">
                 ${weeks.map(w => `<option value="${w.id}" ${effectiveWeekId === w.id ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+                ${archivedWeeks.map(a => `<option value="${a.id}" ${effectiveWeekId === a.id ? 'selected' : ''}>[Archived] ${escapeHtml(a.name)} (${escapeHtml(a.dateRange)})</option>`).join('')}
               </select>
             </div>
           ` : ''}
@@ -2468,13 +2862,34 @@ class OLAGApp {
   }
 
   openStudentCommitteeScoresModal(studentId, weekId = null) {
-    const student = (this.store.state.students || []).find(s => s.id === studentId);
-    if (!student) return;
     const weeks = this.store.state.weeks || [];
-    const targetWeek = (weekId ? weeks.find(w => w.id === weekId) : null) ||
-      (this.store.state.selectedWeekId ? weeks.find(w => w.id === this.store.state.selectedWeekId) : null) ||
-      this.getActiveWeek() || weeks[0] || null;
+    const archivedWeeks = this.store.getArchivedWeeks();
+    const allWeeks = [...weeks, ...archivedWeeks];
+    const targetWeek = (weekId ? allWeeks.find(w => w.id === weekId) : null) ||
+      (this.store.state.selectedWeekId ? allWeeks.find(w => w.id === this.store.state.selectedWeekId) : null) ||
+      this.getActiveWeek() || weeks[0] || archivedWeeks[0] || null;
+    const isArchivedTarget = Boolean(targetWeek && (targetWeek.isArchived || targetWeek.status === 'Archived'));
     const effectiveWeekId = targetWeek ? targetWeek.id : '';
+
+    let student = null;
+    if (isArchivedTarget && Array.isArray(targetWeek.students)) {
+      student = targetWeek.students.find(s => s && s.id === studentId);
+    }
+    if (!student) {
+      student = (this.store.state.students || []).find(s => s && s.id === studentId);
+    }
+    if (!student) {
+      for (const arch of archivedWeeks) {
+        if (arch && Array.isArray(arch.students)) {
+          const found = arch.students.find(s => s && s.id === studentId);
+          if (found) {
+            student = found;
+            break;
+          }
+        }
+      }
+    }
+    if (!student) return;
 
     let modal = document.getElementById('modalStudentCommitteeScores');
     if (!modal) {
@@ -2488,19 +2903,20 @@ class OLAGApp {
       <div class="modal-container" style="max-width: 920px; width: 95%;">
         <div class="modal-header-row">
           <div>
-            <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               ${APP_ICONS.committee}
               <span>Committee Members' Scores: ${escapeHtml(student.name)} (${escapeHtml(student.id)})</span>
+              ${isArchivedTarget ? '<span style="font-size: 0.7rem; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 0.12rem 0.5rem; border-radius: 999px; font-weight: 800;">Archived Record</span>' : ''}
             </h3>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
               Class: <strong>${escapeHtml(student.class)}</strong> &nbsp;•&nbsp; House: <strong>${escapeHtml(student.house)}</strong>
-              ${targetWeek ? ` &nbsp;•&nbsp; Week: <strong>${escapeHtml(targetWeek.name)} (${escapeHtml(targetWeek.dateRange)})</strong>` : ''}
+              ${targetWeek ? ` &nbsp;•&nbsp; Week: <strong>${escapeHtml(targetWeek.name)} (${escapeHtml(targetWeek.dateRange)})${isArchivedTarget ? ' [Archived]' : ''}</strong>` : ''}
             </div>
           </div>
           <button type="button" class="btn-close-x" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active')">&times;</button>
         </div>
 
-        ${weeks.length > 1 ? `
+        ${allWeeks.length > 1 && !isArchivedTarget ? `
           <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.85rem;">
             <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">Select Week Interval:</label>
             <select class="form-select" style="width: 240px; height: 34px; font-size: 0.8rem;" onchange="app.openStudentCommitteeScoresModal('${student.id}', this.value)">
@@ -2515,9 +2931,15 @@ class OLAGApp {
           <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active')">
             Close
           </button>
-          <button type="button" class="btn-navy-action" style="height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active'); app.scoreStudent('${student.id}')">
-            ${APP_ICONS.assessment} Open in Weekly Assessment
-          </button>
+          ${isArchivedTarget ? `
+            <button type="button" class="btn-navy-action" style="height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active'); app.openArchivedWeekReport('${effectiveWeekId}')">
+              ${APP_ICONS.printer} Print Archived Report
+            </button>
+          ` : `
+            <button type="button" class="btn-navy-action" style="height: 36px; padding: 0 1rem; font-size: 0.82rem;" onclick="document.getElementById('modalStudentCommitteeScores').classList.remove('active'); app.scoreStudent('${student.id}')">
+              ${APP_ICONS.assessment} Open in Weekly Assessment
+            </button>
+          `}
         </div>
       </div>
     `;
@@ -3098,7 +3520,7 @@ class OLAGApp {
         { id: 'students', icon: APP_ICONS.students, label: 'Students' },
         { id: 'assessment', icon: APP_ICONS.assessment, label: 'Weekly Assessment' },
         { id: 'rankings', icon: APP_ICONS.rankings, label: 'Results & Rankings' },
-        { id: 'previous-weeks', icon: APP_ICONS.calendar, label: 'Previous Weeks' },
+        { id: 'previous-weeks', icon: APP_ICONS.archive, label: 'Previous Weeks & Archive' },
         { id: 'committee', icon: APP_ICONS.committee, label: 'Committee Members' },
         { id: 'reports', icon: APP_ICONS.reports, label: 'Reports' },
         { id: 'settings', icon: APP_ICONS.settings, label: 'Settings' }
@@ -3109,7 +3531,7 @@ class OLAGApp {
         { id: 'dashboard-committee', icon: APP_ICONS.home, label: 'My Dashboard' },
         { id: 'assessment', icon: APP_ICONS.assessment, label: 'Enter Assessment' },
         { id: 'rankings', icon: APP_ICONS.rankings, label: 'Results & Rankings' },
-        { id: 'previous-weeks', icon: APP_ICONS.calendar, label: 'Week Intervals' },
+        { id: 'previous-weeks', icon: APP_ICONS.archive, label: 'Past Weeks Archive' },
         { id: 'students', icon: APP_ICONS.students, label: 'Student Directory' },
         { id: 'reports', icon: APP_ICONS.reports, label: 'Official Reports' }
       ];
@@ -3338,7 +3760,12 @@ class OLAGApp {
           ` : `
             <div class="dashboard-winner-body" style="padding: 1.5rem; text-align: center; color: #cbd5e1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
               <h4 style="margin: 0; color: #ffffff; font-size: 1.05rem;">No Winner Announced Yet ${currentWeek ? `for ${escapeHtml(currentWeek.name)}` : ''}</h4>
-              <p style="margin: 0; font-size: 0.85rem; max-width: 440px; color: #94a3b8;">Weekly assessments are awaiting evaluation submissions. As scores are entered by committee members, the top-performing student will be celebrated here.</p>
+              <p style="margin: 0; font-size: 0.85rem; max-width: 440px; color: #94a3b8;">Weekly assessments are awaiting new student nominations and evaluation submissions. Past weeks' evaluations are safely stored in the Archive for reference.</p>
+              ${this.store.getArchivedWeeks().length > 0 ? `
+                <button type="button" class="btn-navy-action" style="margin-top: 0.35rem; background: rgba(255, 199, 44, 0.16); border: 1px solid rgba(255, 199, 44, 0.45); color: var(--accent-yellow); height: 32px; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
+                  ${APP_ICONS.archive} View Past Weeks Evaluation Archive (${this.store.getArchivedWeeks().length})
+                </button>
+              ` : ''}
             </div>
           `}
         </div>
@@ -4807,15 +5234,20 @@ class OLAGApp {
 
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const weeks = this.store.state.weeks || [];
-    const classes = this.store.state.classes || [];
-    const currentWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
-    const currentWeekObj = (currentWeekId ? weeks.find(w => w.id === currentWeekId) : null) || weeks[0] || null;
+    const archivedWeeks = this.store.getArchivedWeeks();
+    const allWeeks = [...weeks, ...archivedWeeks];
+    const currentWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : (archivedWeeks[0] ? archivedWeeks[0].id : null));
+    const currentWeekObj = (currentWeekId ? allWeeks.find(w => w.id === currentWeekId) : null) || weeks[0] || archivedWeeks[0] || null;
+    const isArchivedSelected = Boolean(currentWeekObj && (currentWeekObj.isArchived || currentWeekObj.status === 'Archived'));
     const maxScore = (currentWeekObj && currentWeekObj.maxScore) || this.getMaxCriteriaScore();
+    const classes = isArchivedSelected ? (currentWeekObj.classes || []) : (this.store.state.classes || []);
     const currentClass = this.store.state.selectedClass || 'All';
-    const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
+    const weekScores = isArchivedSelected
+      ? (currentWeekObj.scores || {})
+      : (currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {});
     const rankedStudents = [];
 
-    let targetStudents = [...this.store.state.students];
+    let targetStudents = isArchivedSelected ? [...(currentWeekObj.students || [])] : [...this.store.state.students];
     if (currentClass && currentClass !== 'All') {
       targetStudents = targetStudents.filter(s => s.class === currentClass);
     }
@@ -4839,16 +5271,33 @@ class OLAGApp {
     const topWinner = rankedStudents.length > 0 ? rankedStudents[0] : null;
 
     container.innerHTML = `
-      <div class="view-header">
-        <h2>Weekly Results & Rankings</h2>
-        <p>Official student performance rankings for the selected week interval.</p>
+      <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2>Weekly Results & Rankings</h2>
+          <p>Official student performance rankings for active cycles and archived past weeks.</p>
+        </div>
+        ${archivedWeeks.length > 0 ? `
+          <button type="button" class="btn-navy-action" onclick="app.navigateTo('previous-weeks')">
+            ${APP_ICONS.archive} Open Past Weeks Archive (${archivedWeeks.length})
+          </button>
+        ` : ''}
       </div>
 
       <div class="assessment-filter-card">
         <div class="filter-field">
           <label>Week Interval</label>
           <select id="rankingsWeekSelect" class="form-select">
-            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+            ${allWeeks.length === 0 ? '<option value="">No week intervals created yet</option>' : ''}
+            ${weeks.length > 0 ? `
+              <optgroup label="Active & Scheduled Week Intervals">
+                ${weeks.map(w => `<option value="${w.id}" ${w.id === currentWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+              </optgroup>
+            ` : ''}
+            ${archivedWeeks.length > 0 ? `
+              <optgroup label="Past Weeks Evaluation Archive (Reference)">
+                ${archivedWeeks.map(a => `<option value="${a.id}" ${a.id === currentWeekId ? 'selected' : ''}>[Archived] ${escapeHtml(a.name)} (${escapeHtml(a.dateRange)})</option>`).join('')}
+              </optgroup>
+            ` : ''}
           </select>
         </div>
 
@@ -4861,13 +5310,39 @@ class OLAGApp {
         </div>
       </div>
 
+      ${isArchivedSelected && currentWeekObj ? `
+        <div class="archive-reference-notice-banner" style="margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span class="archive-badge-icon">${APP_ICONS.archive}</span>
+            <div>
+              <div style="font-weight: 800; font-size: 0.92rem; color: var(--navy-primary);">
+                Viewing Archived Evaluation Record: ${escapeHtml(currentWeekObj.name)} (${escapeHtml(currentWeekObj.dateRange)})
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">
+                This past week's evaluation has been pushed to the Archive for reference. Active student queues remain clean for new entries.
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn-navy-action" style="height: 32px; font-size: 0.76rem; padding: 0 0.85rem;" onclick="app.openArchivedWeekReport('${currentWeekObj.id}')">
+              ${APP_ICONS.printer} Print Certificate
+            </button>
+            ${weeks[0] ? `
+              <button type="button" class="btn-navy-action" style="height: 32px; font-size: 0.76rem; padding: 0 0.85rem; background: #059669;" onclick="app.viewWeekDetail('${weeks[0].id}')">
+                Switch to Active Week (${escapeHtml(weeks[0].name)})
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      ` : ''}
+
       ${topWinner ? `
         <div class="results-winner-banner">
           <div class="winner-banner-left">
             <div class="winner-banner-avatar" style="font-size: 1.25rem; font-weight: 800;">${escapeHtml((topWinner.student.name || 'ST').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase())}</div>
             <div>
               <div class="winner-banner-title">
-                <span>Student Personality of the Week</span>
+                <span>Student Personality of the Week ${isArchivedSelected ? `(${escapeHtml(currentWeekObj.name)} • Archived)` : ''}</span>
               </div>
               <div class="winner-banner-name">${escapeHtml(topWinner.student.name)}</div>
               <div class="winner-banner-sub">${escapeHtml(topWinner.student.class)} | ${escapeHtml(topWinner.student.house)}</div>
@@ -4897,7 +5372,7 @@ class OLAGApp {
                 <th>Student Name</th>
                 <th>Class</th>
                 <th>House</th>
-                ${isCurrentlyAdmin ? '<th>Committee Members\' Scores</th>' : ''}
+                ${(isCurrentlyAdmin || isArchivedSelected) ? '<th>Committee Members\' Scores</th>' : ''}
                 <th style="text-align: center;">${isCurrentlyAdmin ? 'Overall / Avg Score' : 'Total Score'}</th>
                 <th style="text-align: center;">Percentage</th>
               </tr>
@@ -4905,10 +5380,10 @@ class OLAGApp {
             <tbody>
               ${rankedStudents.length === 0 ? `
                 <tr>
-                  <td colspan="${isCurrentlyAdmin ? '7' : '6'}" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                  <td colspan="${(isCurrentlyAdmin || isArchivedSelected) ? '7' : '6'}" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
                     <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.rankings}</div><br>
                     No student scores recorded yet for this week interval.<br>
-                    <small>Scores entered in the Assessment portal will automatically rank students here.</small>
+                    <small>Scores entered in the Assessment portal will automatically rank students here.${archivedWeeks.length > 0 ? ` Looking for past evaluations? Select <strong>[Archived] ${escapeHtml(archivedWeeks[0].name)}</strong> in the Week Interval dropdown above.` : ''}</small>
                   </td>
                 </tr>
               ` : rankedStudents.map((r, idx) => {
@@ -4921,13 +5396,20 @@ class OLAGApp {
                       </span>
                     </td>
                     <td>
-                      <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${r.student.id}' })" style="font-weight: 700; color: var(--navy-primary);">
-                        ${escapeHtml(r.student.name)}
-                      </a>
+                      ${isArchivedSelected ? `
+                        <a href="javascript:void(0)" onclick="app.openStudentCommitteeScoresModal('${r.student.id}', '${currentWeekId}')" style="font-weight: 700; color: var(--navy-primary);">
+                          ${escapeHtml(r.student.name)}
+                        </a>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(r.student.id)} • Archived</div>
+                      ` : `
+                        <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${r.student.id}' })" style="font-weight: 700; color: var(--navy-primary);">
+                          ${escapeHtml(r.student.name)}
+                        </a>
+                      `}
                     </td>
                     <td>${escapeHtml(r.student.class)}</td>
                     <td>${escapeHtml(r.student.house)}</td>
-                    ${isCurrentlyAdmin ? `
+                    ${(isCurrentlyAdmin || isArchivedSelected) ? `
                       <td>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;">
                           ${r.submissions.map(sub => `
@@ -4958,6 +5440,7 @@ class OLAGApp {
     if (rWeek) {
       rWeek.addEventListener('change', (e) => {
         this.store.state.selectedWeekId = e.target.value;
+        this.store.state.selectedClass = 'All';
         this.renderRankings();
       });
     }
@@ -4975,23 +5458,285 @@ class OLAGApp {
     const container = document.getElementById('view-previous-weeks');
     if (!container) return;
 
-    const weeks = this.store.state.weeks;
+    const weeks = this.store.state.weeks || [];
+    const archivedWeeks = this.store.getArchivedWeeks();
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
+    const criteria = (this.store.state.criteria && this.store.state.criteria.length > 0) ? this.store.state.criteria : CRITERIA_LIST;
+
+    let selectedArchive = null;
+    if (this.store.state.selectedArchiveWeekId) {
+      selectedArchive = archivedWeeks.find(a => a && a.id === this.store.state.selectedArchiveWeekId);
+    }
+    if (!selectedArchive && archivedWeeks.length > 0) {
+      selectedArchive = archivedWeeks[0];
+      this.store.state.selectedArchiveWeekId = selectedArchive.id;
+    }
+
+    const archiveStudentsRanked = [];
+    if (selectedArchive) {
+      const archScores = selectedArchive.scores || {};
+      const archMax = selectedArchive.maxScore || 70;
+      (selectedArchive.students || []).forEach(st => {
+        if (!st || !st.id) return;
+        const sc = archScores[st.id] ? this.store.normalizeStudentWeekScore(archScores[st.id], archMax) : null;
+        if (sc && typeof sc.total === 'number') {
+          const subs = sc.submissions ? Object.values(sc.submissions) : [];
+          archiveStudentsRanked.push({
+            student: st,
+            scoreEntry: sc,
+            totalScore: sc.total,
+            percentage: sc.pct,
+            maxScore: archMax,
+            submissions: subs
+          });
+        }
+      });
+      archiveStudentsRanked.sort((a, b) => b.totalScore - a.totalScore);
+    }
+    const archiveTopWinner = archiveStudentsRanked.length > 0 ? archiveStudentsRanked[0] : null;
 
     container.innerHTML = `
       <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h2>Previous Weeks' Results</h2>
-          <p>View past weekly results, scoring intervals, and official rankings.</p>
+          <h2>Past Weeks Evaluation Archive &amp; Intervals</h2>
+          <p>Refer to archived past weeks' evaluations, student rankings, and 7-criteria committee scores at any time.</p>
         </div>
         ${isCurrentlyAdmin ? `
-          <button type="button" class="btn-navy-action" onclick="app.openSetWeekIntervalModal()">
-            ${APP_ICONS.calendar} + Set New Week Interval
-          </button>
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <button type="button" class="btn-navy-action" onclick="app.openSetWeekIntervalModal()">
+              ${APP_ICONS.calendar} + Set New Week Interval
+            </button>
+          </div>
         ` : ''}
       </div>
 
+      <!-- SECTION 1: PAST WEEKS EVALUATION ARCHIVE SUMMARY TABLE -->
+      <div class="scoring-table-card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;" id="pastWeeksArchiveSection">
+        <div class="scoring-table-title directory-header-bar" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="display: inline-flex; color: #b45309;">${APP_ICONS.archive}</span>
+              <span style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary);">Past Weeks Evaluation Archive (Reference Records)</span>
+              <span class="status-badge-archived" style="font-size: 0.72rem;">
+                ${archivedWeeks.length} Archived Cycle${archivedWeeks.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
+              Completed weekly evaluations moved to the archive so you can refer to past winners, students, and rubric scores while keeping current entries clean.
+            </div>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="table-standard">
+            <thead>
+              <tr>
+                <th>Archived Week</th>
+                <th>Date Range</th>
+                <th>Status</th>
+                <th style="text-align: center;">Evaluated Students</th>
+                <th>Top Student (Winner)</th>
+                <th style="text-align: center;">Winning Score</th>
+                <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center; width: 250px;">Reference Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${archivedWeeks.length === 0 ? `
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 2.25rem 1rem; color: var(--text-muted);">
+                    No past weeks have been archived yet. Completed weeks pushed to the archive will appear here for permanent reference.
+                  </td>
+                </tr>
+              ` : archivedWeeks.map(arch => {
+                const isSelected = selectedArchive && selectedArchive.id === arch.id;
+                const studentCount = Array.isArray(arch.students) ? arch.students.length : 0;
+                return `
+                  <tr class="${isSelected ? 'archive-row-selected' : ''}">
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <strong>${escapeHtml(arch.name)}</strong>
+                        ${isSelected ? '<span style="font-size: 0.66rem; font-weight: 800; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 0.08rem 0.45rem; border-radius: 999px;">Viewing Below</span>' : ''}
+                      </div>
+                    </td>
+                    <td>${escapeHtml(arch.dateRange)}</td>
+                    <td>
+                      <span class="status-badge-archived" style="font-size: 0.73rem;">
+                        ${APP_ICONS.archive} Archived
+                      </span>
+                    </td>
+                    <td style="text-align: center; font-weight: 700;">
+                      ${studentCount} Student${studentCount === 1 ? '' : 's'}
+                    </td>
+                    <td>
+                      <span style="font-weight: 800; color: var(--navy-primary);">
+                        ${arch.topStudent ? escapeHtml(arch.topStudent) : '—'}
+                      </span>
+                    </td>
+                    <td style="text-align: center; font-weight: 800;">
+                      ${arch.totalScore ? `${arch.totalScore} / ${arch.maxScore || 70}` : '—'}
+                    </td>
+                    <td style="text-align: center; font-weight: 800; color: #b45309;">
+                      ${arch.percentage ? `${arch.percentage}%` : '—'}
+                    </td>
+                    <td style="text-align: center;">
+                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; flex-wrap: nowrap;">
+                        <button type="button" class="btn-navy-action" style="height: 28px; padding: 0 0.65rem; font-size: 0.73rem;" onclick="app.selectArchivedWeek('${arch.id}')">
+                          ${APP_ICONS.eye} Inspect
+                        </button>
+                        <button type="button" class="btn-navy-action" style="height: 28px; padding: 0 0.65rem; font-size: 0.73rem; background: #0284c7;" onclick="app.viewWeekDetail('${arch.id}')" title="Open in Results & Rankings">
+                          ${APP_ICONS.rankings} Rankings
+                        </button>
+                        <button type="button" class="btn-navy-action" style="height: 28px; padding: 0 0.65rem; font-size: 0.73rem; background: #059669;" onclick="app.openArchivedWeekReport('${arch.id}')" title="Open Official Printable Certificate">
+                          ${APP_ICONS.printer} Report
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION 2: DETAILED ARCHIVE EXPLORER FOR SELECTED ARCHIVED WEEK -->
+      ${selectedArchive ? `
+        <div class="scoring-table-card archive-detail-explorer-card" style="padding: 1.25rem; margin-bottom: 1.75rem;" id="archiveExplorerDetailCard">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.15rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--card-border);">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="archive-badge-icon">${APP_ICONS.archive}</span>
+                <h3 style="margin: 0; font-size: 1.08rem; font-weight: 800; color: var(--navy-primary);">
+                  Archived Evaluation Details: ${escapeHtml(selectedArchive.name)} (${escapeHtml(selectedArchive.dateRange)})
+                </h3>
+                <span class="status-badge-archived" style="font-size: 0.72rem;">Preserved Reference</span>
+              </div>
+              <p style="margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted);">
+                Complete historical snapshot of all ${archiveStudentsRanked.length} evaluated students, 7-criteria rubric scores, and committee evaluator submissions for ${escapeHtml(selectedArchive.name)}.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              ${archivedWeeks.length > 1 ? `
+                <select class="form-select" style="height: 34px; font-size: 0.8rem; width: 230px;" onchange="app.selectArchivedWeek(this.value)">
+                  ${archivedWeeks.map(a => `<option value="${a.id}" ${a.id === selectedArchive.id ? 'selected' : ''}>${escapeHtml(a.name)} (${escapeHtml(a.dateRange)})</option>`).join('')}
+                </select>
+              ` : ''}
+              <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.viewWeekDetail('${selectedArchive.id}')">
+                ${APP_ICONS.rankings} View in Rankings
+              </button>
+              <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; background: #059669;" onclick="app.openArchivedWeekReport('${selectedArchive.id}')">
+                ${APP_ICONS.printer} Print Official Report
+              </button>
+            </div>
+          </div>
+
+          ${archiveTopWinner ? `
+            <div class="results-winner-banner" style="margin-bottom: 1.25rem;">
+              <div class="winner-banner-left">
+                <div class="winner-banner-avatar" style="font-size: 1.25rem; font-weight: 800;">
+                  ${escapeHtml((archiveTopWinner.student.name || 'ST').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase())}
+                </div>
+                <div>
+                  <div class="winner-banner-title">
+                    <span>Archived Student Personality of the Week (${escapeHtml(selectedArchive.name)})</span>
+                  </div>
+                  <div class="winner-banner-name">${escapeHtml(archiveTopWinner.student.name)}</div>
+                  <div class="winner-banner-sub">${escapeHtml(archiveTopWinner.student.class)} | ${escapeHtml(archiveTopWinner.student.house)}</div>
+                </div>
+              </div>
+              <div class="winner-banner-scores">
+                <div class="banner-score-col">
+                  <div class="banner-score-lbl">Winning Score</div>
+                  <div class="banner-score-val">${archiveTopWinner.totalScore} / ${archiveTopWinner.maxScore}</div>
+                </div>
+                <div class="banner-score-col">
+                  <div class="banner-score-lbl">Percentage</div>
+                  <div class="banner-score-pct">${archiveTopWinner.percentage}%</div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="overflow-x: auto;">
+            <table class="table-standard" style="min-width: 860px;">
+              <thead>
+                <tr>
+                  <th style="width: 58px; text-align: center;">Rank</th>
+                  <th>Student Name &amp; ID</th>
+                  <th>Class &amp; House</th>
+                  ${criteria.map(c => `<th style="text-align: center; font-size: 0.7rem;" title="${escapeHtml(c.name)} (Max 10)">C${c.no}<br><span style="font-weight: 600; font-size: 0.63rem; text-transform: none;">${escapeHtml(c.name.split(' ')[0])}</span></th>`).join('')}
+                  <th>Evaluated By</th>
+                  <th style="text-align: center;">Total Score</th>
+                  <th style="text-align: center;">Percentage</th>
+                  <th style="text-align: center; width: 120px;">Breakdown</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${archiveStudentsRanked.map((item, idx) => {
+                  const rankNum = idx + 1;
+                  const st = item.student;
+                  const sc = item.scoreEntry;
+                  return `
+                    <tr>
+                      <td style="text-align: center;">
+                        <span class="rank-badge-circle rank-${rankNum}">${rankNum}</span>
+                      </td>
+                      <td>
+                        <div style="font-weight: 800; color: var(--navy-primary);">${escapeHtml(st.name)}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(st.id)} • ${escapeHtml(st.gender || '')}</div>
+                      </td>
+                      <td>
+                        <div style="font-weight: 700; font-size: 0.82rem;">${escapeHtml(st.class)}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(st.house)}</div>
+                      </td>
+                      ${criteria.map(c => `
+                        <td style="text-align: center; font-weight: 700; color: var(--navy-primary);">
+                          ${typeof sc[c.id] === 'number' ? sc[c.id] : '—'}
+                        </td>
+                      `).join('')}
+                      <td>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                          ${item.submissions.map(sub => `
+                            <span style="font-size: 0.7rem; background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 0.12rem 0.45rem; border-radius: 999px; font-weight: 700;">
+                              ${escapeHtml(sub.evaluatorName || 'Evaluator')} (${sub.total}/${item.maxScore})
+                            </span>
+                          `).join('')}
+                        </div>
+                      </td>
+                      <td style="text-align: center; font-weight: 800; color: var(--navy-primary);">
+                        ${item.totalScore} / ${item.maxScore}
+                      </td>
+                      <td style="text-align: center; font-weight: 800; color: ${rankNum === 1 ? '#b45309' : '#15803d'};">
+                        ${item.percentage}%
+                      </td>
+                      <td style="text-align: center;">
+                        <button type="button" class="btn-navy-action" style="height: 28px; padding: 0 0.6rem; font-size: 0.72rem;" onclick="app.openStudentCommitteeScoresModal('${st.id}', '${selectedArchive.id}')">
+                          ${APP_ICONS.eye} Breakdown
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- SECTION 3: ACTIVE & SCHEDULED WEEK INTERVALS -->
       <div class="scoring-table-card" style="padding: 0; overflow: hidden;">
+        <div class="scoring-table-title directory-header-bar" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.calendar}</span>
+              <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary);">Active &amp; Scheduled Week Intervals</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
+              Current open and upcoming assessment intervals for new student nominations and evaluations.
+            </div>
+          </div>
+        </div>
         <div style="overflow-x: auto;">
           <table class="table-standard">
             <thead>
@@ -5002,7 +5747,7 @@ class OLAGApp {
                 <th>Top Student</th>
                 <th style="text-align: center;">Total Score</th>
                 <th style="text-align: center;">Percentage</th>
-                <th style="text-align: center; width: 140px;">Action</th>
+                <th style="text-align: center; width: 220px;">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -5010,8 +5755,8 @@ class OLAGApp {
                 <tr>
                   <td colspan="7" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
                     <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.calendar}</div><br>
-                    <strong>No week intervals configured yet.</strong><br>
-                    <span style="font-size: 0.85rem;">${isCurrentlyAdmin ? 'Click "+ Set New Week Interval" above to create your first scoring cycle.' : 'Week intervals configured by the administrator will appear here.'}</span>
+                    <strong>No active week intervals configured yet.</strong><br>
+                    <span style="font-size: 0.85rem;">${isCurrentlyAdmin ? 'Click "+ Set New Week Interval" above to create your next scoring cycle.' : 'Week intervals configured by the administrator will appear here.'}</span>
                   </td>
                 </tr>
               ` : weeks.map(w => `
@@ -5028,7 +5773,7 @@ class OLAGApp {
                   </td>
                   <td>
                     <span style="font-weight: 700; color: var(--navy-primary);">
-                      ${w.topStudent ? escapeHtml(w.topStudent) : '<span style="color: var(--text-muted); font-weight: normal;">—</span>'}
+                      ${w.topStudent ? escapeHtml(w.topStudent) : '<span style="color: var(--text-muted); font-weight: normal;">Awaiting New Entries</span>'}
                     </span>
                   </td>
                   <td style="text-align: center; font-weight: 700;">${w.totalScore ? `${w.totalScore} / ${w.maxScore || this.getMaxCriteriaScore()}` : '—'}</td>
@@ -5039,6 +5784,9 @@ class OLAGApp {
                         View
                       </button>
                       ${isCurrentlyAdmin ? `
+                        <button class="btn-navy-action" style="height: 30px; padding: 0 0.65rem; font-size: 0.73rem; background: #b45309; color: #fff;" title="Push this week's evaluation into the Past Weeks Archive" onclick="app.archiveWeekEvaluation('${w.id}')">
+                          ${APP_ICONS.archive} Archive
+                        </button>
                         ${w.status === 'Upcoming' ? `
                           <button class="action-icon-btn" title="Activate this week for scoring now" style="width: 30px; height: 30px; color: #2563eb; background: #eff6ff;" onclick="app.activateUpcomingWeek('${w.id}')">
                             ${APP_ICONS.play}
@@ -5061,6 +5809,121 @@ class OLAGApp {
         </div>
       </div>
     `;
+  }
+
+  selectArchivedWeek(archiveWeekId) {
+    if (!archiveWeekId) return;
+    this.store.state.selectedArchiveWeekId = archiveWeekId;
+    this.store.save();
+    this.renderPreviousWeeks();
+    const detailCard = document.getElementById('archiveExplorerDetailCard');
+    if (detailCard && typeof detailCard.scrollIntoView === 'function') {
+      detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  openArchivedWeekReport(archiveWeekId) {
+    if (!archiveWeekId) return;
+    this.store.state.selectedWeekId = archiveWeekId;
+    this.store.state.selectedClass = 'All';
+    this.store.save();
+    this.navigateTo('reports');
+  }
+
+  archiveWeekEvaluation(weekId) {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can archive weekly evaluations.');
+      return;
+    }
+    const week = (this.store.state.weeks || []).find(w => w && w.id === weekId);
+    if (!week) {
+      this.showToast('Week interval not found.');
+      return;
+    }
+
+    const weekScores = (this.store.state.scores && this.store.state.scores[weekId]) ? this.store.state.scores[weekId] : {};
+    const weekNoms = this.store.getNominationsForWeek(weekId);
+    const involvedStudentIds = new Set([
+      ...Object.keys(weekScores),
+      ...weekNoms.map(n => n.studentId)
+    ]);
+    let snapshotStudents = (this.store.state.students || []).filter(s => s && involvedStudentIds.has(s.id));
+    if (snapshotStudents.length === 0 && (this.store.state.students || []).length > 0) {
+      snapshotStudents = [...this.store.state.students];
+    }
+
+    if (!confirm(`Push "${week.name} (${week.dateRange})" into the Past Weeks Evaluation Archive?\n\nThis will preserve all student evaluations, rankings, and committee scores for "${week.name}" in the Archive for future reference, and prepare the active workspace for new entries.`)) {
+      return;
+    }
+
+    const archiveEntry = {
+      id: week.id,
+      no: (this.store.getArchivedWeeks().length || 0) + 1,
+      name: week.name,
+      dateRange: week.dateRange,
+      startDate: week.startDate,
+      endDate: week.endDate,
+      status: 'Archived',
+      isArchived: true,
+      isCurrent: false,
+      maxScore: week.maxScore || 70,
+      topStudent: week.topStudent || null,
+      totalScore: week.totalScore || null,
+      percentage: week.percentage || null,
+      archivedAt: new Date().toISOString(),
+      classes: [...new Set(snapshotStudents.map(s => s.class).filter(Boolean))],
+      students: JSON.parse(JSON.stringify(snapshotStudents)),
+      scores: JSON.parse(JSON.stringify(weekScores)),
+      nominations: JSON.parse(JSON.stringify(weekNoms))
+    };
+
+    if (!Array.isArray(this.store.state.archivedWeeks)) {
+      this.store.state.archivedWeeks = [];
+    }
+    const existingIdx = this.store.state.archivedWeeks.findIndex(a => a && a.id === week.id);
+    if (existingIdx >= 0) {
+      this.store.state.archivedWeeks[existingIdx] = archiveEntry;
+    } else {
+      this.store.state.archivedWeeks.unshift(archiveEntry);
+    }
+
+    // Remove archived week from active weeks & clean active queue for new entries
+    this.store.state.weeks = (this.store.state.weeks || []).filter(w => w && w.id !== week.id);
+    if (this.store.state.scores && this.store.state.scores[week.id]) {
+      delete this.store.state.scores[week.id];
+    }
+    this.store.state.nominations = (this.store.state.nominations || []).filter(n => n && n.weekId !== week.id);
+    this.store.state.students = [];
+    this.store.state.classes = [];
+    this.store.state.totalStudentsCount = 0;
+    this.store.state.selectedStudentId = null;
+    this.store.state.selectedArchiveWeekId = archiveEntry.id;
+
+    if (this.store.state.weeks.length > 0) {
+      if (!this.store.state.weeks.some(w => w.isCurrent)) {
+        this.store.state.weeks[0].isCurrent = true;
+        this.store.state.weeks[0].status = 'Open';
+      }
+      this.store.state.selectedWeekId = this.store.state.weeks[0].id;
+    } else {
+      const nextNumMatch = String(week.name || '').match(/(\d+)/g);
+      const nextNum = nextNumMatch ? (parseInt(nextNumMatch[nextNumMatch.length - 1], 10) + 1) : 9;
+      const newActiveWeek = {
+        ...DEFAULT_ACTIVE_WEEK,
+        id: `week-${Date.now()}`,
+        name: `Week ${nextNum}`,
+        isCurrent: true,
+        status: 'Open',
+        updatedAt: new Date().toISOString()
+      };
+      this.store.state.weeks.push(newActiveWeek);
+      this.store.state.selectedWeekId = newActiveWeek.id;
+    }
+
+    this.store.normalizeStudentsAndClasses(this.store.state);
+    this.store.save();
+    this.showToast(`Pushed ${week.name} (${week.dateRange}) to the Past Weeks Evaluation Archive!`);
+    this.render();
   }
 
   viewWeekDetail(weekId) {
@@ -5515,14 +6378,19 @@ class OLAGApp {
     if (!container) return;
 
     const weeks = this.store.state.weeks || [];
-    const classes = this.store.state.classes || [];
-    const selectedWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : null);
-    const currentWeek = (selectedWeekId ? weeks.find(w => w.id === selectedWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || null;
+    const archivedWeeks = this.store.getArchivedWeeks();
+    const allWeeks = [...weeks, ...archivedWeeks];
+    const selectedWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : (archivedWeeks[0] ? archivedWeeks[0].id : null));
+    const currentWeek = (selectedWeekId ? allWeeks.find(w => w.id === selectedWeekId) : null) || weeks.find(w => w.isCurrent) || weeks[0] || archivedWeeks[0] || null;
+    const isArchivedReport = Boolean(currentWeek && (currentWeek.isArchived || currentWeek.status === 'Archived'));
+    const classes = isArchivedReport ? (currentWeek.classes || []) : (this.store.state.classes || []);
     const selectedClass = this.store.state.selectedClass || 'All';
 
-    // Build data based on selected week and class from actual scores
-    const weekScores = selectedWeekId ? (this.store.state.scores[selectedWeekId] || {}) : {};
-    let studentList = [...this.store.state.students];
+    // Build data based on selected week (active or archived) and class from actual scores
+    const weekScores = isArchivedReport
+      ? (currentWeek.scores || {})
+      : (selectedWeekId ? (this.store.state.scores[selectedWeekId] || {}) : {});
+    let studentList = isArchivedReport ? [...(currentWeek.students || [])] : [...this.store.state.students];
     if (selectedClass && selectedClass !== 'All') {
       studentList = studentList.filter(s => s.class === selectedClass);
     }
@@ -5549,7 +6417,7 @@ class OLAGApp {
       <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
         <div>
           <h2>Export & Print Report</h2>
-          <p>Generate, download, and print official weekly assessment certificates.</p>
+          <p>Generate, download, and print official weekly assessment certificates (including archived past weeks).</p>
         </div>
 
         <div class="report-action-buttons">
@@ -5570,7 +6438,17 @@ class OLAGApp {
         <div class="filter-field">
           <label>Week Interval</label>
           <select id="reportWeekSelect" class="form-select">
-            ${weeks.length === 0 ? '<option value="">No week intervals created yet</option>' : weeks.map(w => `<option value="${w.id}" ${w.id === selectedWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+            ${allWeeks.length === 0 ? '<option value="">No week intervals created yet</option>' : ''}
+            ${weeks.length > 0 ? `
+              <optgroup label="Active & Scheduled Week Intervals">
+                ${weeks.map(w => `<option value="${w.id}" ${w.id === selectedWeekId ? 'selected' : ''}>${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})</option>`).join('')}
+              </optgroup>
+            ` : ''}
+            ${archivedWeeks.length > 0 ? `
+              <optgroup label="Past Weeks Evaluation Archive (Reference)">
+                ${archivedWeeks.map(a => `<option value="${a.id}" ${a.id === selectedWeekId ? 'selected' : ''}>[Archived] ${escapeHtml(a.name)} (${escapeHtml(a.dateRange)})</option>`).join('')}
+              </optgroup>
+            ` : ''}
           </select>
         </div>
 
@@ -5612,7 +6490,7 @@ class OLAGApp {
                   <td colspan="6" style="text-align: center; padding: 2.5rem; color: #64748b;">
                     <div style="display: inline-flex; color: #64748b; margin-bottom: 0.5rem;">${APP_ICONS.reports}</div><br>
                     No official student scores recorded for ${currentWeek ? escapeHtml(currentWeek.name) : 'this cycle'} yet.<br>
-                    <small>Once scores are submitted in the Assessment portal, certificates will generate automatically.</small>
+                    <small>Once scores are submitted in the Assessment portal, certificates will generate automatically.${archivedWeeks.length > 0 ? ` Select <strong>[Archived] ${escapeHtml(archivedWeeks[0].name)}</strong> above to print an archived past week report.` : ''}</small>
                   </td>
                 </tr>
               ` : reportStudents.slice(0, 5).map((s, idx) => `
@@ -5640,6 +6518,7 @@ class OLAGApp {
     if (weekSel) {
       weekSel.addEventListener('change', (e) => {
         this.store.state.selectedWeekId = e.target.value;
+        this.store.state.selectedClass = 'All';
         this.renderReports();
       });
     }
@@ -5658,12 +6537,18 @@ class OLAGApp {
   }
 
   exportCsvReport() {
-    const selectedWeekId = this.store.state.selectedWeekId || (this.store.state.weeks[0] ? this.store.state.weeks[0].id : null);
-    const currentWeek = (selectedWeekId ? this.store.state.weeks.find(w => w.id === selectedWeekId) : null) || this.store.state.weeks[0] || { name: 'Week' };
+    const weeks = this.store.state.weeks || [];
+    const archivedWeeks = this.store.getArchivedWeeks();
+    const allWeeks = [...weeks, ...archivedWeeks];
+    const selectedWeekId = this.store.state.selectedWeekId || (weeks[0] ? weeks[0].id : (archivedWeeks[0] ? archivedWeeks[0].id : null));
+    const currentWeek = (selectedWeekId ? allWeeks.find(w => w.id === selectedWeekId) : null) || weeks[0] || archivedWeeks[0] || { name: 'Week' };
+    const isArchivedReport = Boolean(currentWeek && (currentWeek.isArchived || currentWeek.status === 'Archived'));
     const selectedClass = this.store.state.selectedClass || 'All';
-    const weekScores = selectedWeekId ? (this.store.state.scores[selectedWeekId] || {}) : {};
+    const weekScores = isArchivedReport
+      ? (currentWeek.scores || {})
+      : (selectedWeekId ? (this.store.state.scores[selectedWeekId] || {}) : {});
 
-    let studentList = [...this.store.state.students];
+    let studentList = isArchivedReport ? [...(currentWeek.students || [])] : [...this.store.state.students];
     if (selectedClass && selectedClass !== 'All') {
       studentList = studentList.filter(s => s.class === selectedClass);
     }

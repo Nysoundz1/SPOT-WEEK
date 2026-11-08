@@ -3831,6 +3831,82 @@ a {
 }
 
 /* ==========================================================================
+   PAST WEEKS EVALUATION ARCHIVE STYLING (LIGHT & NATURAL DARK MODE)
+   ========================================================================== */
+.status-badge-archived {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+
+.archive-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  flex-shrink: 0;
+}
+
+.archive-reference-notice-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #d97706;
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.archive-row-selected {
+  background: #fffbeb;
+}
+
+.archive-detail-explorer-card {
+  border: 1.5px solid #fde68a;
+}
+
+[data-theme="dark"] .status-badge-archived {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.38) !important;
+}
+
+[data-theme="dark"] .archive-badge-icon {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+[data-theme="dark"] .archive-reference-notice-banner {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  border-left-color: #f59e0b !important;
+}
+
+[data-theme="dark"] .archive-row-selected {
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+[data-theme="dark"] .archive-detail-explorer-card {
+  border-color: rgba(245, 158, 11, 0.32) !important;
+}
+
+/* ==========================================================================
    PERFECT PRINT CERTIFICATE RULES
    Guarantees clean, single-page official school certificate output without UI clutter
    ========================================================================== */
