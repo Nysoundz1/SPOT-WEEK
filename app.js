@@ -4242,7 +4242,8 @@ class OLAGApp {
         { id: 'students', icon: APP_ICONS.students, label: 'Students' },
         { id: 'assessment', icon: APP_ICONS.assessment, label: 'Weekly Assessment' },
         { id: 'rankings', icon: APP_ICONS.rankings, label: 'Results & Rankings' },
-        { id: 'previous-weeks', icon: APP_ICONS.archive, label: 'Previous Weeks & Archive' },
+        { id: 'previous-weeks', icon: APP_ICONS.calendar, label: 'Previous Weeks' },
+        { id: 'archive', icon: APP_ICONS.archive, label: 'Archive' },
         { id: 'committee', icon: APP_ICONS.committee, label: 'Committee Members' },
         { id: 'reports', icon: APP_ICONS.reports, label: 'Reports' },
         { id: 'settings', icon: APP_ICONS.settings, label: 'Settings' }
@@ -4253,7 +4254,8 @@ class OLAGApp {
         { id: 'dashboard-committee', icon: APP_ICONS.home, label: 'My Dashboard' },
         { id: 'assessment', icon: APP_ICONS.assessment, label: 'Enter Assessment' },
         { id: 'rankings', icon: APP_ICONS.rankings, label: 'Results & Rankings' },
-        { id: 'previous-weeks', icon: APP_ICONS.archive, label: 'Past Weeks Archive' },
+        { id: 'previous-weeks', icon: APP_ICONS.calendar, label: 'Previous Weeks' },
+        { id: 'archive', icon: APP_ICONS.archive, label: 'Archive' },
         { id: 'students', icon: APP_ICONS.students, label: 'Student Directory' },
         { id: 'reports', icon: APP_ICONS.reports, label: 'Official Reports' }
       ];
@@ -4284,9 +4286,18 @@ class OLAGApp {
       this.store.state.currentView = view;
     }
 
-    document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+    let targetEl = document.getElementById(`view-${view}`);
+    if (!targetEl && view === 'archive' && typeof document !== 'undefined') {
+      const mainEl = document.querySelector('.olag-main-content');
+      if (mainEl && typeof document.createElement === 'function') {
+        targetEl = document.createElement('section');
+        targetEl.id = 'view-archive';
+        targetEl.className = 'page-view';
+        mainEl.appendChild(targetEl);
+      }
+    }
 
-    const targetEl = document.getElementById(`view-${view}`);
+    document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
     if (targetEl) targetEl.classList.add('active');
 
     // Route to appropriate view
@@ -4308,6 +4319,9 @@ class OLAGApp {
         break;
       case 'previous-weeks':
         this.renderPreviousWeeks();
+        break;
+      case 'archive':
+        this.renderArchive();
         break;
       case 'committee':
         this.renderCommittee();
@@ -4607,6 +4621,13 @@ class OLAGApp {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
             </div>
             <div class="quick-action-label">Add Committee Member</div>
+          </div>
+
+          <div class="quick-action-card" onclick="app.navigateTo('archive')">
+            <div class="quick-action-icon-box tone-amber">
+              ${APP_ICONS.archive}
+            </div>
+            <div class="quick-action-label">Evaluation Archive</div>
           </div>
 
           <div class="quick-action-card" onclick="app.navigateTo('reports')">
@@ -4909,6 +4930,9 @@ class OLAGApp {
           </button>
           <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
             ${APP_ICONS.calendar} View All Intervals
+          </button>
+          <button type="button" class="btn-navy-action" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('archive')">
+            ${APP_ICONS.archive} Archive
           </button>
         </div>
       </div>
@@ -6156,8 +6180,8 @@ class OLAGApp {
           <p>Official student performance rankings for active cycles and archived past weeks.</p>
         </div>
         ${archivedWeeks.length > 0 ? `
-          <button type="button" class="btn-navy-action" onclick="app.navigateTo('previous-weeks')">
-            ${APP_ICONS.archive} Open Past Weeks Archive (${archivedWeeks.length})
+          <button type="button" class="btn-navy-action" onclick="app.navigateTo('archive')">
+            ${APP_ICONS.archive} Open Evaluation Archive (${archivedWeeks.length})
           </button>
         ` : ''}
       </div>
@@ -6340,6 +6364,129 @@ class OLAGApp {
     const weeks = this.store.state.weeks || [];
     const archivedWeeks = this.store.getArchivedWeeks();
     const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
+
+    container.innerHTML = `
+      <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2>Previous &amp; Active Week Intervals</h2>
+          <p>Manage active and scheduled weekly assessment intervals. Completed weeks can be pushed to the standalone Archive.</p>
+        </div>
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+          <button type="button" class="btn-navy-action" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;" onclick="app.navigateTo('archive')">
+            ${APP_ICONS.archive} Open Standalone Archive (${archivedWeeks.length})
+          </button>
+          ${isCurrentlyAdmin ? `
+            <button type="button" class="btn-navy-action" onclick="app.openSetWeekIntervalModal()">
+              ${APP_ICONS.calendar} + Set New Week Interval
+            </button>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- ACTIVE & SCHEDULED WEEK INTERVALS -->
+      <div class="scoring-table-card" style="padding: 0; overflow: hidden;">
+        <div class="scoring-table-title directory-header-bar" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.calendar}</span>
+              <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary);">Active &amp; Scheduled Week Intervals</span>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
+              Current open and upcoming assessment intervals for new student nominations and evaluations.
+            </div>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="table-standard">
+            <thead>
+              <tr>
+                <th>Week Interval</th>
+                <th>Date Range</th>
+                <th>Status</th>
+                <th>Top Student</th>
+                <th style="text-align: center;">Total Score</th>
+                <th style="text-align: center;">Percentage</th>
+                <th style="text-align: center; width: 220px;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${weeks.length === 0 ? `
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+                    <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.calendar}</div><br>
+                    <strong>No active week intervals configured yet.</strong><br>
+                    <span style="font-size: 0.85rem;">${isCurrentlyAdmin ? 'Click "+ Set New Week Interval" above to create your next scoring cycle.' : 'Week intervals configured by the administrator will appear here.'}</span>
+                  </td>
+                </tr>
+              ` : weeks.map(w => `
+                <tr>
+                  <td>
+                    <strong>${escapeHtml(w.name)}</strong>
+                    ${w.isCurrent ? '<span style="font-size: 0.7rem; font-weight: 700; background: #dcfce7; color: #15803d; padding: 0.1rem 0.4rem; border-radius: 999px; margin-left: 0.35rem;">Active</span>' : ''}
+                  </td>
+                  <td>${escapeHtml(w.dateRange)}</td>
+                  <td>
+                    <span class="${w.status === 'Closed' ? 'status-badge-closed' : (w.status === 'Upcoming' ? 'status-badge-upcoming' : 'status-badge-active')}" style="font-size: 0.75rem;">
+                      ● ${w.status === 'Closed' ? 'Closed (Sealed)' : (w.status === 'Upcoming' ? 'Upcoming' : 'Open')}
+                    </span>
+                  </td>
+                  <td>
+                    <span style="font-weight: 700; color: var(--navy-primary);">
+                      ${w.topStudent ? escapeHtml(w.topStudent) : '<span style="color: var(--text-muted); font-weight: normal;">Awaiting New Entries</span>'}
+                    </span>
+                  </td>
+                  <td style="text-align: center; font-weight: 700;">${w.totalScore ? `${w.totalScore} / ${w.maxScore || this.getMaxCriteriaScore()}` : '—'}</td>
+                  <td style="text-align: center; font-weight: 700;">${w.percentage ? `${w.percentage}%` : '—'}</td>
+                  <td style="text-align: center;">
+                    <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
+                      <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.viewWeekDetail('${w.id}')">
+                        View
+                      </button>
+                      ${isCurrentlyAdmin ? `
+                        <button class="btn-navy-action" style="height: 30px; padding: 0 0.65rem; font-size: 0.73rem; background: #b45309; color: #fff;" title="Push this week's evaluation into the standalone Archive" onclick="app.archiveWeekEvaluation('${w.id}')">
+                          ${APP_ICONS.archive} Archive
+                        </button>
+                        ${w.status === 'Upcoming' ? `
+                          <button class="action-icon-btn" title="Activate this week for scoring now" style="width: 30px; height: 30px; color: #2563eb; background: #eff6ff;" onclick="app.activateUpcomingWeek('${w.id}')">
+                            ${APP_ICONS.play}
+                          </button>
+                        ` : `
+                          <button class="action-icon-btn" title="${w.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal Results)'}" style="width: 30px; height: 30px;" onclick="app.quickToggleWeekStatus('${w.id}')">
+                            ${w.status === 'Closed' ? APP_ICONS.unlock : APP_ICONS.lock}
+                          </button>
+                        `}
+                        <button class="action-icon-btn" title="Edit Week Interval" style="width: 30px; height: 30px;" onclick="app.openSetWeekIntervalModal('${w.id}')">
+                          ${APP_ICONS.edit}
+                        </button>
+                      ` : ''}
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // =========================================================================
+  // STANDALONE VIEW: PAST WEEKS EVALUATION ARCHIVE
+  // =========================================================================
+  renderArchive() {
+    let container = document.getElementById('view-archive');
+    if (!container && typeof document !== 'undefined') {
+      const mainEl = document.querySelector('.olag-main-content');
+      if (mainEl && typeof document.createElement === 'function') {
+        container = document.createElement('section');
+        container.id = 'view-archive';
+        container.className = 'page-view';
+        mainEl.appendChild(container);
+      }
+    }
+    if (!container) return;
+
+    const archivedWeeks = this.store.getArchivedWeeks();
     const criteria = (this.store.state.criteria && this.store.state.criteria.length > 0) ? this.store.state.criteria : CRITERIA_LIST;
 
     let selectedArchive = null;
@@ -6377,16 +6524,66 @@ class OLAGApp {
     container.innerHTML = `
       <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h2>Past Weeks Evaluation Archive &amp; Intervals</h2>
-          <p>Refer to archived past weeks' evaluations, student rankings, and 7-criteria committee scores at any time.</p>
+          <h2>Past Weeks Evaluation Archive</h2>
+          <p>Standalone reference archive of past weekly evaluations, top winners, 4-finalist rankings, and 7-criteria committee scores.</p>
         </div>
-        ${isCurrentlyAdmin ? `
-          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
-            <button type="button" class="btn-navy-action" onclick="app.openSetWeekIntervalModal()">
-              ${APP_ICONS.calendar} + Set New Week Interval
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+          <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" onclick="app.navigateTo('previous-weeks')">
+            ${APP_ICONS.calendar} Active Week Intervals
+          </button>
+          ${selectedArchive ? `
+            <button type="button" class="btn-navy-action" style="background: #059669; color: #fff;" onclick="app.openArchivedWeekReport('${selectedArchive.id}')">
+              ${APP_ICONS.printer} Print Official Report
             </button>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- STANDALONE ARCHIVE KPI SUMMARY CARDS -->
+      <div class="stat-cards-grid" style="margin-bottom: 1.35rem;">
+        <div class="stat-card card-orange">
+          <div class="stat-card-text">
+            <span class="stat-card-title">Archived Cycles</span>
+            <span class="stat-card-value">${archivedWeeks.length}</span>
+            <span class="stat-card-sub">Preserved past evaluations</span>
           </div>
-        ` : ''}
+          <div class="stat-card-icon-badge">
+            ${APP_ICONS.archive}
+          </div>
+        </div>
+
+        <div class="stat-card card-blue">
+          <div class="stat-card-text">
+            <span class="stat-card-title">Selected Archive</span>
+            <span class="stat-card-value" style="font-size: 1.35rem;">${selectedArchive ? escapeHtml(selectedArchive.name) : 'None'}</span>
+            <span class="stat-card-sub">${selectedArchive ? `(${escapeHtml(selectedArchive.dateRange)})` : 'No cycle selected'}</span>
+          </div>
+          <div class="stat-card-icon-badge">
+            ${APP_ICONS.calendar}
+          </div>
+        </div>
+
+        <div class="stat-card card-green">
+          <div class="stat-card-text">
+            <span class="stat-card-title">Archived Winner</span>
+            <span class="stat-card-value" style="font-size: 1.2rem;">${selectedArchive && selectedArchive.topStudent ? escapeHtml(selectedArchive.topStudent) : '—'}</span>
+            <span class="stat-card-sub">${selectedArchive && selectedArchive.totalScore ? `${selectedArchive.totalScore}/${selectedArchive.maxScore || 70} (${selectedArchive.percentage}%)` : 'No winner recorded'}</span>
+          </div>
+          <div class="stat-card-icon-badge">
+            ${APP_ICONS.trophy}
+          </div>
+        </div>
+
+        <div class="stat-card card-purple">
+          <div class="stat-card-text">
+            <span class="stat-card-title">Evaluated Finalists</span>
+            <span class="stat-card-value">${archiveStudentsRanked.length}</span>
+            <span class="stat-card-sub">Full 7-criteria records</span>
+          </div>
+          <div class="stat-card-icon-badge">
+            ${APP_ICONS.students}
+          </div>
+        </div>
       </div>
 
       <!-- SECTION 1: PAST WEEKS EVALUATION ARCHIVE SUMMARY TABLE -->
@@ -6602,91 +6799,6 @@ class OLAGApp {
           </div>
         </div>
       ` : ''}
-
-      <!-- SECTION 3: ACTIVE & SCHEDULED WEEK INTERVALS -->
-      <div class="scoring-table-card" style="padding: 0; overflow: hidden;">
-        <div class="scoring-table-title directory-header-bar" style="padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.calendar}</span>
-              <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary);">Active &amp; Scheduled Week Intervals</span>
-            </div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
-              Current open and upcoming assessment intervals for new student nominations and evaluations.
-            </div>
-          </div>
-        </div>
-        <div style="overflow-x: auto;">
-          <table class="table-standard">
-            <thead>
-              <tr>
-                <th>Week Interval</th>
-                <th>Date Range</th>
-                <th>Status</th>
-                <th>Top Student</th>
-                <th style="text-align: center;">Total Score</th>
-                <th style="text-align: center;">Percentage</th>
-                <th style="text-align: center; width: 220px;">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${weeks.length === 0 ? `
-                <tr>
-                  <td colspan="7" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
-                    <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.calendar}</div><br>
-                    <strong>No active week intervals configured yet.</strong><br>
-                    <span style="font-size: 0.85rem;">${isCurrentlyAdmin ? 'Click "+ Set New Week Interval" above to create your next scoring cycle.' : 'Week intervals configured by the administrator will appear here.'}</span>
-                  </td>
-                </tr>
-              ` : weeks.map(w => `
-                <tr>
-                  <td>
-                    <strong>${escapeHtml(w.name)}</strong>
-                    ${w.isCurrent ? '<span style="font-size: 0.7rem; font-weight: 700; background: #dcfce7; color: #15803d; padding: 0.1rem 0.4rem; border-radius: 999px; margin-left: 0.35rem;">Active</span>' : ''}
-                  </td>
-                  <td>${escapeHtml(w.dateRange)}</td>
-                  <td>
-                    <span class="${w.status === 'Closed' ? 'status-badge-closed' : (w.status === 'Upcoming' ? 'status-badge-upcoming' : 'status-badge-active')}" style="font-size: 0.75rem;">
-                      ● ${w.status === 'Closed' ? 'Closed (Sealed)' : (w.status === 'Upcoming' ? 'Upcoming' : 'Open')}
-                    </span>
-                  </td>
-                  <td>
-                    <span style="font-weight: 700; color: var(--navy-primary);">
-                      ${w.topStudent ? escapeHtml(w.topStudent) : '<span style="color: var(--text-muted); font-weight: normal;">Awaiting New Entries</span>'}
-                    </span>
-                  </td>
-                  <td style="text-align: center; font-weight: 700;">${w.totalScore ? `${w.totalScore} / ${w.maxScore || this.getMaxCriteriaScore()}` : '—'}</td>
-                  <td style="text-align: center; font-weight: 700;">${w.percentage ? `${w.percentage}%` : '—'}</td>
-                  <td style="text-align: center;">
-                    <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
-                      <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.viewWeekDetail('${w.id}')">
-                        View
-                      </button>
-                      ${isCurrentlyAdmin ? `
-                        <button class="btn-navy-action" style="height: 30px; padding: 0 0.65rem; font-size: 0.73rem; background: #b45309; color: #fff;" title="Push this week's evaluation into the Past Weeks Archive" onclick="app.archiveWeekEvaluation('${w.id}')">
-                          ${APP_ICONS.archive} Archive
-                        </button>
-                        ${w.status === 'Upcoming' ? `
-                          <button class="action-icon-btn" title="Activate this week for scoring now" style="width: 30px; height: 30px; color: #2563eb; background: #eff6ff;" onclick="app.activateUpcomingWeek('${w.id}')">
-                            ${APP_ICONS.play}
-                          </button>
-                        ` : `
-                          <button class="action-icon-btn" title="${w.status === 'Closed' ? 'Re-Open Scoring' : 'Close Scoring (Seal Results)'}" style="width: 30px; height: 30px;" onclick="app.quickToggleWeekStatus('${w.id}')">
-                            ${w.status === 'Closed' ? APP_ICONS.unlock : APP_ICONS.lock}
-                          </button>
-                        `}
-                        <button class="action-icon-btn" title="Edit Week Interval" style="width: 30px; height: 30px;" onclick="app.openSetWeekIntervalModal('${w.id}')">
-                          ${APP_ICONS.edit}
-                        </button>
-                      ` : ''}
-                    </div>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
     `;
   }
 
@@ -6694,7 +6806,11 @@ class OLAGApp {
     if (!archiveWeekId) return;
     this.store.state.selectedArchiveWeekId = archiveWeekId;
     this.store.save();
-    this.renderPreviousWeeks();
+    if (this.store.state.currentView !== 'archive') {
+      this.navigateTo('archive');
+    } else {
+      this.renderArchive();
+    }
     const detailCard = document.getElementById('archiveExplorerDetailCard');
     if (detailCard && typeof detailCard.scrollIntoView === 'function') {
       detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6800,6 +6916,7 @@ class OLAGApp {
     }
 
     this.store.normalizeStudentsAndClasses(this.store.state);
+    this.store.state.currentView = 'archive';
     this.store.save();
     this.showToast(`Pushed ${week.name} (${week.dateRange}) to the Past Weeks Evaluation Archive!`);
     this.render();
