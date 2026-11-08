@@ -1520,43 +1520,16 @@ class OLAGStore {
       });
     });
 
-    // 3. Ensure notification exists for student nominations (Review Pool & Best 4 Selection)
-    const nominations = Array.isArray(stateObj.nominations) ? stateObj.nominations : [];
-    nominations.forEach(nom => {
-      if (!nom || !nom.id) return;
-      const notifId = `notif-nom-${nom.id}`;
-      if (!existingIds.has(notifId) && !dismissed.has(notifId)) {
-        const st = students.find(s => s && s.id === nom.studentId);
-        const sName = st ? `${st.name} (${st.class})` : (nom.studentName || nom.studentId);
-        const wk = weeks.find(w => w && w.id === nom.weekId);
-        const wName = wk ? wk.name : 'Weekly Assessment';
-        const nomByName = nom.nominatedByName || 'Committee Member';
-        stateObj.notifications.unshift({
-          id: notifId,
-          type: 'nomination',
-          icon: 'award',
-          title: `Student Nominated: ${sName}`,
-          message: `${nomByName} nominated ${sName} for ${wName} evaluation. Citation: "${nom.citation || 'Outstanding character and conduct'}"`,
-          actionLabel: 'Evaluate Student',
-          actionView: 'assessment',
-          unread: true,
-          createdAt: nom.nominatedAt || nom.createdAt || new Date().toISOString()
-        });
-        existingIds.add(notifId);
-      }
-    });
-
-    // Filter out any notification that was dismissed or whose member/student/nomination was deleted or hidden
+    // Filter out any notification that was dismissed or whose member/student was deleted or hidden
     const activeMemberIds = new Set(members.map(m => `notif-member-${m.id}`));
     const activeStudentIds = new Set(students.map(s => s && s.id).filter(Boolean));
     const activeStudentNotifIds = new Set(students.map(s => `notif-student-${s.id}`));
-    const activeNomNotifIds = new Set(nominations.map(nom => `notif-nom-${nom.id}`));
     stateObj.notifications = stateObj.notifications.filter(n => {
       if (!n || !n.id || dismissed.has(n.id)) return false;
+      if (n.id.startsWith('notif-nom-')) return false;
       if (containsLegacyHiddenStudentName(n.title) || containsLegacyHiddenStudentName(n.message)) return false;
       if (n.id.startsWith('notif-member-') && !activeMemberIds.has(n.id)) return false;
       if (n.id.startsWith('notif-student-') && !activeStudentNotifIds.has(n.id)) return false;
-      if (n.id.startsWith('notif-nom-') && !activeNomNotifIds.has(n.id)) return false;
       if (n.id.startsWith('notif-score-')) {
         let belongsToActiveStudent = false;
         activeStudentIds.forEach(sId => {
@@ -3380,508 +3353,8 @@ class OLAGApp {
     modal.classList.add('active');
   }
 
-  // =========================================================================
-  // WEEKLY STUDENT NOMINATION MODAL & WORKFLOW (SUPPORTS NEW & EXISTING ENTRIES)
-  // =========================================================================
-  ensureNominateModalExists() {
-    let modal = document.getElementById('modalNominateStudent');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.className = 'modal-overlay';
-      modal.id = 'modalNominateStudent';
-      modal.innerHTML = `
-        <div class="modal-container" style="max-width: 600px; width: 95%;">
-          <div class="modal-header-row">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="display: inline-flex; align-items: center; color: #d97706;">${APP_ICONS.award}</span>
-              <h3 style="margin: 0;" id="nominateModalTitle">Nominate Student for Weekly Evaluation</h3>
-            </div>
-            <button type="button" class="btn-close-x" onclick="document.getElementById('modalNominateStudent').classList.remove('active')">&times;</button>
-          </div>
-
-          <form id="formNominateStudent" onsubmit="event.preventDefault(); app.handleNominateStudentSubmit();" style="margin-top: 0.85rem;">
-            <input type="hidden" id="nominateEntryMode" value="new" />
-
-            <!-- Week Interval Select -->
-            <div class="filter-field" style="margin-bottom: 0.85rem;">
-              <label for="nominateWeekSelect">Assessment Week Interval *</label>
-              <select id="nominateWeekSelect" class="form-select" required onchange="app.handleNominateWeekChange()">
-                <!-- Populated dynamically -->
-              </select>
-            </div>
-
-            <!-- Mode Switcher: New Student Entry vs Existing Enrolled Student -->
-            <div class="nominate-mode-tabs" style="display: flex; gap: 0.45rem; margin-bottom: 0.85rem; padding: 0.3rem; border-radius: var(--radius-sm); background: #f1f5f9; border: 1px solid var(--card-border);">
-              <button type="button" id="tabNominateModeNew" class="btn-nominate-mode-tab active" onclick="app.switchNominateModalMode('new')">
-                ${APP_ICONS.userPlus} + Enter New Student
-              </button>
-              <button type="button" id="tabNominateModeExisting" class="btn-nominate-mode-tab" onclick="app.switchNominateModalMode('existing')">
-                ${APP_ICONS.students} Select Enrolled Student
-              </button>
-            </div>
-
-            <!-- Panel A: New Student Entry Fields -->
-            <div id="nominateNewStudentPanel" class="nominate-new-student-panel" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 0.85rem;">
-              <div class="filter-field" style="margin-bottom: 0.75rem;">
-                <label for="nominateNewStudentName">Student Full Name *</label>
-                <input type="text" id="nominateNewStudentName" class="form-input" placeholder="Enter student's full name (e.g. Kwame Mensah)" autocomplete="off" />
-              </div>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.65rem;">
-                <div class="filter-field">
-                  <label for="nominateNewStudentClass">Class / Form *</label>
-                  <input type="text" id="nominateNewStudentClass" class="form-input" list="nominateClassesDatalist" placeholder="e.g. 2 Science 1" autocomplete="off" />
-                  <datalist id="nominateClassesDatalist"></datalist>
-                </div>
-                <div class="filter-field">
-                  <label for="nominateNewStudentHouse">House *</label>
-                  <select id="nominateNewStudentHouse" class="form-select">
-                    <option value="ST. THOMAS">ST. THOMAS</option>
-                    <option value="ST. PAUL">ST. PAUL</option>
-                    <option value="ST. MARY">ST. MARY</option>
-                    <option value="ST. JOSEPH">ST. JOSEPH</option>
-                  </select>
-                </div>
-                <div class="filter-field">
-                  <label for="nominateNewStudentGender">Gender *</label>
-                  <select id="nominateNewStudentGender" class="form-select">
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- Panel B: Select Existing Enrolled Student -->
-            <div id="nominateExistingStudentPanel" style="display: none; margin-bottom: 0.85rem;">
-              <div class="filter-field">
-                <label for="nominateStudentSelect">Student to Nominate *</label>
-                <select id="nominateStudentSelect" class="form-select" onchange="app.handleNominateStudentChange()">
-                  <!-- Populated dynamically -->
-                </select>
-              </div>
-            </div>
-
-            <!-- Nominator Identity Card -->
-            <div id="nominateEvaluatorInfoBox" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 0.95rem; margin-bottom: 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
-              <div style="display: flex; align-items: center; gap: 0.65rem;">
-                <div class="evaluator-avatar" id="nominateNominatorAvatar" style="background: #059669; color: #fff; width: 34px; height: 34px; font-size: 0.78rem;">CM</div>
-                <div>
-                  <div style="font-weight: 700; font-size: 0.86rem; color: var(--navy-primary);" id="nominateNominatorName">Committee Member</div>
-                  <div style="font-size: 0.74rem; color: var(--text-muted);" id="nominateNominatorRole">Evaluator</div>
-                </div>
-              </div>
-              <span class="badge-nominee" style="font-size: 0.68rem;">Official Nominator</span>
-            </div>
-
-            <!-- Merit Tags / Commendations Selection -->
-            <div class="filter-field" style="margin-bottom: 0.85rem;">
-              <label style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Commendation &amp; Merit Tags</span>
-                <span style="font-weight: normal; font-size: 0.72rem; color: var(--text-muted);">Click to toggle tags</span>
-              </label>
-              <div id="nominateTagsContainer" style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.35rem;">
-                <span class="nomination-tag-pill active" onclick="app.toggleNominationTag(this)" data-tag="Exemplary Conduct">Exemplary Conduct</span>
-                <span class="nomination-tag-pill active" onclick="app.toggleNominationTag(this)" data-tag="Punctuality">Punctuality</span>
-                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Discipline">Discipline</span>
-                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Leadership">Leadership</span>
-                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Appearance">Appearance</span>
-                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Social Interactions">Social Interactions</span>
-                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Spiritual Life">Spiritual Life</span>
-                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Dining Etiquette">Dining Etiquette</span>
-                <span class="nomination-tag-pill" onclick="app.toggleNominationTag(this)" data-tag="Academic Excellence">Academic Excellence</span>
-              </div>
-            </div>
-
-            <!-- Citation / Reason for Nomination -->
-            <div class="filter-field" style="margin-bottom: 0.85rem;">
-              <label for="nominateCitationInput" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Citation / Reason for Nomination *</span>
-                <span style="font-weight: normal; font-size: 0.72rem; color: var(--text-muted);">Describe specific merits</span>
-              </label>
-              <textarea id="nominateCitationInput" class="form-input" rows="3" placeholder="Describe why this student deserves to be evaluated for Student Personality of the Week..." required style="resize: vertical; font-size: 0.82rem; line-height: 1.45;"></textarea>
-              <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; align-items: center;">
-                <span style="font-size: 0.72rem; color: var(--text-muted);">Quick Presets:</span>
-                <button type="button" class="btn-demo-pill" style="height: 24px; font-size: 0.7rem; padding: 0 0.5rem;" onclick="app.setNominationCitationPreset('leadership')">Leadership &amp; Service</button>
-                <button type="button" class="btn-demo-pill" style="height: 24px; font-size: 0.7rem; padding: 0 0.5rem;" onclick="app.setNominationCitationPreset('punctuality')">Punctuality &amp; Devotion</button>
-                <button type="button" class="btn-demo-pill" style="height: 24px; font-size: 0.7rem; padding: 0 0.5rem;" onclick="app.setNominationCitationPreset('conduct')">Exemplary Discipline</button>
-              </div>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1.25rem;">
-              <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 36px;" onclick="document.getElementById('modalNominateStudent').classList.remove('active')">
-                Cancel
-              </button>
-              <button type="submit" class="btn-nominate-gold" style="height: 36px; padding: 0 1.25rem;">
-                ${APP_ICONS.award} Submit Nomination
-              </button>
-            </div>
-          </form>
-        </div>
-      `;
-      document.body.appendChild(modal);
-
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.classList.remove('active');
-      });
-    }
-    return modal;
-  }
-
-  switchNominateModalMode(mode = 'new') {
-    const modeInput = document.getElementById('nominateEntryMode');
-    const tabNew = document.getElementById('tabNominateModeNew');
-    const tabExisting = document.getElementById('tabNominateModeExisting');
-    const panelNew = document.getElementById('nominateNewStudentPanel');
-    const panelExisting = document.getElementById('nominateExistingStudentPanel');
-    const students = this.store.state.students || [];
-
-    if (mode === 'existing' && students.length === 0) {
-      this.showToast('No students enrolled yet. Please enter a new student below.');
-      mode = 'new';
-    }
-
-    if (modeInput) modeInput.value = mode;
-    if (tabNew) tabNew.classList.toggle('active', mode === 'new');
-    if (tabExisting) tabExisting.classList.toggle('active', mode === 'existing');
-    if (panelNew) panelNew.style.display = mode === 'new' ? 'block' : 'none';
-    if (panelExisting) panelExisting.style.display = mode === 'existing' ? 'block' : 'none';
-
-    const weekSelect = document.getElementById('nominateWeekSelect');
-    const studentSelect = document.getElementById('nominateStudentSelect');
-    const weekId = weekSelect ? weekSelect.value : null;
-
-    if (mode === 'existing' && studentSelect && studentSelect.value) {
-      this.syncNominationModalFormState(studentSelect.value, weekId);
-    } else {
-      this.syncNominationModalFormState(null, weekId);
-      const nameInput = document.getElementById('nominateNewStudentName');
-      if (nameInput) setTimeout(() => nameInput.focus(), 80);
-    }
-  }
-
-  toggleNominationTag(el) {
-    if (!el) return;
-    el.classList.toggle('active');
-  }
-
-  setNominationCitationPreset(presetKey) {
-    const citationInput = document.getElementById('nominateCitationInput');
-    if (!citationInput) return;
-    if (presetKey === 'leadership') {
-      citationInput.value = 'Demonstrated outstanding peer leadership, voluntary service, and proactive support during school assemblies and campus events.';
-    } else if (presetKey === 'punctuality') {
-      citationInput.value = 'Maintains 100% punctuality across morning devotion, classes, and dining sessions with prompt and orderly attendance.';
-    } else if (presetKey === 'conduct') {
-      citationInput.value = 'Exhibits exemplary personal discipline, neat and proper school attire, respectful social demeanor, and high ethical conduct.';
-    }
-    citationInput.focus();
-  }
-
-  openNominateStudentModal(preselectedStudentId = null, preselectedWeekId = null) {
-    this.ensureNominateModalExists();
-    const modal = document.getElementById('modalNominateStudent');
-    if (!modal) return;
-
-    const weeks = this.store.state.weeks || [];
-    const students = this.store.state.students || [];
-    const classes = this.store.state.classes || [];
-    const houses = (this.store.state.houses && this.store.state.houses.length > 0) ? this.store.state.houses : HOUSES_LIST;
-    const currentEvaluator = this.getCurrentLoginEvaluator();
-
-    const datalist = document.getElementById('nominateClassesDatalist');
-    if (datalist) {
-      datalist.innerHTML = classes.map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
-    }
-
-    const houseSelect = document.getElementById('nominateNewStudentHouse');
-    if (houseSelect) {
-      houseSelect.innerHTML = houses.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
-    }
-
-    const newNameInput = document.getElementById('nominateNewStudentName');
-    const newClassInput = document.getElementById('nominateNewStudentClass');
-    if (newNameInput) newNameInput.value = '';
-    if (newClassInput) newClassInput.value = '';
-
-    const weekSelect = document.getElementById('nominateWeekSelect');
-    if (weekSelect) {
-      const activeWeek = this.getActiveWeek();
-      const targetWeekId = preselectedWeekId || this.store.state.selectedWeekId || (activeWeek ? activeWeek.id : (weeks[0] ? weeks[0].id : null));
-      weekSelect.innerHTML = weeks.length === 0
-        ? '<option value="">No week intervals created yet</option>'
-        : weeks.map(w => {
-            let label = `${escapeHtml(w.name)} (${escapeHtml(w.dateRange)})`;
-            if (w.status === 'Closed') label += ' [Closed - Read Only]';
-            else if (w.status === 'Upcoming') label += ' [Upcoming]';
-            else if (w.isCurrent) label += ' [Active Cycle]';
-            return `<option value="${escapeHtml(w.id)}" ${w.id === targetWeekId ? 'selected' : ''}>${label}</option>`;
-          }).join('');
-      if (targetWeekId) weekSelect.value = targetWeekId;
-    }
-
-    const hasPreselectedStudent = Boolean(preselectedStudentId && students.some(s => s && s.id === preselectedStudentId));
-
-    const studentSelect = document.getElementById('nominateStudentSelect');
-    if (studentSelect) {
-      const targetStudentId = hasPreselectedStudent ? preselectedStudentId : (this.store.state.selectedStudentId || (students[0] ? students[0].id : null));
-      const targetWeekId = weekSelect ? weekSelect.value : null;
-      studentSelect.innerHTML = students.length === 0
-        ? '<option value="">No students enrolled yet — use "+ Enter New Student"</option>'
-        : students.map(s => {
-            const isNom = targetWeekId ? this.store.isStudentNominated(s.id, targetWeekId) : false;
-            return `<option value="${escapeHtml(s.id)}" ${s.id === targetStudentId ? 'selected' : ''}>${escapeHtml(s.name)} (${escapeHtml(s.id)}) — ${escapeHtml(s.class)}, ${escapeHtml(s.house)}${isNom ? ' [Nominated]' : ''}</option>`;
-          }).join('');
-      if (targetStudentId) studentSelect.value = targetStudentId;
-    }
-
-    const tabExisting = document.getElementById('tabNominateModeExisting');
-    if (tabExisting) {
-      tabExisting.innerHTML = `${APP_ICONS.students} Select Enrolled Student (${students.length})`;
-    }
-
-    const nomAvatar = document.getElementById('nominateNominatorAvatar');
-    const nomName = document.getElementById('nominateNominatorName');
-    const nomRole = document.getElementById('nominateNominatorRole');
-    if (nomAvatar) {
-      nomAvatar.textContent = currentEvaluator.avatar || 'CM';
-      nomAvatar.style.background = currentEvaluator.avatarBg || '#059669';
-    }
-    if (nomName) nomName.textContent = currentEvaluator.name || 'Committee Member';
-    if (nomRole) nomRole.textContent = currentEvaluator.role || 'Evaluator';
-
-    if (hasPreselectedStudent) {
-      this.switchNominateModalMode('existing');
-    } else {
-      this.switchNominateModalMode('new');
-    }
-
-    modal.classList.add('active');
-  }
-
-  handleNominateWeekChange() {
-    const modeInput = document.getElementById('nominateEntryMode');
-    const mode = (modeInput && modeInput.value) || 'new';
-    const weekSelect = document.getElementById('nominateWeekSelect');
-    const studentSelect = document.getElementById('nominateStudentSelect');
-    if (!weekSelect) return;
-    if (mode === 'existing' && studentSelect) {
-      this.syncNominationModalFormState(studentSelect.value, weekSelect.value);
-    } else {
-      this.syncNominationModalFormState(null, weekSelect.value);
-    }
-  }
-
-  handleNominateStudentChange() {
-    const weekSelect = document.getElementById('nominateWeekSelect');
-    const studentSelect = document.getElementById('nominateStudentSelect');
-    if (!weekSelect || !studentSelect) return;
-    this.syncNominationModalFormState(studentSelect.value, weekSelect.value);
-  }
-
-  syncNominationModalFormState(studentId, weekId) {
-    const existingNom = (studentId && weekId) ? this.store.getNominationForStudent(studentId, weekId) : null;
-    const citationInput = document.getElementById('nominateCitationInput');
-    const titleEl = document.getElementById('nominateModalTitle');
-    const tagsContainer = document.getElementById('nominateTagsContainer');
-
-    if (existingNom) {
-      if (titleEl) titleEl.textContent = 'Edit Student Nomination';
-      if (citationInput) citationInput.value = existingNom.citation || '';
-      if (tagsContainer) {
-        const activeTags = new Set(existingNom.tags || []);
-        tagsContainer.querySelectorAll('.nomination-tag-pill').forEach(pill => {
-          const tag = pill.getAttribute('data-tag');
-          if (activeTags.has(tag)) {
-            pill.classList.add('active');
-          } else {
-            pill.classList.remove('active');
-          }
-        });
-      }
-    } else {
-      if (titleEl) titleEl.textContent = 'Nominate Student for Weekly Evaluation';
-      if (citationInput) {
-        citationInput.value = 'Demonstrated outstanding character, punctuality, and exemplary adherence to school values throughout the week.';
-      }
-      if (tagsContainer) {
-        tagsContainer.querySelectorAll('.nomination-tag-pill').forEach((pill, idx) => {
-          if (idx < 2) pill.classList.add('active');
-          else pill.classList.remove('active');
-        });
-      }
-    }
-  }
-
-  handleNominateStudentSubmit() {
-    const modeInput = document.getElementById('nominateEntryMode');
-    const entryMode = (modeInput && modeInput.value) || 'new';
-    const weekSelect = document.getElementById('nominateWeekSelect');
-    const studentSelect = document.getElementById('nominateStudentSelect');
-    const citationInput = document.getElementById('nominateCitationInput');
-    const tagsContainer = document.getElementById('nominateTagsContainer');
-
-    if (!weekSelect || !citationInput) return;
-    const weekId = weekSelect.value;
-    const citation = citationInput.value.trim();
-
-    if (!weekId) {
-      this.showToast('Please select an assessment week interval.');
-      return;
-    }
-    if (!citation || citation.length < 5) {
-      this.showToast('Please enter a citation or reason for nomination.');
-      return;
-    }
-
-    let student = null;
-    let isNewlyCreated = false;
-
-    if (entryMode === 'new') {
-      const nameInput = document.getElementById('nominateNewStudentName');
-      const classInput = document.getElementById('nominateNewStudentClass');
-      const houseSelect = document.getElementById('nominateNewStudentHouse');
-      const genderSelect = document.getElementById('nominateNewStudentGender');
-
-      const newName = (nameInput ? nameInput.value : '').trim();
-      const newClass = (classInput ? classInput.value : '').trim();
-      const newHouse = (houseSelect ? houseSelect.value : 'ST. THOMAS').trim() || 'ST. THOMAS';
-      const newGender = (genderSelect ? genderSelect.value : 'Male').trim() || 'Male';
-
-      if (!newName) {
-        this.showToast('Please enter the student\'s full name.');
-        if (nameInput) nameInput.focus();
-        return;
-      }
-      if (!newClass) {
-        this.showToast('Please enter or select the student\'s class.');
-        if (classInput) classInput.focus();
-        return;
-      }
-
-      student = (this.store.state.students || []).find(s =>
-        s &&
-        String(s.name || '').trim().toLowerCase() === newName.toLowerCase() &&
-        String(s.class || '').trim().toLowerCase() === newClass.toLowerCase()
-      );
-
-      if (!student) {
-        const newId = this.store.getNextStudentId();
-        student = {
-          id: newId,
-          name: newName,
-          class: newClass,
-          house: newHouse,
-          gender: newGender,
-          comment: citation,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        if (!Array.isArray(this.store.state.students)) this.store.state.students = [];
-        this.store.state.students.push(student);
-        isNewlyCreated = true;
-
-        if (!Array.isArray(this.store.state.classes)) this.store.state.classes = [];
-        if (Array.isArray(this.store.state.deletedClasses)) {
-          this.store.state.deletedClasses = this.store.state.deletedClasses.filter(c => String(c).toLowerCase() !== newClass.toLowerCase());
-        }
-        if (!this.store.state.classes.some(c => String(c).toLowerCase() === newClass.toLowerCase())) {
-          this.store.state.classes.push(newClass);
-        }
-
-        this.store.state.totalStudentsCount = this.store.state.students.length;
-        this.addNotification({
-          id: `notif-student-${student.id}`,
-          type: 'student',
-          icon: 'student',
-          title: `New Student Enrolled: ${student.name}`,
-          message: `${student.name} (${student.id}) enrolled in ${student.class}, ${student.house}.`,
-          actionLabel: 'View Students',
-          actionView: 'students'
-        });
-      } else {
-        student.house = newHouse || student.house;
-        student.gender = newGender || student.gender;
-        student.updatedAt = new Date().toISOString();
-      }
-    } else {
-      const studentId = studentSelect ? studentSelect.value : '';
-      if (!studentId) {
-        this.showToast('Please select a student or switch to "+ Enter New Student".');
-        return;
-      }
-      student = (this.store.state.students || []).find(s => s && s.id === studentId);
-      if (!student) {
-        this.showToast('Selected student not found. Please enter a new student.');
-        return;
-      }
-    }
-
-    const selectedTags = [];
-    if (tagsContainer) {
-      tagsContainer.querySelectorAll('.nomination-tag-pill.active').forEach(pill => {
-        const tag = pill.getAttribute('data-tag');
-        if (tag) selectedTags.push(tag);
-      });
-    }
-
-    const currentEvaluator = this.getCurrentLoginEvaluator();
-    const week = this.store.state.weeks.find(w => w.id === weekId);
-
-    this.store.addNomination({
-      studentId: student.id,
-      studentName: student.name,
-      studentClass: student.class,
-      studentHouse: student.house,
-      weekId,
-      nominatedById: currentEvaluator.id,
-      nominatedByName: currentEvaluator.name,
-      nominatedByRole: currentEvaluator.role,
-      nominatedByUsername: currentEvaluator.username,
-      citation,
-      tags: selectedTags.length > 0 ? selectedTags : ['Exemplary Conduct']
-    });
-
-    const modal = document.getElementById('modalNominateStudent');
-    if (modal) modal.classList.remove('active');
-
-    const wName = week ? week.name : 'Weekly Assessment';
-    this.showToast(
-      isNewlyCreated
-        ? `Added & nominated ${student.name} (${student.id}) for ${wName} evaluation!`
-        : `Nominated ${student.name} for ${wName} evaluation!`,
-      'success'
-    );
-
-    this.store.state.selectedWeekId = weekId;
-    this.store.state.selectedClass = 'All Classes';
-    this.store.state.selectedStudentId = student.id;
-    this.store.save();
-    this.render();
-  }
-
-  handleWithdrawNomination(nominationId) {
-    if (!nominationId) return;
-    const nom = (this.store.state.nominations || []).find(n => n.id === nominationId);
-    const sName = nom ? nom.studentName : 'this student';
-    if (!confirm(`Are you sure you want to withdraw the nomination for ${sName}?`)) {
-      return;
-    }
-    const removed = this.store.removeNomination(nominationId);
-    if (removed) {
-      this.showToast(`Withdrew nomination for ${sName}.`);
-      this.render();
-    }
-  }
-
-  evaluateNominatedStudent(studentId, weekId) {
-    const targetWeekId = weekId || this.store.state.selectedWeekId || (this.getActiveWeek() ? this.getActiveWeek().id : null);
-    if (!studentId || !targetWeekId) return;
-
-    this.store.state.selectedWeekId = targetWeekId;
-    this.store.state.selectedClass = 'All Classes';
-    this.store.state.selectedStudentId = studentId;
-    this.store.save();
-    this.navigateTo('assessment');
+  openNominateStudentModal() {
+    this.openAddStudentModal();
   }
 
   renderTopHeader() {
@@ -4221,7 +3694,7 @@ class OLAGApp {
           ` : `
             <div class="dashboard-winner-body" style="padding: 1.5rem; text-align: center; color: #cbd5e1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;">
               <h4 style="margin: 0; color: #ffffff; font-size: 1.05rem;">No Winner Announced Yet ${currentWeek ? `for ${escapeHtml(currentWeek.name)}` : ''}</h4>
-              <p style="margin: 0; font-size: 0.85rem; max-width: 440px; color: #94a3b8;">Weekly assessments are awaiting new student nominations and evaluation submissions. Past weeks' evaluations are safely stored in the Archive for reference.</p>
+              <p style="margin: 0; font-size: 0.85rem; max-width: 440px; color: #94a3b8;">Weekly assessments are awaiting new student evaluation submissions. Past weeks' evaluations are safely stored in the Archive for reference.</p>
               ${this.store.getArchivedWeeks().length > 0 ? `
                 <button type="button" class="btn-navy-action" style="margin-top: 0.35rem; background: rgba(255, 199, 44, 0.16); border: 1px solid rgba(255, 199, 44, 0.45); color: var(--accent-yellow); height: 32px; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
                   ${APP_ICONS.archive} View Past Weeks Evaluation Archive (${this.store.getArchivedWeeks().length})
@@ -4544,26 +4017,19 @@ class OLAGApp {
     const weekStatus = currentWeek ? (currentWeek.status || 'Open') : 'Pending';
 
     const currentEvaluator = this.getCurrentLoginEvaluator();
-    const weeklyNominations = this.store.getNominationsForWeek(currentWeek ? currentWeek.id : null);
-    const nominatedIds = new Set(weeklyNominations.map(n => n.studentId));
-    const nominatedStudents = allStudents.filter(s => nominatedIds.has(s.id));
-    const assignedStudents = nominatedStudents.length > 0 ? nominatedStudents : allStudents;
-    const isUsingNominatedFilter = nominatedStudents.length > 0;
-
-    const evaluatedStudents = assignedStudents.filter(s => {
+    const evaluatedStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
       return !!this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
     const evaluatedCount = evaluatedStudents.length;
-    const totalAssigned = assignedStudents.length;
-    const pendingStudents = assignedStudents.filter(s => {
+    const totalAssigned = allStudents.length;
+    const pendingStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
       return !this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
     const pendingCount = pendingStudents.length;
     const completionPct = totalAssigned > 0 ? Math.round((evaluatedCount / totalAssigned) * 100) : 0;
     const isHidden = !!this.store.state.dashInfoHidden;
-    const maxScore = (currentWeek && currentWeek.maxScore) ? currentWeek.maxScore : this.getMaxCriteriaScore();
 
     const isWeekClosed = currentWeek && currentWeek.status === 'Closed';
     const isWeekUpcoming = currentWeek && currentWeek.status === 'Upcoming';
@@ -4638,9 +4104,6 @@ class OLAGApp {
               </select>
             </div>
           ` : ''}
-          <button type="button" class="btn-nominate-gold" style="height: 34px;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-            ${APP_ICONS.award} + Nominate Student
-          </button>
           <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
             ${isWeekClosed ? `${APP_ICONS.eye} View Sealed Scores` : (isWeekUpcoming ? `${APP_ICONS.eye} Preview Criteria` : `${APP_ICONS.edit} Enter Scores`)}
           </button>
@@ -4681,14 +4144,14 @@ class OLAGApp {
         <div class="committee-progress-hero">
           <div class="committee-progress-text">
             <h3>Assessment Quorum: ${escapeHtml(weekLabel)} Cycle ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</h3>
-            <p>${isUsingNominatedFilter
-              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} nominated students</strong> for ${escapeHtml(weekLabel)} personality assessment.`
-              : `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} students</strong> for ${escapeHtml(weekLabel)}. Nominate candidates to spotlight deserving students.`}</p>
+            <p>${totalAssigned > 0 
+              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} assigned students</strong> for ${escapeHtml(weekLabel)}.` 
+              : `No students have been enrolled in the assessment database yet.`}</p>
           </div>
           <div class="committee-progress-ring-block">
             <div class="committee-progress-pct">${completionPct}%</div>
             <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-              Completion<br><span style="color: var(--stat-green);">${pendingCount === 0 ? 'All Completed' : `${pendingCount} Remaining`}</span>
+              Completed<br><span style="color: var(--stat-green);">${totalAssigned > 0 && pendingCount === 0 ? 'All Completed' : `${pendingCount} Remaining`}</span>
             </div>
           </div>
         </div>
@@ -4711,33 +4174,36 @@ class OLAGApp {
             </div>
           </div>
 
-          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')" title="Click to Nominate Student">
+          <!-- Card 2: Assigned Students -->
+          <div class="stat-card card-blue">
             <div class="stat-card-text">
-              <span class="stat-card-title">Weekly Nominees</span>
-              <span class="stat-card-value">${weeklyNominations.length}</span>
-              <span class="stat-card-sub">Nominated for evaluation</span>
+              <span class="stat-card-title">Assigned Students</span>
+              <span class="stat-card-value">${totalAssigned}</span>
+              <span class="stat-card-sub">In evaluation queue</span>
             </div>
             <div class="stat-card-icon-badge">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
             </div>
           </div>
 
-          <div class="stat-card card-purple">
+          <!-- Card 3: Evaluated Students -->
+          <div class="stat-card card-green">
             <div class="stat-card-text">
-              <span class="stat-card-title">Evaluated Nominees</span>
-              <span class="stat-card-value">${evaluatedCount} / ${totalAssigned}</span>
-              <span class="stat-card-sub">Submitted for ${escapeHtml(weekLabel)}</span>
+              <span class="stat-card-title">Evaluated</span>
+              <span class="stat-card-value">${evaluatedCount}</span>
+              <span class="stat-card-sub">${completionPct}% completed</span>
             </div>
             <div class="stat-card-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
           </div>
 
+          <!-- Card 4: Pending Students -->
           <div class="stat-card card-orange">
             <div class="stat-card-text">
-              <span class="stat-card-title">Pending Evaluations</span>
+              <span class="stat-card-title">Pending</span>
               <span class="stat-card-value">${pendingCount}</span>
-              <span class="stat-card-sub">${pendingCount === 0 ? 'All graded!' : 'Awaiting your scores'}</span>
+              <span class="stat-card-sub">${pendingCount === 0 && totalAssigned > 0 ? 'All caught up!' : 'Awaiting grading'}</span>
             </div>
             <div class="stat-card-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -4746,129 +4212,66 @@ class OLAGApp {
         </div>
       </div>
 
-      <!-- Weekly Student Nominees & Evaluation Queue -->
+      <!-- Next Pending Nominees to Assess -->
       <div class="scoring-table-card">
-        <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <span style="display: inline-flex; color: #d97706;">${APP_ICONS.award}</span>
-            <span>Weekly Student Nominees &amp; Evaluation Queue — ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
-            <span class="badge-nominee">${weeklyNominations.length} Nominated</span>
-          </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button type="button" class="btn-nominate-gold" style="height: 32px; font-size: 0.76rem;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-              ${APP_ICONS.award} + Nominate Student
-            </button>
-            <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.76rem;" onclick="app.navigateTo('assessment')">
+        <div class="scoring-table-title">
+          <span>Pending Student Evaluations for ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem;" onclick="app.navigateTo('assessment')">
               Open Full Rubric
             </button>
           </div>
         </div>
 
-        <div style="overflow-x: auto;">
-          <table class="table-standard">
-            <thead>
+        <table class="table-standard">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Student Name</th>
+              <th>Class</th>
+              <th>House</th>
+              <th>Status</th>
+              <th style="text-align: center;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${totalAssigned === 0 ? `
               <tr>
-                <th>Student ID</th>
-                <th>Student Name &amp; Class</th>
-                <th>House</th>
-                <th>Nomination &amp; Citation</th>
-                <th>Your Score</th>
-                <th style="text-align: center; width: 150px;">Action</th>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.reports}</div><br>
+                  No students currently enrolled in the system.<br>
+                  <small>Students added by administrators will automatically appear here for evaluation.</small>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              ${assignedStudents.length === 0 ? `
-                <tr>
-                  <td colspan="6" style="text-align: center; padding: 2.5rem 1.5rem; color: var(--text-muted);">
-                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; color: #d97706; margin-bottom: 0.75rem;">
-                      ${APP_ICONS.award}
-                    </div>
-                    <div style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary); margin-bottom: 0.35rem;">
-                      No Students Nominated Yet for ${escapeHtml(weekLabel)}
-                    </div>
-                    <div style="font-size: 0.83rem; max-width: 480px; margin: 0 auto 1.15rem; line-height: 1.5;">
-                      Click below to enter and nominate a deserving student for this week's Student Personality of the Week evaluation.
-                    </div>
-                    <button type="button" class="btn-nominate-gold" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-                      ${APP_ICONS.award} + Nominate Student for ${escapeHtml(weekLabel)}
+            ` : (pendingStudents.length === 0 ? `
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--stat-green);">
+                  <div style="display: inline-flex; color: var(--stat-green); margin-bottom: 0.5rem;">${APP_ICONS.check}</div><br>
+                  <strong>All caught up!</strong> All ${totalAssigned} students have been evaluated for ${escapeHtml(weekLabel)}.
+                </td>
+              </tr>
+            ` : pendingStudents.map(s => `
+              <tr>
+                <td><strong>${escapeHtml(s.id)}</strong></td>
+                <td>${escapeHtml(s.name)}</td>
+                <td>${escapeHtml(s.class)}</td>
+                <td>${escapeHtml(s.house)}</td>
+                <td><span class="status-badge-pending">Pending</span></td>
+                <td style="text-align: center;">
+                  ${isWeekClosed ? `
+                    <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #94a3b8; cursor: not-allowed; opacity: 0.75;" disabled title="Scoring closed by administrator">
+                      ${APP_ICONS.lock} Closed
                     </button>
-                  </td>
-                </tr>
-              ` : assignedStudents.map(s => {
-                const nom = currentWeek ? this.store.getNominationForStudent(s.id, currentWeek.id) : null;
-                const sub = this.findSubmissionForEvaluator(weekScores[s.id], currentEvaluator);
-                const isEvaluated = !!sub;
-                return `
-                  <tr>
-                    <td><strong>${escapeHtml(s.id)}</strong></td>
-                    <td>
-                      <div>
-                        <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 800; color: var(--navy-primary);">
-                          ${escapeHtml(s.name)}
-                        </a>
-                      </div>
-                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem;">
-                        ${escapeHtml(s.class)}
-                      </div>
-                    </td>
-                    <td>${escapeHtml(s.house)}</td>
-                    <td style="max-width: 290px;">
-                      ${nom ? `
-                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.2rem;">
-                          <span class="badge-nominee">${APP_ICONS.award} Nominated</span>
-                          <span style="font-size: 0.72rem; color: var(--text-muted);">by <strong>${escapeHtml(nom.nominatedByName)}</strong></span>
-                        </div>
-                        <div style="font-size: 0.78rem; color: #475569; font-style: italic; line-height: 1.35;">
-                          &ldquo;${escapeHtml(nom.citation)}&rdquo;
-                        </div>
-                        ${nom.tags && nom.tags.length > 0 ? `
-                          <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
-                            ${nom.tags.map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}
-                          </div>
-                        ` : ''}
-                      ` : `
-                        <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${s.id}', '${currentWeek ? currentWeek.id : ''}')">
-                          ${APP_ICONS.award} + Nominate
-                        </button>
-                      `}
-                    </td>
-                    <td>
-                      ${isEvaluated ? `
-                        <span class="status-badge-active" style="font-size: 0.76rem;">
-                          Scored: <strong>${sub.total}/${maxScore}</strong> (${sub.pct}%)
-                        </span>
-                      ` : `
-                        <span class="status-badge-pending">Pending</span>
-                      `}
-                    </td>
-                    <td style="text-align: center;">
-                      <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: center;">
-                        ${isWeekClosed ? `
-                          <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #94a3b8; cursor: not-allowed; opacity: 0.75;" disabled title="Scoring closed by administrator">
-                            ${APP_ICONS.lock} Closed
-                          </button>
-                        ` : isEvaluated ? `
-                          <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #0c2340;" onclick="app.startStudentAssessment('${s.id}')">
-                            ${APP_ICONS.edit} Edit Score
-                          </button>
-                        ` : `
-                          <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
-                            ${APP_ICONS.assessment} Assess Student
-                          </button>
-                        `}
-                        ${nom && !isWeekClosed ? `
-                          <button type="button" class="btn-text-action" style="font-size: 0.72rem; color: #dc2626; padding: 0;" onclick="app.handleWithdrawNomination('${nom.id}')">
-                            Withdraw
-                          </button>
-                        ` : ''}
-                      </div>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
+                  ` : `
+                    <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
+                      Assess
+                    </button>
+                  `}
+                </td>
+              </tr>
+            `).join(''))}
+          </tbody>
+        </table>
       </div>
     `;
   }
@@ -4999,15 +4402,11 @@ class OLAGApp {
               ${allHouses.map(h => `<option value="${escapeHtml(h)}" ${houseFilter === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
             </select>
 
-            <button type="button" class="btn-nominate-gold" style="height: 32px; padding: 0 0.75rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-              ${APP_ICONS.award} + Nominate Student
-            </button>
-
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddStudentModal()">
-              ${APP_ICONS.userPlus} + Add Student
-            </button>
-
             ${isCurrentlyAdmin ? `
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddStudentModal()">
+                ${APP_ICONS.userPlus} + Add Student
+              </button>
+
               <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; background: #334155; white-space: nowrap;" onclick="app.openAddClassModal()">
                 ${APP_ICONS.school} Classes (${allClasses.length})
               </button>
@@ -5037,21 +4436,16 @@ class OLAGApp {
                     <div style="font-weight: 700; color: var(--navy-primary); margin-bottom: 0.25rem;">
                       ${allStudents.length === 0 ? 'No Students Enrolled Yet' : 'No Matching Students Found'}
                     </div>
-                    <div style="font-size: 0.82rem; max-width: 440px; margin: 0 auto 0.95rem;">
+                    <div style="font-size: 0.82rem; max-width: 420px; margin: 0 auto 0.85rem;">
                       ${allStudents.length === 0
-                        ? 'Enter and nominate new students to begin weekly personality evaluations.'
+                        ? (isCurrentlyAdmin ? 'Add students to the database to begin weekly personality evaluations.' : 'Students added by the administrator will appear here.')
                         : 'Try clearing your search or class/house filter to see all enrolled students.'}
                     </div>
-                    ${allStudents.length === 0 ? `
-                      <div style="display: inline-flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
-                        <button type="button" class="btn-nominate-gold" style="font-size: 0.8rem; padding: 0 1.15rem;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-                          ${APP_ICONS.award} + Nominate New Student
-                        </button>
-                        <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.15rem;" onclick="app.openAddStudentModal()">
-                          ${APP_ICONS.userPlus} + Add Student
-                        </button>
-                      </div>
-                    ` : `
+                    ${allStudents.length === 0 ? (isCurrentlyAdmin ? `
+                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
+                        ${APP_ICONS.userPlus} + Add First Student
+                      </button>
+                    ` : '') : `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('students')">
                         Clear Filters (Show All ${allStudents.length})
                       </button>
@@ -5064,9 +4458,6 @@ class OLAGApp {
                 const scoreData = rawScoreData ? this.store.normalizeStudentWeekScore(rawScoreData, maxPossible) : null;
                 const isEvaluated = scoreData && typeof scoreData.total === 'number' && (scoreData.evaluatorCount > 0 || scoreData.total > 0 || scoreData.evaluatorName);
                 const subList = (scoreData && scoreData.submissions) ? Object.values(scoreData.submissions) : [];
-                const nom = currentWeek ? this.store.getNominationForStudent(s.id, currentWeek.id) : null;
-                const isNom = Boolean(nom);
-                const isBest4 = Boolean(nom && (nom.selectedForEvaluation || nom.status === 'Selected'));
                 return `
                   <tr class="student-directory-row">
                     <td>${idx + 1}</td>
@@ -5080,51 +4471,43 @@ class OLAGApp {
                     <td>${escapeHtml(s.house)}</td>
                     <td>${escapeHtml(s.gender || '—')}</td>
                     <td>
-                      <div style="display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start;">
-                        ${isNom ? `
-                          <span class="badge-nominee">${APP_ICONS.award} Nominated</span>
-                        ` : ''}
-                        ${isEvaluated ? `
-                          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                            <span class="status-badge-active" style="font-size: 0.72rem;">
-                              ${subList.length > 1 ? 'Avg:' : 'Scored:'} <strong>${scoreData.total}/${maxPossible}</strong> (${scoreData.pct}%)
-                            </span>
-                            ${isCurrentlyAdmin && currentWeek ? `
-                              <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 700;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View all committee members' scores for ${escapeHtml(s.name)}">
-                                ${APP_ICONS.eye} ${subList.length} Evaluator${subList.length === 1 ? '' : 's'}
-                              </button>
-                            ` : ''}
+                      ${isEvaluated ? `
+                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                          <span class="status-badge-active" style="font-size: 0.72rem;">
+                            ${subList.length > 1 ? 'Avg:' : 'Scored:'} <strong>${scoreData.total}/${maxPossible}</strong> (${scoreData.pct}%)
+                          </span>
+                          ${isCurrentlyAdmin && currentWeek ? `
+                            <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 700;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View all committee members' scores for ${escapeHtml(s.name)}">
+                              ${APP_ICONS.eye} ${subList.length} Evaluator${subList.length === 1 ? '' : 's'}
+                            </button>
+                          ` : ''}
+                        </div>
+                        ${isCurrentlyAdmin && subList.length > 0 ? `
+                          <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                            ${subList.map(sub => `
+                              <span style="font-size: 0.67rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; padding: 0.08rem 0.4rem; border-radius: 999px; font-weight: 600;">
+                                ${escapeHtml(sub.evaluatorName || 'Evaluator')}: <strong>${sub.total}/${maxPossible}</strong> (${sub.pct}%)
+                              </span>
+                            `).join('')}
                           </div>
-                          ${isCurrentlyAdmin && subList.length > 0 ? `
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
-                              ${subList.map(sub => `
-                                <span style="font-size: 0.67rem; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; padding: 0.08rem 0.4rem; border-radius: 999px; font-weight: 600;">
-                                  ${escapeHtml(sub.evaluatorName || 'Evaluator')}: <strong>${sub.total}/${maxPossible}</strong> (${sub.pct}%)
-                                </span>
-                              `).join('')}
-                            </div>
-                          ` : (scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : '')}
-                        ` : `
-                          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                            <span class="status-badge-pending" style="font-size: 0.72rem;">
-                              Pending Scoring
-                            </span>
-                            ${isCurrentlyAdmin && currentWeek ? `
-                              <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View committee member evaluation status">
-                                ${APP_ICONS.eye} Committee Scores
-                              </button>
-                            ` : ''}
-                          </div>
-                        `}
-                      </div>
+                        ` : (scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : '')}
+                      ` : `
+                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                          <span class="status-badge-pending" style="font-size: 0.72rem;">
+                            Pending Scoring
+                          </span>
+                          ${isCurrentlyAdmin && currentWeek ? `
+                            <button type="button" class="btn-demo-pill" style="height: 22px; padding: 0 0.45rem; font-size: 0.68rem; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;" onclick="app.openStudentCommitteeScoresModal('${s.id}', '${currentWeek.id}')" title="View committee member evaluation status">
+                              ${APP_ICONS.eye} Committee Scores
+                            </button>
+                          ` : ''}
+                        </div>
+                      `}
                     </td>
                     <td style="text-align: center;">
-                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center; flex-wrap: wrap;">
+                      <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
                         <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
                           ${APP_ICONS.eye}
-                        </button>
-                        <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${s.id}', '${currentWeek ? currentWeek.id : ''}')" title="${isNom ? 'View / Edit Nomination' : 'Nominate Student for Weekly Evaluation'}">
-                          ${APP_ICONS.award} ${isNom ? 'Nominated' : 'Nominate'}
                         </button>
                         ${isCurrentlyAdmin ? `
                           <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
@@ -5242,18 +4625,7 @@ class OLAGApp {
     const classStudents = (currentClass === 'All Classes' || !currentClass)
       ? this.store.state.students
       : this.store.state.students.filter(s => s.class === currentClass);
-    const weeklyNoms = currentWeekId ? this.store.getNominationsForWeek(currentWeekId) : [];
-    const nominatedIds = new Set(weeklyNoms.map(n => n.studentId));
-    const nominatedClassStudents = classStudents.filter(s => nominatedIds.has(s.id));
-    const otherClassStudents = classStudents.filter(s => !nominatedIds.has(s.id));
-
-    let selectedStudent = (currentStudentId ? this.store.state.students.find(s => s.id === currentStudentId) : null)
-      || nominatedClassStudents[0]
-      || classStudents[0]
-      || null;
-    if (selectedStudent && this.store.state.selectedStudentId !== selectedStudent.id) {
-      this.store.state.selectedStudentId = selectedStudent.id;
-    }
+    let selectedStudent = (currentStudentId ? this.store.state.students.find(s => s.id === currentStudentId) : null) || classStudents[0] || null;
 
     const maxTotalScore = this.getMaxCriteriaScore();
     const weekScores = currentWeekId ? (this.store.state.scores[currentWeekId] || {}) : {};
@@ -5402,92 +4774,23 @@ class OLAGApp {
           <select id="assessStudentSelect" class="form-select">
             ${classStudents.length === 0 ? `
               <option value="">-- No Students in ${escapeHtml(currentClass)} --</option>
-            ` : `
-              ${nominatedClassStudents.length > 0 ? `
-                <optgroup label="Nominated Candidates for This Week (${nominatedClassStudents.length})">
-                  ${nominatedClassStudents.map(s => `
-                    <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>[Nominated] ${escapeHtml(s.name)} (${s.id})</option>
-                  `).join('')}
-                </optgroup>
-              ` : ''}
-              ${otherClassStudents.length > 0 ? `
-                <optgroup label="Enrolled Students (${otherClassStudents.length})">
-                  ${otherClassStudents.map(s => `
-                    <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>${escapeHtml(s.name)} (${s.id})</option>
-                  `).join('')}
-                </optgroup>
-              ` : ''}
-            `}
+            ` : classStudents.map(s => `
+              <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>
+                ${escapeHtml(s.name)} (${s.id})
+              </option>
+            `).join('')}
           </select>
         </div>
 
-        <div style="display: flex; gap: 0.45rem; align-items: flex-end;">
+        <div>
           <button type="button" class="btn-navy-action" id="btnLoadStudentScores" ${!selectedStudent ? 'disabled' : ''}>
             Load Student
-          </button>
-          <button type="button" class="btn-nominate-gold" style="height: 38px; white-space: nowrap;" onclick="app.openNominateStudentModal('', '${currentWeekId || ''}')">
-            ${APP_ICONS.award} + Nominate Student
           </button>
         </div>
       </div>
 
       ${selectedStudent ? `
         <div class="scoring-table-card">
-          ${(() => {
-            const studentNomination = (selectedStudent && currentWeekId) ? this.store.getNominationForStudent(selectedStudent.id, currentWeekId) : null;
-            if (studentNomination) {
-              return `
-                <div class="nomination-citation-banner" style="margin-bottom: 1.15rem;">
-                  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                      <span class="nomination-award-icon">${APP_ICONS.award}</span>
-                      <div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                          <span style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">
-                            Nominated for ${escapeHtml(currentWeekObj ? currentWeekObj.name : 'This Interval')} Evaluation
-                          </span>
-                          <span class="badge-nominee">${APP_ICONS.award} Official Nominee</span>
-                        </div>
-                        <div style="font-size: 0.83rem; color: var(--navy-primary); margin-top: 0.25rem; font-style: italic;">
-                          &ldquo;${escapeHtml(studentNomination.citation || 'Nominated for outstanding character, punctuality, and exemplary conduct.')}&rdquo;
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.65rem; margin-top: 0.4rem; font-size: 0.76rem; color: var(--text-muted); flex-wrap: wrap;">
-                          <span>Nominated by: <strong>${escapeHtml(studentNomination.nominatedByName)}</strong> (${escapeHtml(studentNomination.nominatedByRole)})</span>
-                          ${studentNomination.tags && studentNomination.tags.length > 0 ? `<span>•</span> <span style="display: inline-flex; gap: 0.3rem; flex-wrap: wrap;">${studentNomination.tags.map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}</span>` : ''}
-                        </div>
-                      </div>
-                    </div>
-                    <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-                      <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${selectedStudent.id}', '${currentWeekId}')">
-                        ${APP_ICONS.edit} Edit Citation
-                      </button>
-                      ${!isWeekClosed ? `
-                        <button type="button" class="btn-demo-pill" style="height: 30px; font-size: 0.74rem;" onclick="app.handleWithdrawNomination('${studentNomination.id}')">
-                          Withdraw
-                        </button>
-                      ` : ''}
-                    </div>
-                  </div>
-                </div>
-              `;
-            } else {
-              return `
-                <div class="nomination-citation-banner" style="background: #f8fafc; border-color: #cbd5e1; border-left-color: #64748b; margin-bottom: 1.15rem;">
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 0.65rem;">
-                      <span style="display: inline-flex; color: #64748b;">${APP_ICONS.award}</span>
-                      <span style="font-size: 0.82rem; color: var(--text-muted);">
-                        <strong>${escapeHtml(selectedStudent.name)}</strong> is not yet formally nominated for this week interval.
-                      </span>
-                    </div>
-                    <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${selectedStudent.id}', '${currentWeekId}')">
-                      ${APP_ICONS.award} + Nominate Student
-                    </button>
-                  </div>
-                </div>
-              `;
-            }
-          })()}
           <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <span>Assessment Criteria (Each / 10) — ${isCurrentlyAdmin ? 'Viewing' : 'Evaluating'}: <strong>${escapeHtml(selectedStudent.name)}</strong> (${escapeHtml(selectedStudent.class)}, ${escapeHtml(selectedStudent.house)})</span>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
@@ -5571,17 +4874,16 @@ class OLAGApp {
         <div class="scoring-table-card" style="text-align: center; padding: 3rem 1.5rem;">
           <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.75rem;">${APP_ICONS.committee}</div>
           <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Students Found in ${escapeHtml(currentClass)}</h3>
-          <p style="color: var(--text-muted); max-width: 460px; margin: 0 auto 1.25rem;">
-            There are currently no student entries in this view. Click below to nominate and enter a new student for weekly evaluation.
+          <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
+            ${isCurrentlyAdmin
+              ? 'There are currently no students registered in this class. You can add new students using the button below or pick another class from the filter above.'
+              : 'There are currently no students registered in this class. Please pick another class from the filter above.'}
           </p>
-          <div style="display: inline-flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center;">
-            <button type="button" class="btn-nominate-gold" onclick="app.openNominateStudentModal('', '${currentWeekId || ''}')">
-              ${APP_ICONS.award} + Nominate / Enter New Student
-            </button>
+          ${isCurrentlyAdmin ? `
             <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
-              ${APP_ICONS.userPlus} + Add Student to Database
+              + Add Student to Database
             </button>
-          </div>
+          ` : ''}
         </div>
       `}
     `;
@@ -5670,7 +4972,6 @@ class OLAGApp {
           }
           return;
         }
-
         const scoresObj = {};
         let total = 0;
         inputs.forEach(inp => {
@@ -5985,7 +5286,7 @@ class OLAGApp {
               <span style="font-weight: 800; font-size: 1rem; color: var(--navy-primary);">Active &amp; Scheduled Week Intervals</span>
             </div>
             <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
-              Current open and upcoming assessment intervals for new student nominations and evaluations.
+              Current open and upcoming assessment intervals for student evaluations.
             </div>
           </div>
         </div>
@@ -6808,7 +6109,6 @@ class OLAGApp {
     });
 
     const studentInitials = (student.name || 'ST').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ST';
-    const studentNominations = (this.store.state.nominations || []).filter(n => n && n.studentId === student.id);
 
     container.innerHTML = `
       <div class="breadcrumb-nav">
@@ -6845,9 +6145,6 @@ class OLAGApp {
               ${APP_ICONS.assessment} Evaluate Student
             </button>
           `}
-          <button class="btn-nominate-gold" style="width: 100%; margin-top: 0.5rem;" onclick="app.openNominateStudentModal('${student.id}')">
-            ${APP_ICONS.award} Nominate for Week
-          </button>
         </div>
 
         <div class="profile-performance-card">
@@ -6910,64 +6207,6 @@ class OLAGApp {
           <div class="profile-comments-box">
             <h4>Comments</h4>
             <p>"${escapeHtml(student.comment || 'No assessment comments recorded yet.')}"</p>
-          </div>
-
-          <!-- Weekly Nominations & Honors Section -->
-          <div class="scoring-table-card" style="margin-top: 1.25rem;">
-            <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="display: inline-flex; color: #d97706;">${APP_ICONS.award}</span>
-                <span>Weekly Committee Nominations &amp; Honors (${studentNominations.length})</span>
-              </div>
-              <button type="button" class="btn-nominate-gold" style="height: 30px; font-size: 0.74rem;" onclick="app.openNominateStudentModal('${student.id}')">
-                ${APP_ICONS.award} + Nominate for Week Interval
-              </button>
-            </div>
-
-            ${studentNominations.length === 0 ? `
-              <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
-                No committee nominations recorded for ${escapeHtml(student.name)} yet.<br>
-                <button type="button" class="btn-nominate-action" style="margin-top: 0.75rem;" onclick="app.openNominateStudentModal('${student.id}')">
-                  ${APP_ICONS.award} Submit First Nomination
-                </button>
-              </div>
-            ` : `
-              <div style="overflow-x: auto;">
-                <table class="table-standard">
-                  <thead>
-                    <tr>
-                      <th>Week Interval</th>
-                      <th>Nominated By</th>
-                      <th>Citation / Reason</th>
-                      <th>Merit Tags</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${studentNominations.map(nom => {
-                      const wk = this.store.state.weeks.find(w => w.id === nom.weekId);
-                      const wkLabel = wk ? wk.name : nom.weekId;
-                      return `
-                        <tr>
-                          <td><strong>${escapeHtml(wkLabel)}</strong></td>
-                          <td>
-                            <div><strong>${escapeHtml(nom.nominatedByName)}</strong></div>
-                            <div style="font-size: 0.74rem; color: var(--text-muted);">${escapeHtml(nom.nominatedByRole)}</div>
-                          </td>
-                          <td style="font-style: italic; max-width: 320px;">&ldquo;${escapeHtml(nom.citation)}&rdquo;</td>
-                          <td>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
-                              ${(nom.tags || []).map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}
-                            </div>
-                          </td>
-                          <td style="font-size: 0.78rem; color: var(--text-muted);">${nom.nominatedAt ? new Date(nom.nominatedAt).toLocaleDateString() : '—'}</td>
-                        </tr>
-                      `;
-                    }).join('')}
-                  </tbody>
-                </table>
-              </div>
-            `}
           </div>
         </div>
       </div>
@@ -7650,10 +6889,7 @@ on conflict (id) do nothing;`;
 
   openAddStudentModal() {
     const modal = document.getElementById('modalAddStudent');
-    if (!modal) {
-      this.openNominateStudentModal();
-      return;
-    }
+    if (!modal) return;
     this.populateAddStudentClasses();
     modal.classList.add('active');
     const nameInp = document.getElementById('addStudentName');
@@ -8648,24 +7884,6 @@ function initOLAGApp() {
         actionLabel: 'View Students',
         actionView: 'students'
       });
-
-      const activeWeek = app.getActiveWeek();
-      if (activeWeek && app.store.state.currentRoleKey === 'committee') {
-        const currentEvaluator = app.getCurrentLoginEvaluator();
-        app.store.addNomination({
-          studentId: newStudent.id,
-          studentName: newStudent.name,
-          studentClass: newStudent.class,
-          studentHouse: newStudent.house,
-          weekId: activeWeek.id,
-          nominatedById: currentEvaluator.id,
-          nominatedByName: currentEvaluator.name,
-          nominatedByRole: currentEvaluator.role,
-          nominatedByUsername: currentEvaluator.username,
-          citation: 'Consistently demonstrates exemplary character, punctuality, and commendable adherence to school conduct values.',
-          tags: ['Exemplary Conduct', 'Punctuality']
-        });
-      }
 
       app.store.state.totalStudentsCount = app.store.state.students.length;
       app.store.state.selectedStudentId = newId;
