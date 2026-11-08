@@ -1531,18 +1531,13 @@ class OLAGStore {
         const wk = weeks.find(w => w && w.id === nom.weekId);
         const wName = wk ? wk.name : 'Weekly Assessment';
         const nomByName = nom.nominatedByName || 'Committee Member';
-        const isBest4 = Boolean(nom.selectedForEvaluation || nom.status === 'Selected');
         stateObj.notifications.unshift({
           id: notifId,
           type: 'nomination',
           icon: 'award',
-          title: isBest4
-            ? `Best 4 Finalist Selected: ${sName}`
-            : `Student Nominated for Review: ${sName}`,
-          message: isBest4
-            ? `${sName} is selected in the Best 4 Finalists (Slot #${nom.selectedRankSlot || 1} of ${MAX_BEST_STUDENTS_PER_WEEK}) for official evaluation in ${wName}. Nominated by ${nomByName}.`
-            : `${nomByName} nominated ${sName} for committee review in ${wName} before selecting the Best ${MAX_BEST_STUDENTS_PER_WEEK} students. Citation: "${nom.citation || 'Outstanding character and conduct'}"`,
-          actionLabel: isBest4 ? 'Evaluate Finalist' : 'Review & Select Best 4',
+          title: `Student Nominated: ${sName}`,
+          message: `${nomByName} nominated ${sName} for ${wName} evaluation. Citation: "${nom.citation || 'Outstanding character and conduct'}"`,
+          actionLabel: 'Evaluate Student',
           actionView: 'assessment',
           unread: true,
           createdAt: nom.nominatedAt || nom.createdAt || new Date().toISOString()
@@ -3399,17 +3394,9 @@ class OLAGApp {
           <div class="modal-header-row">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span style="display: inline-flex; align-items: center; color: #d97706;">${APP_ICONS.award}</span>
-              <h3 style="margin: 0;" id="nominateModalTitle">Nominate Student for Weekly Review</h3>
+              <h3 style="margin: 0;" id="nominateModalTitle">Nominate Student for Weekly Evaluation</h3>
             </div>
             <button type="button" class="btn-close-x" onclick="document.getElementById('modalNominateStudent').classList.remove('active')">&times;</button>
-          </div>
-
-          <div class="nominate-workflow-step-banner" style="margin-top: 0.65rem; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); background: #fffbeb; border: 1px solid #fde68a; font-size: 0.78rem; color: #92400e; display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; flex-wrap: wrap;">
-            <div>
-              <strong>Stage 1 — Nominate for Review:</strong> Nominate deserving students into the Weekly Review Pool.
-              <strong>Stage 2 — Select Best 4:</strong> Up to <strong>4 best students</strong> are selected from the review pool for official weekly rubric evaluation.
-            </div>
-            <span id="nominateModalBestFourCounter" class="badge-nominee" style="white-space: nowrap;">0 / 4 Best Selected</span>
           </div>
 
           <form id="formNominateStudent" onsubmit="event.preventDefault(); app.handleNominateStudentSubmit();" style="margin-top: 0.85rem;">
@@ -3525,7 +3512,7 @@ class OLAGApp {
                 Cancel
               </button>
               <button type="submit" class="btn-nominate-gold" style="height: 36px; padding: 0 1.25rem;">
-                ${APP_ICONS.award} Submit for Review
+                ${APP_ICONS.award} Submit Nomination
               </button>
             </div>
           </form>
@@ -3696,16 +3683,9 @@ class OLAGApp {
     const citationInput = document.getElementById('nominateCitationInput');
     const titleEl = document.getElementById('nominateModalTitle');
     const tagsContainer = document.getElementById('nominateTagsContainer');
-    const counterEl = document.getElementById('nominateModalBestFourCounter');
-
-    if (counterEl) {
-      const selectedCount = weekId ? this.store.getSelectedBestFourNominations(weekId).length : 0;
-      const totalNoms = weekId ? this.store.getNominationsForWeek(weekId).length : 0;
-      counterEl.textContent = `${totalNoms} in Review • ${selectedCount} / ${MAX_BEST_STUDENTS_PER_WEEK} Best Selected`;
-    }
 
     if (existingNom) {
-      if (titleEl) titleEl.textContent = 'Edit Student Review Nomination';
+      if (titleEl) titleEl.textContent = 'Edit Student Nomination';
       if (citationInput) citationInput.value = existingNom.citation || '';
       if (tagsContainer) {
         const activeTags = new Set(existingNom.tags || []);
@@ -3719,7 +3699,7 @@ class OLAGApp {
         });
       }
     } else {
-      if (titleEl) titleEl.textContent = 'Nominate Student for Weekly Review';
+      if (titleEl) titleEl.textContent = 'Nominate Student for Weekly Evaluation';
       if (citationInput) {
         citationInput.value = 'Demonstrated outstanding character, punctuality, and exemplary adherence to school values throughout the week.';
       }
@@ -3865,11 +3845,10 @@ class OLAGApp {
     if (modal) modal.classList.remove('active');
 
     const wName = week ? week.name : 'Weekly Assessment';
-    const selectedBestFourCount = this.store.getSelectedBestFourNominations(weekId).length;
     this.showToast(
       isNewlyCreated
-        ? `Added & nominated ${student.name} (${student.id}) for review in ${wName}! (${selectedBestFourCount}/${MAX_BEST_STUDENTS_PER_WEEK} Best 4 selected)`
-        : `Nominated ${student.name} for review in ${wName}! (${selectedBestFourCount}/${MAX_BEST_STUDENTS_PER_WEEK} Best 4 selected)`,
+        ? `Added & nominated ${student.name} (${student.id}) for ${wName} evaluation!`
+        : `Nominated ${student.name} for ${wName} evaluation!`,
       'success'
     );
 
@@ -3894,522 +3873,15 @@ class OLAGApp {
     }
   }
 
-  // =========================================================================
-  // STAGE 2: REVIEW NOMINATED STUDENTS & SELECT BEST 4 FOR WEEK INTERVAL
-  // =========================================================================
-  toggleSelectNomineeForBestFour(nominationId) {
-    if (!nominationId || !Array.isArray(this.store.state.nominations)) return false;
-    const nom = this.store.state.nominations.find(n => n && n.id === nominationId);
-    if (!nom) return false;
-
-    const week = (this.store.state.weeks || []).find(w => w && w.id === nom.weekId);
-    if (week && week.status === 'Closed') {
-      this.showToast(`Scoring for ${week.name} is closed and sealed. Finalist selection cannot be changed.`);
-      return false;
-    }
-
-    const weekName = week ? week.name : 'this week interval';
-    const currentReviewer = this.getCurrentLoginEvaluator();
-    const isCurrentlySelected = Boolean(nom.selectedForEvaluation || nom.status === 'Selected');
-
-    if (isCurrentlySelected) {
-      nom.status = 'Pending Review';
-      nom.selectedForEvaluation = false;
-      nom.selectedRankSlot = null;
-      nom.selectedAt = null;
-      nom.selectedBy = null;
-      nom.updatedAt = new Date().toISOString();
-      this.store.resequenceBestFourSlots(nom.weekId);
-      this.store.syncDerivedNotifications(this.store.state);
-      this.store.save();
-      this.render();
-      const remaining = this.store.getSelectedBestFourNominations(nom.weekId).length;
-      this.showToast(`Returned ${nom.studentName} to the Review Pool (${remaining}/${MAX_BEST_STUDENTS_PER_WEEK} Best 4 selected).`);
-      return true;
-    } else {
-      const selectedInWeek = this.store.getSelectedBestFourNominations(nom.weekId);
-      if (selectedInWeek.length >= MAX_BEST_STUDENTS_PER_WEEK) {
-        this.showToast(`All ${MAX_BEST_STUDENTS_PER_WEEK} Best Student slots (${MAX_BEST_STUDENTS_PER_WEEK}/${MAX_BEST_STUDENTS_PER_WEEK}) are already filled for ${weekName}. Unselect one finalist first to replace them.`);
-        return false;
-      }
-
-      const nextSlot = selectedInWeek.length + 1;
-      nom.status = 'Selected';
-      nom.selectedForEvaluation = true;
-      nom.selectedRankSlot = nextSlot;
-      nom.selectedAt = new Date().toISOString();
-      nom.selectedBy = currentReviewer ? currentReviewer.name : 'Committee Reviewer';
-      nom.updatedAt = new Date().toISOString();
-      this.store.resequenceBestFourSlots(nom.weekId);
-
-      this.addNotification({
-        id: `notif-best4-${nom.id}`,
-        type: 'nomination',
-        icon: 'award',
-        title: `Selected in Best 4 (${weekName}): ${nom.studentName}`,
-        message: `${nom.studentName} (${nom.studentClass || 'Student'}) was selected as Best 4 Finalist #${nom.selectedRankSlot} of ${MAX_BEST_STUDENTS_PER_WEEK} for official evaluation in ${weekName}.`,
-        actionLabel: 'Evaluate Finalist',
-        actionView: 'assessment'
-      });
-
-      this.store.syncDerivedNotifications(this.store.state);
-      this.store.save();
-      this.render();
-      this.showToast(`Selected ${nom.studentName} in Best 4 Finalists (Slot #${nom.selectedRankSlot} of ${MAX_BEST_STUDENTS_PER_WEEK}) for ${weekName}!`);
-      return true;
-    }
-  }
-
-  selectStudentForBestFour(studentId, weekId) {
-    const targetWeekId = weekId || this.store.state.selectedWeekId || (this.getActiveWeek() ? this.getActiveWeek().id : null);
-    if (!studentId || !targetWeekId) return false;
-    const nom = this.store.getNominationForStudent(studentId, targetWeekId);
-    if (!nom) {
-      this.openNominateStudentModal(studentId, targetWeekId);
-      return false;
-    }
-    return this.toggleSelectNomineeForBestFour(nom.id);
-  }
-
-  autoSelectBestFourForWeek(weekId) {
-    const targetWeekId = weekId || this.store.state.selectedWeekId || (this.getActiveWeek() ? this.getActiveWeek().id : null);
-    if (!targetWeekId) return false;
-    const week = (this.store.state.weeks || []).find(w => w && w.id === targetWeekId);
-    if (week && week.status === 'Closed') {
-      this.showToast(`Scoring for ${week.name} is closed and sealed.`);
-      return false;
-    }
-
-    const allNoms = this.store.getNominationsForWeek(targetWeekId);
-    if (allNoms.length === 0) {
-      this.showToast('Nominate students for review first before selecting the Best 4 finalists.');
-      this.openNominateStudentModal('', targetWeekId);
-      return false;
-    }
-
-    const alreadySelected = this.store.getSelectedBestFourNominations(targetWeekId);
-    if (alreadySelected.length >= MAX_BEST_STUDENTS_PER_WEEK) {
-      this.showToast(`All ${MAX_BEST_STUDENTS_PER_WEEK} Best Student slots are already selected for ${week ? week.name : 'this week'}.`);
-      return false;
-    }
-
-    const pending = this.store.getPendingReviewNominationsForWeek(targetWeekId).sort((a, b) => {
-      const endA = Array.isArray(a.endorsements) ? a.endorsements.length : 1;
-      const endB = Array.isArray(b.endorsements) ? b.endorsements.length : 1;
-      if (endB !== endA) return endB - endA;
-      const tagA = Array.isArray(a.tags) ? a.tags.length : 0;
-      const tagB = Array.isArray(b.tags) ? b.tags.length : 0;
-      if (tagB !== tagA) return tagB - tagA;
-      return String(a.nominatedAt || '').localeCompare(String(b.nominatedAt || ''));
-    });
-
-    const reviewer = this.getCurrentLoginEvaluator();
-    let slotsFilled = alreadySelected.length;
-    pending.forEach(nom => {
-      if (slotsFilled < MAX_BEST_STUDENTS_PER_WEEK) {
-        slotsFilled++;
-        nom.status = 'Selected';
-        nom.selectedForEvaluation = true;
-        nom.selectedRankSlot = slotsFilled;
-        nom.selectedAt = new Date().toISOString();
-        nom.selectedBy = reviewer ? reviewer.name : 'Committee Review';
-        nom.updatedAt = new Date().toISOString();
-      }
-    });
-
-    this.store.resequenceBestFourSlots(targetWeekId);
-    this.store.syncDerivedNotifications(this.store.state);
-    this.store.save();
-    this.render();
-    const finalCount = this.store.getSelectedBestFourNominations(targetWeekId).length;
-    this.showToast(`Selected ${finalCount} of ${MAX_BEST_STUDENTS_PER_WEEK} Best Students for ${week ? week.name : 'weekly'} evaluation!`);
-    return true;
-  }
-
-  resetBestFourSelectionForWeek(weekId) {
-    const targetWeekId = weekId || this.store.state.selectedWeekId || (this.getActiveWeek() ? this.getActiveWeek().id : null);
-    if (!targetWeekId) return false;
-    const week = (this.store.state.weeks || []).find(w => w && w.id === targetWeekId);
-    if (week && week.status === 'Closed') {
-      this.showToast(`Scoring for ${week.name} is closed and sealed.`);
-      return false;
-    }
-    const selected = this.store.getSelectedBestFourNominations(targetWeekId);
-    if (selected.length === 0) return false;
-
-    selected.forEach(nom => {
-      nom.status = 'Pending Review';
-      nom.selectedForEvaluation = false;
-      nom.selectedRankSlot = null;
-      nom.selectedAt = null;
-      nom.selectedBy = null;
-      nom.updatedAt = new Date().toISOString();
-    });
-
-    this.store.save();
-    this.render();
-    this.showToast(`Returned ${selected.length} finalist(s) to the Review Pool for ${week ? week.name : 'this week'}.`);
-    return true;
-  }
-
-  toggleEndorseNomination(nominationId) {
-    if (!nominationId || !Array.isArray(this.store.state.nominations)) return false;
-    const nom = this.store.state.nominations.find(n => n && n.id === nominationId);
-    if (!nom) return false;
-
-    const currentEvaluator = this.getCurrentLoginEvaluator();
-    const evalKey = String(currentEvaluator.username || currentEvaluator.id || currentEvaluator.name || 'evaluator').trim().toLowerCase();
-    if (!Array.isArray(nom.endorsements)) nom.endorsements = [];
-
-    const existingIdx = nom.endorsements.findIndex(e =>
-      e && String(e.evaluatorKey || e.evaluatorId || e.evaluatorName || '').trim().toLowerCase() === evalKey
-    );
-
-    if (existingIdx >= 0) {
-      if (nom.endorsements.length <= 1) {
-        this.showToast(`${currentEvaluator.name} is the primary nominator on this review record.`);
-        return false;
-      }
-      nom.endorsements.splice(existingIdx, 1);
-      nom.updatedAt = new Date().toISOString();
-      this.store.save();
-      this.render();
-      this.showToast(`Removed recommendation for ${nom.studentName}.`);
-      return true;
-    } else {
-      nom.endorsements.push({
-        evaluatorKey: evalKey,
-        evaluatorId: currentEvaluator.id,
-        evaluatorName: currentEvaluator.name,
-        evaluatorRole: currentEvaluator.role || 'Evaluator',
-        endorsedAt: new Date().toISOString()
-      });
-      nom.updatedAt = new Date().toISOString();
-      this.store.save();
-      this.render();
-      this.showToast(`${currentEvaluator.name} recommended ${nom.studentName} for Best 4 selection!`);
-      return true;
-    }
-  }
-
   evaluateNominatedStudent(studentId, weekId) {
     const targetWeekId = weekId || this.store.state.selectedWeekId || (this.getActiveWeek() ? this.getActiveWeek().id : null);
     if (!studentId || !targetWeekId) return;
-
-    const nom = this.store.getNominationForStudent(studentId, targetWeekId);
-    const selectedBestFour = this.store.getSelectedBestFourNominations(targetWeekId);
-    const isAlreadyInBestFour = this.store.isStudentSelectedInBestFour(studentId, targetWeekId);
-
-    if (!isAlreadyInBestFour && nom) {
-      if (selectedBestFour.length < MAX_BEST_STUDENTS_PER_WEEK) {
-        this.toggleSelectNomineeForBestFour(nom.id);
-      } else {
-        this.showToast(`All ${MAX_BEST_STUDENTS_PER_WEEK} Best Student slots are already filled. Unselect one finalist first to evaluate ${nom.studentName}.`);
-        return;
-      }
-    }
 
     this.store.state.selectedWeekId = targetWeekId;
     this.store.state.selectedClass = 'All Classes';
     this.store.state.selectedStudentId = studentId;
     this.store.save();
     this.navigateTo('assessment');
-  }
-
-  renderWeeklyNominationReviewAndBestFourCard(weekId, options = {}) {
-    const weeks = this.store.state.weeks || [];
-    const currentWeek = (weekId ? weeks.find(w => w && w.id === weekId) : null) || this.getActiveWeek() || weeks[0] || null;
-    if (!currentWeek) return '';
-
-    const targetWeekId = currentWeek.id;
-    const isWeekClosed = currentWeek.status === 'Closed';
-    const allNoms = this.store.getNominationsForWeek(targetWeekId);
-    const selectedNoms = this.store.getSelectedBestFourNominations(targetWeekId);
-    const pendingNoms = this.store.getPendingReviewNominationsForWeek(targetWeekId);
-    const weekScores = (this.store.state.scores && this.store.state.scores[targetWeekId]) || {};
-    const maxScore = currentWeek.maxScore || this.getMaxCriteriaScore();
-    const currentEvaluator = this.getCurrentLoginEvaluator();
-    const currentEvalKey = String(currentEvaluator.username || currentEvaluator.id || currentEvaluator.name || 'evaluator').trim().toLowerCase();
-
-    const slotIndexes = [0, 1, 2, 3];
-
-    return `
-      <div class="scoring-table-card nomination-review-best4-card" style="margin-top: ${options.marginTop || '1.25rem'}; margin-bottom: ${options.marginBottom || '1.25rem'};">
-        <!-- Header: 2-Stage Workflow (Nominate for Review -> Select Best 4 Students) -->
-        <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.85rem; padding-bottom: 0.9rem; border-bottom: 1px solid var(--card-border);">
-          <div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span style="display: inline-flex; color: #d97706;">${APP_ICONS.award}</span>
-              <span style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary);">
-                Student Nomination Review &amp; Best ${MAX_BEST_STUDENTS_PER_WEEK} Selection — ${escapeHtml(currentWeek.name)}
-              </span>
-              <span class="badge-nominee">${allNoms.length} Nominated for Review</span>
-              <span class="badge-best-four-selected">
-                ${APP_ICONS.star} ${selectedNoms.length} / ${MAX_BEST_STUDENTS_PER_WEEK} Best Selected
-              </span>
-              ${pendingNoms.length > 0 ? `
-                <span class="badge-review-pending">${pendingNoms.length} Pending Review</span>
-              ` : ''}
-            </div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-              <strong>Stage 1:</strong> Nominate students for committee review &amp; recommendations &nbsp;&rarr;&nbsp;
-              <strong>Stage 2:</strong> Select the <strong>Best ${MAX_BEST_STUDENTS_PER_WEEK} Students</strong> for ${escapeHtml(currentWeek.name)} (${escapeHtml(currentWeek.dateRange)}) official rubric evaluation.
-            </div>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            ${!isWeekClosed ? `
-              <button type="button" class="btn-nominate-gold" style="height: 34px; font-size: 0.78rem;" onclick="app.openNominateStudentModal('', '${escapeHtml(targetWeekId)}')">
-                ${APP_ICONS.award} + Nominate Student for Review
-              </button>
-              ${pendingNoms.length > 0 && selectedNoms.length < MAX_BEST_STUDENTS_PER_WEEK ? `
-                <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.76rem; background: #059669; color: #fff;" onclick="app.autoSelectBestFourForWeek('${escapeHtml(targetWeekId)}')" title="Automatically select top recommended nominees into open Best 4 slots">
-                  ${APP_ICONS.check} Auto-Select Best ${MAX_BEST_STUDENTS_PER_WEEK} (${selectedNoms.length}/${MAX_BEST_STUDENTS_PER_WEEK})
-                </button>
-              ` : ''}
-              ${selectedNoms.length > 0 ? `
-                <button type="button" class="btn-demo-pill" style="height: 34px; padding: 0 0.75rem; font-size: 0.74rem;" onclick="app.resetBestFourSelectionForWeek('${escapeHtml(targetWeekId)}')" title="Return selected finalists back to the Review Pool">
-                  Reset Best 4
-                </button>
-              ` : ''}
-            ` : ''}
-          </div>
-        </div>
-
-        <!-- Stage 2 Visual Grid: The 4 Selected Best Student Slots for the Week Interval -->
-        <div style="margin-top: 1rem; margin-bottom: 1.15rem;">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.65rem;">
-            <div style="font-size: 0.82rem; font-weight: 800; color: var(--navy-primary); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 0.45rem;">
-              <span style="display: inline-flex; color: #059669;">${APP_ICONS.trophy}</span>
-              <span>Selected Best ${MAX_BEST_STUDENTS_PER_WEEK} Finalists for ${escapeHtml(currentWeek.name)} Evaluation (${selectedNoms.length} of ${MAX_BEST_STUDENTS_PER_WEEK} Slots Filled)</span>
-            </div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">
-              ${selectedNoms.length === MAX_BEST_STUDENTS_PER_WEEK
-                ? `All ${MAX_BEST_STUDENTS_PER_WEEK} finalist slots are filled and ready for committee scoring.`
-                : `Select ${MAX_BEST_STUDENTS_PER_WEEK - selectedNoms.length} more student${MAX_BEST_STUDENTS_PER_WEEK - selectedNoms.length === 1 ? '' : 's'} from the Nomination Review Pool below.`}
-            </div>
-          </div>
-
-          <div class="best-four-slots-grid">
-            ${slotIndexes.map(slotIdx => {
-              const nom = selectedNoms[slotIdx] || null;
-              if (nom) {
-                const st = (this.store.state.students || []).find(s => s && s.id === nom.studentId);
-                const sName = st ? st.name : nom.studentName;
-                const sClass = st ? st.class : nom.studentClass;
-                const sHouse = st ? st.house : nom.studentHouse;
-                const rawScore = weekScores[nom.studentId];
-                const normScore = rawScore ? this.store.normalizeStudentWeekScore(rawScore, maxScore) : null;
-                const evalSub = this.findSubmissionForEvaluator(rawScore, currentEvaluator);
-                const endCount = Array.isArray(nom.endorsements) ? nom.endorsements.length : 1;
-
-                return `
-                  <div class="best-four-slot-card is-filled">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.45rem;">
-                      <span class="badge-best-four-selected" style="font-size: 0.68rem;">
-                        ${APP_ICONS.star} Finalist #${slotIdx + 1} of ${MAX_BEST_STUDENTS_PER_WEEK}
-                      </span>
-                      <span style="font-size: 0.7rem; font-weight: 700; color: #059669;">
-                        ${endCount} Rec${endCount === 1 ? '' : 's'}
-                      </span>
-                    </div>
-                    <div style="font-weight: 800; font-size: 0.94rem; color: var(--navy-primary); line-height: 1.25;">
-                      <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${escapeHtml(nom.studentId)}' })" style="color: inherit;">
-                        ${escapeHtml(sName)}
-                      </a>
-                    </div>
-                    <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.15rem;">
-                      <strong>${escapeHtml(nom.studentId)}</strong> &bull; ${escapeHtml(sClass)} &bull; ${escapeHtml(sHouse)}
-                    </div>
-                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
-                      Nominated by <strong>${escapeHtml(nom.nominatedByName)}</strong>
-                    </div>
-                    <div style="margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px dashed var(--card-border); display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap;">
-                      ${normScore && normScore.evaluatorCount > 0 ? `
-                        <span class="status-badge-active" style="font-size: 0.68rem; padding: 0.12rem 0.45rem;">
-                          Avg: ${normScore.total}/${maxScore} (${normScore.pct}%)
-                        </span>
-                      ` : `
-                        <span class="status-badge-pending" style="font-size: 0.68rem; padding: 0.12rem 0.45rem;">
-                          Awaiting Scores
-                        </span>
-                      `}
-                      <div style="display: flex; align-items: center; gap: 0.3rem;">
-                        <button type="button" class="btn-navy-action" style="height: 26px; padding: 0 0.55rem; font-size: 0.7rem;" onclick="app.evaluateNominatedStudent('${escapeHtml(nom.studentId)}', '${escapeHtml(targetWeekId)}')">
-                          ${evalSub ? 'Edit Score' : 'Evaluate'}
-                        </button>
-                        ${!isWeekClosed ? `
-                          <button type="button" class="action-icon-btn" style="width: 26px; height: 26px; font-size: 0.75rem;" title="Remove from Best 4 (Return to Review Pool)" onclick="app.toggleSelectNomineeForBestFour('${escapeHtml(nom.id)}')">
-                            &times;
-                          </button>
-                        ` : ''}
-                      </div>
-                    </div>
-                  </div>
-                `;
-              } else {
-                return `
-                  <div class="best-four-slot-card is-open">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
-                      <span style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
-                        Finalist Slot #${slotIdx + 1} of ${MAX_BEST_STUDENTS_PER_WEEK}
-                      </span>
-                      <span style="font-size: 0.68rem; color: #d97706; font-weight: 700;">Open Slot</span>
-                    </div>
-                    <div style="font-weight: 700; font-size: 0.84rem; color: var(--navy-primary); margin-bottom: 0.2rem;">
-                      Awaiting Best 4 Selection
-                    </div>
-                    <div style="font-size: 0.73rem; color: var(--text-muted); line-height: 1.4;">
-                      ${pendingNoms.length > 0
-                        ? 'Click "Select for Best 4" on a reviewed nominee below.'
-                        : 'Nominate a student for review first, then select into Best 4.'}
-                    </div>
-                  </div>
-                `;
-              }
-            }).join('')}
-          </div>
-        </div>
-
-        <!-- Stage 1 Table: All Students Nominated for Review -->
-        <div style="font-size: 0.82rem; font-weight: 800; color: var(--navy-primary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.55rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-          <span>Stage 1 — Weekly Nomination Review Pool (${allNoms.length} Candidate${allNoms.length === 1 ? '' : 's'})</span>
-          <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-muted); text-transform: none;">
-            Review citations, add committee recommendations, and select the Best ${MAX_BEST_STUDENTS_PER_WEEK} students for ${escapeHtml(currentWeek.name)}
-          </span>
-        </div>
-
-        <div style="overflow-x: auto;">
-          <table class="table-standard">
-            <thead>
-              <tr>
-                <th style="width: 145px;">Review Stage</th>
-                <th>Nominated Student</th>
-                <th>Nominated By &amp; Recommendations</th>
-                <th>Review Citation &amp; Merit Tags</th>
-                <th style="text-align: center; width: 215px;">Best ${MAX_BEST_STUDENTS_PER_WEEK} Selection &amp; Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${allNoms.length === 0 ? `
-                <tr>
-                  <td colspan="5" style="text-align: center; padding: 2.5rem 1.25rem; color: var(--text-muted);">
-                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #fef3c7; color: #d97706; margin-bottom: 0.6rem;">
-                      ${APP_ICONS.award}
-                    </div>
-                    <div style="font-weight: 800; font-size: 1rem; color: var(--navy-primary); margin-bottom: 0.3rem;">
-                      No Students Nominated for Review Yet in ${escapeHtml(currentWeek.name)}
-                    </div>
-                    <div style="font-size: 0.82rem; max-width: 520px; margin: 0 auto 1.1rem; line-height: 1.5;">
-                      Committee members can nominate deserving students for review first. Once candidates are reviewed, select the <strong>Best ${MAX_BEST_STUDENTS_PER_WEEK} Students</strong> for the week interval's official evaluation.
-                    </div>
-                    <button type="button" class="btn-nominate-gold" onclick="app.openNominateStudentModal('', '${escapeHtml(targetWeekId)}')">
-                      ${APP_ICONS.award} + Nominate First Student for Review
-                    </button>
-                  </td>
-                </tr>
-              ` : allNoms.map(nom => {
-                const st = (this.store.state.students || []).find(s => s && s.id === nom.studentId);
-                const sName = st ? st.name : nom.studentName;
-                const sClass = st ? st.class : nom.studentClass;
-                const sHouse = st ? st.house : nom.studentHouse;
-                const isSelectedBest4 = Boolean(nom.selectedForEvaluation || nom.status === 'Selected');
-                const endorsements = Array.isArray(nom.endorsements) ? nom.endorsements : [];
-                const hasMyEndorsement = endorsements.some(e =>
-                  e && String(e.evaluatorKey || e.evaluatorId || e.evaluatorName || '').trim().toLowerCase() === currentEvalKey
-                );
-                const endorserNames = endorsements.map(e => e.evaluatorName).filter(Boolean).join(', ');
-                const canSelectMore = selectedNoms.length < MAX_BEST_STUDENTS_PER_WEEK;
-
-                return `
-                  <tr>
-                    <td>
-                      ${isSelectedBest4 ? `
-                        <span class="badge-best-four-selected">
-                          ${APP_ICONS.star} Best 4 (#${nom.selectedRankSlot || 1})
-                        </span>
-                        <div style="font-size: 0.69rem; color: #059669; font-weight: 700; margin-top: 0.25rem;">
-                          Selected for Evaluation
-                        </div>
-                      ` : `
-                        <span class="badge-review-pending">
-                          ${APP_ICONS.clock} In Review Pool
-                        </span>
-                        <div style="font-size: 0.69rem; color: var(--text-muted); margin-top: 0.25rem;">
-                          Awaiting Best 4 Selection
-                        </div>
-                      `}
-                    </td>
-                    <td>
-                      <div>
-                        <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${escapeHtml(nom.studentId)}' })" style="font-weight: 800; color: var(--navy-primary); font-size: 0.92rem;">
-                          ${escapeHtml(sName)}
-                        </a>
-                      </div>
-                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
-                        <strong>${escapeHtml(nom.studentId)}</strong> &bull; ${escapeHtml(sClass)} &bull; ${escapeHtml(sHouse)}
-                      </div>
-                    </td>
-                    <td>
-                      <div style="font-size: 0.82rem;">
-                        <strong>${escapeHtml(nom.nominatedByName)}</strong>
-                        <span style="font-size: 0.72rem; color: var(--text-muted);">(${escapeHtml(nom.nominatedByRole)})</span>
-                      </div>
-                      <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.35rem;">
-                        <span class="endorsement-count-pill" title="Recommended by: ${escapeHtml(endorserNames || nom.nominatedByName)}">
-                          ${APP_ICONS.check} ${endorsements.length} Recommendation${endorsements.length === 1 ? '' : 's'}
-                        </span>
-                        ${!isWeekClosed ? `
-                          <button type="button" class="btn-endorse-nominee ${hasMyEndorsement ? 'is-endorsed' : ''}" onclick="app.toggleEndorseNomination('${escapeHtml(nom.id)}')" title="${hasMyEndorsement ? 'You recommended this candidate' : 'Recommend this candidate for Best 4 selection'}">
-                            ${hasMyEndorsement ? 'Recommended ✓' : '+ Recommend'}
-                          </button>
-                        ` : ''}
-                      </div>
-                    </td>
-                    <td style="max-width: 290px;">
-                      <div style="font-size: 0.8rem; color: var(--navy-primary); font-style: italic; line-height: 1.4;">
-                        &ldquo;${escapeHtml(nom.citation)}&rdquo;
-                      </div>
-                      ${nom.tags && nom.tags.length > 0 ? `
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.3rem;">
-                          ${nom.tags.map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}
-                        </div>
-                      ` : ''}
-                    </td>
-                    <td style="text-align: center;">
-                      <div style="display: inline-flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; justify-content: center;">
-                        ${isSelectedBest4 ? `
-                          <button type="button" class="btn-navy-action" style="height: 29px; padding: 0 0.65rem; font-size: 0.74rem; background: #059669; color: #fff;" onclick="app.evaluateNominatedStudent('${escapeHtml(nom.studentId)}', '${escapeHtml(targetWeekId)}')">
-                            ${APP_ICONS.assessment} Evaluate
-                          </button>
-                          ${!isWeekClosed ? `
-                            <button type="button" class="btn-demo-pill" style="height: 29px; padding: 0 0.55rem; font-size: 0.72rem;" onclick="app.toggleSelectNomineeForBestFour('${escapeHtml(nom.id)}')" title="Remove from Best 4">
-                              Unselect
-                            </button>
-                          ` : ''}
-                        ` : `
-                          <button type="button" class="btn-select-best-four ${!canSelectMore || isWeekClosed ? 'is-disabled' : ''}" ${isWeekClosed ? 'disabled' : ''} onclick="app.toggleSelectNomineeForBestFour('${escapeHtml(nom.id)}')" title="${canSelectMore ? `Select ${escapeHtml(sName)} into Best ${MAX_BEST_STUDENTS_PER_WEEK} Finalists` : `4/4 slots full — unselect a finalist first`}">
-                            ${APP_ICONS.star} Select for Best 4 (${selectedNoms.length}/${MAX_BEST_STUDENTS_PER_WEEK})
-                          </button>
-                        `}
-                        ${!isWeekClosed ? `
-                          <button type="button" class="action-icon-btn" style="width: 28px; height: 28px;" title="Edit Review Citation" onclick="app.openNominateStudentModal('${escapeHtml(nom.studentId)}', '${escapeHtml(targetWeekId)}')">
-                            ${APP_ICONS.edit}
-                          </button>
-                          <button type="button" class="action-icon-btn delete" style="width: 28px; height: 28px;" title="Withdraw Nomination" onclick="app.handleWithdrawNomination('${escapeHtml(nom.id)}')">
-                            ${APP_ICONS.trash}
-                          </button>
-                        ` : ''}
-                      </div>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
   }
 
   renderTopHeader() {
@@ -4855,13 +4327,6 @@ class OLAGApp {
             <div class="quick-action-label">View Rankings</div>
           </div>
 
-          <div class="quick-action-card" onclick="app.openNominateStudentModal()">
-            <div class="quick-action-icon-box tone-amber">
-              ${APP_ICONS.award}
-            </div>
-            <div class="quick-action-label">Nominate for Review</div>
-          </div>
-
           <div class="quick-action-card" onclick="app.openAddStudentModal()">
             <div class="quick-action-icon-box tone-blue">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
@@ -4891,8 +4356,6 @@ class OLAGApp {
           </div>
         </div>
       </div>
-
-      ${currentWeek ? this.renderWeeklyNominationReviewAndBestFourCard(currentWeek.id, { marginTop: '1.5rem', marginBottom: '0' }) : ''}
 
       <!-- =========================================================================
            ADMIN DASHBOARD: NOTIFICATIONS & ACTIVITY ALERTS
@@ -5082,18 +4545,18 @@ class OLAGApp {
 
     const currentEvaluator = this.getCurrentLoginEvaluator();
     const weeklyNominations = this.store.getNominationsForWeek(currentWeek ? currentWeek.id : null);
-    const pendingReviewNominations = this.store.getPendingReviewNominationsForWeek(currentWeek ? currentWeek.id : null);
-    const selectedBestFourNominations = this.store.getSelectedBestFourNominations(currentWeek ? currentWeek.id : null);
-    const bestFourStudents = this.store.getSelectedBestFourStudents(currentWeek ? currentWeek.id : null);
-    const totalNominatedForReview = weeklyNominations.length;
+    const nominatedIds = new Set(weeklyNominations.map(n => n.studentId));
+    const nominatedStudents = allStudents.filter(s => nominatedIds.has(s.id));
+    const assignedStudents = nominatedStudents.length > 0 ? nominatedStudents : allStudents;
+    const isUsingNominatedFilter = nominatedStudents.length > 0;
 
-    const evaluatedStudents = bestFourStudents.filter(s => {
+    const evaluatedStudents = assignedStudents.filter(s => {
       const sScores = weekScores[s.id];
       return !!this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
     const evaluatedCount = evaluatedStudents.length;
-    const totalAssigned = bestFourStudents.length;
-    const pendingStudents = bestFourStudents.filter(s => {
+    const totalAssigned = assignedStudents.length;
+    const pendingStudents = assignedStudents.filter(s => {
       const sScores = weekScores[s.id];
       return !this.findSubmissionForEvaluator(sScores, currentEvaluator);
     });
@@ -5176,7 +4639,7 @@ class OLAGApp {
             </div>
           ` : ''}
           <button type="button" class="btn-nominate-gold" style="height: 34px;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-            ${APP_ICONS.award} + Nominate for Review
+            ${APP_ICONS.award} + Nominate Student
           </button>
           <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
             ${isWeekClosed ? `${APP_ICONS.eye} View Sealed Scores` : (isWeekUpcoming ? `${APP_ICONS.eye} Preview Criteria` : `${APP_ICONS.edit} Enter Scores`)}
@@ -5218,16 +4681,14 @@ class OLAGApp {
         <div class="committee-progress-hero">
           <div class="committee-progress-text">
             <h3>Assessment Quorum: ${escapeHtml(weekLabel)} Cycle ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</h3>
-            <p>${totalAssigned > 0
-              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} selected Best ${MAX_BEST_STUDENTS_PER_WEEK} finalists</strong> (${totalNominatedForReview} nominated in review pool) for ${escapeHtml(weekLabel)}.`
-              : (totalNominatedForReview > 0
-                  ? `<strong>${totalNominatedForReview} student${totalNominatedForReview === 1 ? ' is' : 's are'} nominated for review</strong>. Select the <strong>Best ${MAX_BEST_STUDENTS_PER_WEEK} students</strong> below to begin official weekly rubric evaluation.`
-                  : `No students have been nominated for review in this interval yet. Nominate deserving students first before selecting the Best ${MAX_BEST_STUDENTS_PER_WEEK} finalists.`)}</p>
+            <p>${isUsingNominatedFilter
+              ? `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} nominated students</strong> for ${escapeHtml(weekLabel)} personality assessment.`
+              : `You have evaluated <strong>${evaluatedCount} of ${totalAssigned} students</strong> for ${escapeHtml(weekLabel)}. Nominate candidates to spotlight deserving students.`}</p>
           </div>
           <div class="committee-progress-ring-block">
             <div class="committee-progress-pct">${completionPct}%</div>
             <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-              Best 4 Scored<br><span style="color: var(--stat-green);">${totalAssigned > 0 && pendingCount === 0 ? 'All Completed' : (totalAssigned > 0 ? `${pendingCount} Remaining` : `${selectedBestFourNominations.length}/${MAX_BEST_STUDENTS_PER_WEEK} Selected`)}</span>
+              Completion<br><span style="color: var(--stat-green);">${pendingCount === 0 ? 'All Completed' : `${pendingCount} Remaining`}</span>
             </div>
           </div>
         </div>
@@ -5250,58 +4711,52 @@ class OLAGApp {
             </div>
           </div>
 
-          <!-- Card 2: Nominated for Review Pool -->
-          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')" title="Click to Nominate Student for Review">
+          <div class="stat-card card-blue" style="cursor: pointer;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')" title="Click to Nominate Student">
             <div class="stat-card-text">
-              <span class="stat-card-title">Review Pool</span>
-              <span class="stat-card-value">${totalNominatedForReview}</span>
-              <span class="stat-card-sub">${pendingReviewNominations.length} awaiting Best 4 review</span>
+              <span class="stat-card-title">Weekly Nominees</span>
+              <span class="stat-card-value">${weeklyNominations.length}</span>
+              <span class="stat-card-sub">Nominated for evaluation</span>
             </div>
             <div class="stat-card-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
             </div>
           </div>
 
-          <!-- Card 3: Selected Best 4 Finalists -->
           <div class="stat-card card-purple">
             <div class="stat-card-text">
-              <span class="stat-card-title">Best 4 Selected</span>
-              <span class="stat-card-value">${selectedBestFourNominations.length} / ${MAX_BEST_STUDENTS_PER_WEEK}</span>
-              <span class="stat-card-sub">Finalists for evaluation</span>
-            </div>
-            <div class="stat-card-icon-badge">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </div>
-          </div>
-
-          <!-- Card 4: Evaluated Best 4 Finalists -->
-          <div class="stat-card card-orange">
-            <div class="stat-card-text">
-              <span class="stat-card-title">Your Evaluations</span>
+              <span class="stat-card-title">Evaluated Nominees</span>
               <span class="stat-card-value">${evaluatedCount} / ${totalAssigned}</span>
-              <span class="stat-card-sub">${totalAssigned === 0 ? 'Select Best 4 first' : (pendingCount === 0 ? 'All Best 4 graded!' : `${pendingCount} finalist${pendingCount === 1 ? '' : 's'} pending`)}</span>
+              <span class="stat-card-sub">Submitted for ${escapeHtml(weekLabel)}</span>
             </div>
             <div class="stat-card-icon-badge">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
           </div>
+
+          <div class="stat-card card-orange">
+            <div class="stat-card-text">
+              <span class="stat-card-title">Pending Evaluations</span>
+              <span class="stat-card-value">${pendingCount}</span>
+              <span class="stat-card-sub">${pendingCount === 0 ? 'All graded!' : 'Awaiting your scores'}</span>
+            </div>
+            <div class="stat-card-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 2-Stage Nomination Review Pool & Select Best 4 Students Card -->
-      ${currentWeek ? this.renderWeeklyNominationReviewAndBestFourCard(currentWeek.id, { marginTop: '0', marginBottom: '1.25rem' }) : ''}
-
-      <!-- Official Evaluation Queue for Selected Best 4 Finalists -->
+      <!-- Weekly Student Nominees & Evaluation Queue -->
       <div class="scoring-table-card">
         <div class="scoring-table-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-            <span style="display: inline-flex; color: #059669;">${APP_ICONS.trophy}</span>
-            <span>Official Evaluation Queue — Selected Best ${MAX_BEST_STUDENTS_PER_WEEK} Students for ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
-            <span class="badge-best-four-selected">${totalAssigned} / ${MAX_BEST_STUDENTS_PER_WEEK} Selected</span>
+            <span style="display: inline-flex; color: #d97706;">${APP_ICONS.award}</span>
+            <span>Weekly Student Nominees &amp; Evaluation Queue — ${escapeHtml(weekLabel)} ${currentWeek ? `(${escapeHtml(weekDateRange)})` : ''}</span>
+            <span class="badge-nominee">${weeklyNominations.length} Nominated</span>
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             <button type="button" class="btn-nominate-gold" style="height: 32px; font-size: 0.76rem;" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-              ${APP_ICONS.award} + Nominate for Review
+              ${APP_ICONS.award} + Nominate Student
             </button>
             <button class="btn-navy-action" style="height: 32px; padding: 0 0.85rem; font-size: 0.76rem;" onclick="app.navigateTo('assessment')">
               Open Full Rubric
@@ -5313,81 +4768,69 @@ class OLAGApp {
           <table class="table-standard">
             <thead>
               <tr>
-                <th style="width: 90px;">Finalist Slot</th>
-                <th>Selected Best 4 Student</th>
-                <th>Nominated By &amp; Review</th>
-                <th>Citation &amp; Merit Tags</th>
+                <th>Student ID</th>
+                <th>Student Name &amp; Class</th>
+                <th>House</th>
+                <th>Nomination &amp; Citation</th>
                 <th>Your Score</th>
-                <th style="text-align: center; width: 145px;">Action</th>
+                <th style="text-align: center; width: 150px;">Action</th>
               </tr>
             </thead>
             <tbody>
-              ${totalAssigned === 0 ? `
+              ${assignedStudents.length === 0 ? `
                 <tr>
                   <td colspan="6" style="text-align: center; padding: 2.5rem 1.5rem; color: var(--text-muted);">
                     <div style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: #fef3c7; color: #d97706; margin-bottom: 0.75rem;">
                       ${APP_ICONS.award}
                     </div>
                     <div style="font-weight: 800; font-size: 1.02rem; color: var(--navy-primary); margin-bottom: 0.35rem;">
-                      ${totalNominatedForReview > 0
-                        ? `${totalNominatedForReview} Student${totalNominatedForReview === 1 ? ' Is' : 's Are'} in the Review Pool — Select the Best ${MAX_BEST_STUDENTS_PER_WEEK} to Evaluate`
-                        : `No Students Selected in the Best ${MAX_BEST_STUDENTS_PER_WEEK} Yet for ${escapeHtml(weekLabel)}`}
+                      No Students Nominated Yet for ${escapeHtml(weekLabel)}
                     </div>
-                    <div style="font-size: 0.83rem; max-width: 520px; margin: 0 auto 1.15rem; line-height: 1.5;">
-                      ${totalNominatedForReview > 0
-                        ? `Review the nominated candidates in the Nomination Review Pool above and click "Select for Best 4" (or click below to auto-select the top recommended candidates) to start official rubric grading.`
-                        : `Step 1: Committee members nominate deserving students for review. Step 2: Select the Best ${MAX_BEST_STUDENTS_PER_WEEK} students from the review pool for official weekly rubric evaluation.`}
+                    <div style="font-size: 0.83rem; max-width: 480px; margin: 0 auto 1.15rem; line-height: 1.5;">
+                      Click below to enter and nominate a deserving student for this week's Student Personality of the Week evaluation.
                     </div>
-                    <div style="display: inline-flex; gap: 0.55rem; flex-wrap: wrap; justify-content: center;">
-                      ${totalNominatedForReview > 0 && !isWeekClosed ? `
-                        <button type="button" class="btn-navy-action" style="background: #059669; color: #fff;" onclick="app.autoSelectBestFourForWeek('${currentWeek ? currentWeek.id : ''}')">
-                          ${APP_ICONS.check} Select Best ${MAX_BEST_STUDENTS_PER_WEEK} from Review Pool (${totalNominatedForReview} Available)
-                        </button>
-                      ` : ''}
-                      <button type="button" class="btn-nominate-gold" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
-                        ${APP_ICONS.award} + Nominate Student for Review
-                      </button>
-                    </div>
+                    <button type="button" class="btn-nominate-gold" onclick="app.openNominateStudentModal('', '${currentWeek ? currentWeek.id : ''}')">
+                      ${APP_ICONS.award} + Nominate Student for ${escapeHtml(weekLabel)}
+                    </button>
                   </td>
                 </tr>
-              ` : bestFourStudents.map((s, idx) => {
-                const nom = selectedBestFourNominations.find(n => n && n.studentId === s.id) || weeklyNominations.find(n => n && n.studentId === s.id);
+              ` : assignedStudents.map(s => {
+                const nom = currentWeek ? this.store.getNominationForStudent(s.id, currentWeek.id) : null;
                 const sub = this.findSubmissionForEvaluator(weekScores[s.id], currentEvaluator);
                 const isEvaluated = !!sub;
-                const slotNum = (nom && nom.selectedRankSlot) ? nom.selectedRankSlot : (idx + 1);
-                const endCount = (nom && Array.isArray(nom.endorsements)) ? nom.endorsements.length : 1;
                 return `
                   <tr>
-                    <td>
-                      <span class="badge-best-four-selected">
-                        ${APP_ICONS.star} Slot #${slotNum}
-                      </span>
-                    </td>
+                    <td><strong>${escapeHtml(s.id)}</strong></td>
                     <td>
                       <div>
-                        <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 800; color: var(--navy-primary); font-size: 0.92rem;">
+                        <a href="javascript:void(0)" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })" style="font-weight: 800; color: var(--navy-primary);">
                           ${escapeHtml(s.name)}
                         </a>
                       </div>
-                      <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.15rem;">
-                        <strong>${escapeHtml(s.id)}</strong> • ${escapeHtml(s.class)} • <span style="color: #64748b;">${escapeHtml(s.house)}</span>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem;">
+                        ${escapeHtml(s.class)}
                       </div>
                     </td>
-                    <td>
-                      <div><strong>${escapeHtml(nom ? nom.nominatedByName : 'Committee Member')}</strong></div>
-                      <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.1rem;">
-                        ${escapeHtml(nom ? nom.nominatedByRole : 'Evaluator')} • <span style="color: #059669; font-weight: 700;">${endCount} Rec${endCount === 1 ? '' : 's'}</span>
-                      </div>
-                    </td>
-                    <td style="max-width: 280px;">
-                      <div style="font-size: 0.82rem; color: #1e293b; font-style: italic; line-height: 1.4;">
-                        &ldquo;${escapeHtml(nom ? nom.citation : 'Exemplary character and school values')}&rdquo;
-                      </div>
-                      ${nom && nom.tags && nom.tags.length > 0 ? `
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem;">
-                          ${nom.tags.map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}
+                    <td>${escapeHtml(s.house)}</td>
+                    <td style="max-width: 290px;">
+                      ${nom ? `
+                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.2rem;">
+                          <span class="badge-nominee">${APP_ICONS.award} Nominated</span>
+                          <span style="font-size: 0.72rem; color: var(--text-muted);">by <strong>${escapeHtml(nom.nominatedByName)}</strong></span>
                         </div>
-                      ` : ''}
+                        <div style="font-size: 0.78rem; color: #475569; font-style: italic; line-height: 1.35;">
+                          &ldquo;${escapeHtml(nom.citation)}&rdquo;
+                        </div>
+                        ${nom.tags && nom.tags.length > 0 ? `
+                          <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                            ${nom.tags.map(t => `<span class="nomination-tag-badge">${escapeHtml(t)}</span>`).join('')}
+                          </div>
+                        ` : ''}
+                      ` : `
+                        <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${s.id}', '${currentWeek ? currentWeek.id : ''}')">
+                          ${APP_ICONS.award} + Nominate
+                        </button>
+                      `}
                     </td>
                     <td>
                       ${isEvaluated ? `
@@ -5410,12 +4853,12 @@ class OLAGApp {
                           </button>
                         ` : `
                           <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem;" onclick="app.startStudentAssessment('${s.id}')">
-                            ${APP_ICONS.assessment} Assess Finalist
+                            ${APP_ICONS.assessment} Assess Student
                           </button>
                         `}
                         ${nom && !isWeekClosed ? `
-                          <button type="button" class="btn-text-action" style="font-size: 0.72rem; color: #64748b; padding: 0;" onclick="app.toggleSelectNomineeForBestFour('${nom.id}')">
-                            Remove from Best 4
+                          <button type="button" class="btn-text-action" style="font-size: 0.72rem; color: #dc2626; padding: 0;" onclick="app.handleWithdrawNomination('${nom.id}')">
+                            Withdraw
                           </button>
                         ` : ''}
                       </div>
@@ -5638,11 +5081,9 @@ class OLAGApp {
                     <td>${escapeHtml(s.gender || '—')}</td>
                     <td>
                       <div style="display: flex; flex-direction: column; gap: 0.3rem; align-items: flex-start;">
-                        ${isBest4 ? `
-                          <span class="badge-best-four-selected">${APP_ICONS.star} Best 4 Finalist (#${nom.selectedRankSlot || 1})</span>
-                        ` : (isNom ? `
-                          <span class="badge-review-pending">${APP_ICONS.clock} Nominated (In Review)</span>
-                        ` : '')}
+                        ${isNom ? `
+                          <span class="badge-nominee">${APP_ICONS.award} Nominated</span>
+                        ` : ''}
                         ${isEvaluated ? `
                           <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
                             <span class="status-badge-active" style="font-size: 0.72rem;">
@@ -5682,14 +5123,9 @@ class OLAGApp {
                         <button type="button" class="action-icon-btn" title="View Profile" onclick="app.navigateTo('student-profile', { studentId: '${s.id}' })">
                           ${APP_ICONS.eye}
                         </button>
-                        <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${s.id}', '${currentWeek ? currentWeek.id : ''}')" title="${isNom ? 'View / Edit Review Nomination' : 'Nominate Student for Weekly Review'}">
-                          ${APP_ICONS.award} ${isNom ? 'Review Info' : 'Nominate'}
+                        <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${s.id}', '${currentWeek ? currentWeek.id : ''}')" title="${isNom ? 'View / Edit Nomination' : 'Nominate Student for Weekly Evaluation'}">
+                          ${APP_ICONS.award} ${isNom ? 'Nominated' : 'Nominate'}
                         </button>
-                        ${isNom && currentWeek ? `
-                          <button type="button" class="btn-select-best-four ${isBest4 ? 'is-selected' : ''}" style="height: 26px; padding: 0 0.5rem; font-size: 0.68rem;" onclick="app.toggleSelectNomineeForBestFour('${nom.id}')" title="${isBest4 ? 'Selected in Best 4 Finalists — click to return to Review Pool' : 'Select into Best 4 Finalists for this week interval'}">
-                            ${APP_ICONS.star} ${isBest4 ? `Best 4 (#${nom.selectedRankSlot || 1})` : 'Select Best 4'}
-                          </button>
-                        ` : ''}
                         ${isCurrentlyAdmin ? `
                           <button type="button" class="action-icon-btn" title="Edit Student" onclick="app.openEditStudentModal('${s.id}')">
                             ${APP_ICONS.edit}
@@ -5806,18 +5242,13 @@ class OLAGApp {
     const classStudents = (currentClass === 'All Classes' || !currentClass)
       ? this.store.state.students
       : this.store.state.students.filter(s => s.class === currentClass);
-    const selectedBestFourNoms = currentWeekId ? this.store.getSelectedBestFourNominations(currentWeekId) : [];
-    const selectedBestFourIds = new Set(selectedBestFourNoms.map(n => n.studentId));
-    const pendingReviewNoms = currentWeekId ? this.store.getPendingReviewNominationsForWeek(currentWeekId) : [];
-    const pendingReviewIds = new Set(pendingReviewNoms.map(n => n.studentId));
-
-    const bestFourClassStudents = classStudents.filter(s => selectedBestFourIds.has(s.id));
-    const pendingReviewClassStudents = classStudents.filter(s => pendingReviewIds.has(s.id) && !selectedBestFourIds.has(s.id));
-    const otherClassStudents = classStudents.filter(s => !selectedBestFourIds.has(s.id) && !pendingReviewIds.has(s.id));
+    const weeklyNoms = currentWeekId ? this.store.getNominationsForWeek(currentWeekId) : [];
+    const nominatedIds = new Set(weeklyNoms.map(n => n.studentId));
+    const nominatedClassStudents = classStudents.filter(s => nominatedIds.has(s.id));
+    const otherClassStudents = classStudents.filter(s => !nominatedIds.has(s.id));
 
     let selectedStudent = (currentStudentId ? this.store.state.students.find(s => s.id === currentStudentId) : null)
-      || bestFourClassStudents[0]
-      || pendingReviewClassStudents[0]
+      || nominatedClassStudents[0]
       || classStudents[0]
       || null;
     if (selectedStudent && this.store.state.selectedStudentId !== selectedStudent.id) {
@@ -5967,29 +5398,20 @@ class OLAGApp {
         </div>
 
         <div class="filter-field">
-          <label>Student (${selectedBestFourNoms.length}/${MAX_BEST_STUDENTS_PER_WEEK} Best Selected)</label>
+          <label>Student</label>
           <select id="assessStudentSelect" class="form-select">
             ${classStudents.length === 0 ? `
               <option value="">-- No Students in ${escapeHtml(currentClass)} --</option>
             ` : `
-              ${bestFourClassStudents.length > 0 ? `
-                <optgroup label="Selected Best ${MAX_BEST_STUDENTS_PER_WEEK} Finalists (${bestFourClassStudents.length}/${MAX_BEST_STUDENTS_PER_WEEK})">
-                  ${bestFourClassStudents.map(s => {
-                    const nom = this.store.getNominationForStudent(s.id, currentWeekId);
-                    const slotNum = (nom && nom.selectedRankSlot) ? nom.selectedRankSlot : 1;
-                    return `<option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>[Best 4 #${slotNum}] ${escapeHtml(s.name)} (${s.id})</option>`;
-                  }).join('')}
-                </optgroup>
-              ` : ''}
-              ${pendingReviewClassStudents.length > 0 ? `
-                <optgroup label="Nominated — In Review Pool (${pendingReviewClassStudents.length})">
-                  ${pendingReviewClassStudents.map(s => `
-                    <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>[In Review] ${escapeHtml(s.name)} (${s.id})</option>
+              ${nominatedClassStudents.length > 0 ? `
+                <optgroup label="Nominated Candidates for This Week (${nominatedClassStudents.length})">
+                  ${nominatedClassStudents.map(s => `
+                    <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>[Nominated] ${escapeHtml(s.name)} (${s.id})</option>
                   `).join('')}
                 </optgroup>
               ` : ''}
               ${otherClassStudents.length > 0 ? `
-                <optgroup label="Other Enrolled Students (${otherClassStudents.length})">
+                <optgroup label="Enrolled Students (${otherClassStudents.length})">
                   ${otherClassStudents.map(s => `
                     <option value="${s.id}" ${selectedStudent && s.id === selectedStudent.id ? 'selected' : ''}>${escapeHtml(s.name)} (${s.id})</option>
                   `).join('')}
@@ -6004,7 +5426,7 @@ class OLAGApp {
             Load Student
           </button>
           <button type="button" class="btn-nominate-gold" style="height: 38px; white-space: nowrap;" onclick="app.openNominateStudentModal('', '${currentWeekId || ''}')">
-            ${APP_ICONS.award} + Nominate for Review
+            ${APP_ICONS.award} + Nominate Student
           </button>
         </div>
       </div>
@@ -6013,23 +5435,18 @@ class OLAGApp {
         <div class="scoring-table-card">
           ${(() => {
             const studentNomination = (selectedStudent && currentWeekId) ? this.store.getNominationForStudent(selectedStudent.id, currentWeekId) : null;
-            const isSelectedInBestFour = Boolean(studentNomination && (studentNomination.selectedForEvaluation || studentNomination.status === 'Selected'));
-            const canSelectMoreInWeek = selectedBestFourNoms.length < MAX_BEST_STUDENTS_PER_WEEK;
-
-            if (studentNomination && isSelectedInBestFour) {
-              const endCount = Array.isArray(studentNomination.endorsements) ? studentNomination.endorsements.length : 1;
+            if (studentNomination) {
               return `
-                <div class="nomination-citation-banner is-best-four-banner" style="margin-bottom: 1.15rem;">
+                <div class="nomination-citation-banner" style="margin-bottom: 1.15rem;">
                   <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
                     <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                      <span class="nomination-award-icon" style="background: #059669; color: #fff;">${APP_ICONS.trophy}</span>
+                      <span class="nomination-award-icon">${APP_ICONS.award}</span>
                       <div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                           <span style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">
-                            Selected Best ${MAX_BEST_STUDENTS_PER_WEEK} Finalist for ${escapeHtml(currentWeekObj ? currentWeekObj.name : 'This Interval')}
+                            Nominated for ${escapeHtml(currentWeekObj ? currentWeekObj.name : 'This Interval')} Evaluation
                           </span>
-                          <span class="badge-best-four-selected">${APP_ICONS.star} Finalist Slot #${studentNomination.selectedRankSlot || 1} of ${MAX_BEST_STUDENTS_PER_WEEK}</span>
-                          <span class="endorsement-count-pill">${APP_ICONS.check} ${endCount} Recommendation${endCount === 1 ? '' : 's'}</span>
+                          <span class="badge-nominee">${APP_ICONS.award} Official Nominee</span>
                         </div>
                         <div style="font-size: 0.83rem; color: var(--navy-primary); margin-top: 0.25rem; font-style: italic;">
                           &ldquo;${escapeHtml(studentNomination.citation || 'Nominated for outstanding character, punctuality, and exemplary conduct.')}&rdquo;
@@ -6045,51 +5462,10 @@ class OLAGApp {
                         ${APP_ICONS.edit} Edit Citation
                       </button>
                       ${!isWeekClosed ? `
-                        <button type="button" class="btn-demo-pill" style="height: 30px; font-size: 0.74rem;" onclick="app.toggleSelectNomineeForBestFour('${studentNomination.id}')">
-                          Remove from Best 4
+                        <button type="button" class="btn-demo-pill" style="height: 30px; font-size: 0.74rem;" onclick="app.handleWithdrawNomination('${studentNomination.id}')">
+                          Withdraw
                         </button>
                       ` : ''}
-                    </div>
-                  </div>
-                </div>
-              `;
-            } else if (studentNomination) {
-              const endCount = Array.isArray(studentNomination.endorsements) ? studentNomination.endorsements.length : 1;
-              return `
-                <div class="nomination-citation-banner" style="margin-bottom: 1.15rem;">
-                  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                      <span class="nomination-award-icon">${APP_ICONS.award}</span>
-                      <div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                          <span style="font-weight: 800; font-size: 0.95rem; color: #92400e;">
-                            Stage 1: Nominated for Review (${escapeHtml(currentWeekObj ? currentWeekObj.name : 'This Interval')})
-                          </span>
-                          <span class="badge-review-pending">${APP_ICONS.clock} Pending Best 4 Selection (${selectedBestFourNoms.length}/${MAX_BEST_STUDENTS_PER_WEEK} Selected)</span>
-                          <span class="endorsement-count-pill">${APP_ICONS.check} ${endCount} Recommendation${endCount === 1 ? '' : 's'}</span>
-                        </div>
-                        <div style="font-size: 0.83rem; color: #78350f; margin-top: 0.25rem; font-style: italic;">
-                          &ldquo;${escapeHtml(studentNomination.citation || 'Nominated for outstanding character, punctuality, and exemplary conduct.')}&rdquo;
-                        </div>
-                        <div style="font-size: 0.78rem; color: #92400e; margin-top: 0.3rem;">
-                          ${canSelectMoreInWeek
-                            ? `This candidate is in the <strong>Nomination Review Pool</strong>. Click <strong>"Select for Best 4"</strong> to promote them into one of the ${MAX_BEST_STUDENTS_PER_WEEK} finalist slots for official evaluation.`
-                            : `All <strong>${MAX_BEST_STUDENTS_PER_WEEK} Best Student slots (${MAX_BEST_STUDENTS_PER_WEEK}/${MAX_BEST_STUDENTS_PER_WEEK})</strong> are currently filled for this week interval. Remove one finalist first if you wish to replace them with ${escapeHtml(selectedStudent.name)}.`}
-                        </div>
-                      </div>
-                    </div>
-                    <div style="display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap;">
-                      ${!isWeekClosed ? `
-                        <button type="button" class="btn-select-best-four ${!canSelectMoreInWeek ? 'is-disabled' : ''}" onclick="app.toggleSelectNomineeForBestFour('${studentNomination.id}')">
-                          ${APP_ICONS.star} Select for Best 4 (${selectedBestFourNoms.length}/${MAX_BEST_STUDENTS_PER_WEEK})
-                        </button>
-                        <button type="button" class="btn-endorse-nominee" onclick="app.toggleEndorseNomination('${studentNomination.id}')">
-                          + Recommend
-                        </button>
-                      ` : ''}
-                      <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${selectedStudent.id}', '${currentWeekId}')">
-                        ${APP_ICONS.edit} Edit Citation
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -6101,11 +5477,11 @@ class OLAGApp {
                     <div style="display: flex; align-items: center; gap: 0.65rem;">
                       <span style="display: inline-flex; color: #64748b;">${APP_ICONS.award}</span>
                       <span style="font-size: 0.82rem; color: var(--text-muted);">
-                        <strong>${escapeHtml(selectedStudent.name)}</strong> is not yet nominated for review in this week interval (${selectedBestFourNoms.length}/${MAX_BEST_STUDENTS_PER_WEEK} Best Students selected).
+                        <strong>${escapeHtml(selectedStudent.name)}</strong> is not yet formally nominated for this week interval.
                       </span>
                     </div>
                     <button type="button" class="btn-nominate-action" onclick="app.openNominateStudentModal('${selectedStudent.id}', '${currentWeekId}')">
-                      ${APP_ICONS.award} + Nominate for Review
+                      ${APP_ICONS.award} + Nominate Student
                     </button>
                   </div>
                 </div>
@@ -6295,42 +5671,6 @@ class OLAGApp {
           return;
         }
 
-        // Enforce 2-Stage Review -> Best 4 Selection cap (max 4 evaluated finalists per week interval)
-        const currentSelectedBestFour = this.store.getSelectedBestFourNominations(currentWeekId);
-        const isAlreadySelectedInBestFour = this.store.isStudentSelectedInBestFour(selectedStudent.id, currentWeekId);
-        if (!isAlreadySelectedInBestFour) {
-          if (currentSelectedBestFour.length >= MAX_BEST_STUDENTS_PER_WEEK) {
-            this.showToast(`All ${MAX_BEST_STUDENTS_PER_WEEK} Best Student slots (${MAX_BEST_STUDENTS_PER_WEEK}/${MAX_BEST_STUDENTS_PER_WEEK}) are already filled for ${currentWeekObj ? currentWeekObj.name : 'this week'}. Unselect one finalist first to evaluate ${selectedStudent.name}.`);
-            return;
-          }
-          // Auto-promote into an open Best 4 slot (creating a nomination record if not yet nominated)
-          let nomRecord = this.store.getNominationForStudent(selectedStudent.id, currentWeekId);
-          if (!nomRecord) {
-            nomRecord = this.store.addNomination({
-              studentId: selectedStudent.id,
-              studentName: selectedStudent.name,
-              studentClass: selectedStudent.class,
-              studentHouse: selectedStudent.house,
-              weekId: currentWeekId,
-              nominatedById: evaluator.id,
-              nominatedByName: evaluator.name,
-              nominatedByRole: evaluator.role,
-              nominatedByUsername: evaluator.username,
-              citation: 'Selected and evaluated for weekly personality assessment.',
-              tags: ['Exemplary Conduct'],
-              status: 'Selected',
-              selectedForEvaluation: true
-            });
-          } else {
-            nomRecord.status = 'Selected';
-            nomRecord.selectedForEvaluation = true;
-            nomRecord.selectedRankSlot = currentSelectedBestFour.length + 1;
-            nomRecord.selectedAt = new Date().toISOString();
-            nomRecord.selectedBy = evaluator.name;
-            nomRecord.updatedAt = new Date().toISOString();
-            this.store.resequenceBestFourSlots(currentWeekId);
-          }
-        }
         const scoresObj = {};
         let total = 0;
         inputs.forEach(inp => {
