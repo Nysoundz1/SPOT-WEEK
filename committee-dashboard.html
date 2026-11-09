@@ -82,7 +82,7 @@
           <p class="auth-sub-heading">Register as a committee member to evaluate students</p>
 
           <form id="registerFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); if(window.app) window.app.handleCommitteeRegister(); return false;">
-            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.15rem;">
+            <div id="regCommitteePhotoUploadWrap" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.15rem;">
               <div style="position: relative; width: 68px; height: 68px; margin-bottom: 0.45rem;">
                 <div id="regCommitteeAvatarPreview" style="width: 68px; height: 68px; border-radius: 50%; background: #059669; color: #fff; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2.5px solid #10b981; box-shadow: 0 3px 8px rgba(5,150,105,0.25);">
                   CM
@@ -291,7 +291,7 @@
 
   <script>window.OLAG_PORTAL_ROLE = 'committee';</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=25"></script>
+  <script src="app.js?v=26"></script>
   <script src="committee.js?v=3"></script>
   <script>
     function signInCommittee() {

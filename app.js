@@ -1633,6 +1633,7 @@ class OLAGStore {
         parsed.theme = localStorage.getItem('olag_theme') || parsed.theme || 'light';
         if (typeof parsed.sidebarCollapsed === 'undefined') parsed.sidebarCollapsed = false;
         if (typeof parsed.dashInfoHidden === 'undefined') parsed.dashInfoHidden = false;
+        if (typeof parsed.hideProfilePhotoUpload === 'undefined') parsed.hideProfilePhotoUpload = false;
 
         const isLegacyCriteria = !Array.isArray(parsed.criteria) ||
           parsed.criteria.length !== CRITERIA_LIST.length ||
@@ -1840,7 +1841,8 @@ class OLAGStore {
       selectedArchiveWeekId: DEFAULT_ARCHIVED_WEEKS[0] ? DEFAULT_ARCHIVED_WEEKS[0].id : null,
       theme: localStorage.getItem('olag_theme') || 'light',
       sidebarCollapsed: false,
-      dashInfoHidden: false
+      dashInfoHidden: false,
+      hideProfilePhotoUpload: false
     };
   }
 
@@ -2436,6 +2438,7 @@ class OLAGApp {
       if (tabRegister) tabRegister.classList.add('active');
       if (titleEl) titleEl.textContent = 'Create your account';
       if (subtitleEl) subtitleEl.textContent = 'Register as a committee member to evaluate students';
+      this.applyProfilePhotoVisibility();
       const nameInp = document.getElementById('regCommitteeName');
       if (nameInp) nameInp.focus();
     } else {
@@ -2921,6 +2924,7 @@ class OLAGApp {
     if (loginWrapper) loginWrapper.style.display = 'none';
     appShell.style.display = 'flex';
 
+    this.applyProfilePhotoVisibility();
     this.renderTopHeader();
     this.renderSidebar();
     this.renderActiveView();
@@ -3366,10 +3370,14 @@ class OLAGApp {
     const weekIntervalEl = document.getElementById('headerWeekIntervalText');
     const btnSwitchDash = document.getElementById('btnSwitchDashboard');
 
+    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
+    const isPhotoUploadHidden = !isCurrentlyAdmin && !!this.store.state.hideProfilePhotoUpload;
+    const canShowPhoto = !isPhotoUploadHidden && evaluator.photo;
+
     if (userNameEl) userNameEl.textContent = evaluator.name;
     if (userRoleEl) userRoleEl.textContent = evaluator.role;
     if (userAvatarEl) {
-      if (evaluator.photo) {
+      if (canShowPhoto) {
         userAvatarEl.innerHTML = `<img src="${evaluator.photo}" alt="${escapeHtml(evaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`;
         userAvatarEl.style.backgroundColor = 'transparent';
       } else {
@@ -3381,7 +3389,6 @@ class OLAGApp {
 
     this.updateDatabaseStatusUI();
     this.updateThemeUI();
-    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
     const weekPillEl = document.querySelector('.header-week-pill');
 
     if (weekIntervalEl) {
@@ -3423,9 +3430,15 @@ class OLAGApp {
     }
     const headerProfileEl = document.getElementById('headerUserProfile');
     if (headerProfileEl) {
-      headerProfileEl.style.cursor = 'pointer';
-      headerProfileEl.title = 'Click to upload or change profile photo';
-      headerProfileEl.onclick = () => this.openProfilePhotoModal();
+      if (isPhotoUploadHidden) {
+        headerProfileEl.style.cursor = 'default';
+        headerProfileEl.title = evaluator.name;
+        headerProfileEl.onclick = null;
+      } else {
+        headerProfileEl.style.cursor = 'pointer';
+        headerProfileEl.title = 'Click to upload or change profile photo';
+        headerProfileEl.onclick = () => this.openProfilePhotoModal();
+      }
     }
   }
 
@@ -3815,6 +3828,13 @@ class OLAGApp {
             <div class="quick-action-label">Add Committee Member</div>
           </div>
 
+          <div class="quick-action-card" onclick="app.toggleProfilePhotoUploadSetting()" title="${this.store.state.hideProfilePhotoUpload ? 'Currently hidden. Click to allow picture upload' : 'Currently allowed. Click to hide picture upload'}">
+            <div class="quick-action-icon-box ${this.store.state.hideProfilePhotoUpload ? 'tone-rose' : 'tone-teal'}">
+              ${this.store.state.hideProfilePhotoUpload ? APP_ICONS.eyeOff : APP_ICONS.camera}
+            </div>
+            <div class="quick-action-label">${this.store.state.hideProfilePhotoUpload ? 'Picture Upload: Hidden' : 'Picture Upload: Allowed'}</div>
+          </div>
+
           <div class="quick-action-card" onclick="app.navigateTo('archive')">
             <div class="quick-action-icon-box tone-amber">
               ${APP_ICONS.archive}
@@ -4018,7 +4038,9 @@ class OLAGApp {
     const weekStatus = currentWeek ? (currentWeek.status || 'Open') : 'Pending';
 
     const currentEvaluator = this.getCurrentLoginEvaluator();
+    const isPhotoUploadHidden = !!this.store.state.hideProfilePhotoUpload;
     const evaluatorPhoto = currentEvaluator.photo || (this.store.state.currentUser && this.store.state.currentUser.photo) || null;
+    const canShowPhoto = !isPhotoUploadHidden && evaluatorPhoto;
     const evaluatorInitials = currentEvaluator.avatar || (currentEvaluator.name || 'CM').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
     const evaluatedStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
@@ -4040,20 +4062,24 @@ class OLAGApp {
     container.innerHTML = `
       <div class="view-header view-header-with-toggle" style="align-items: center;">
         <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-          <div style="position: relative; cursor: pointer;" onclick="app.openProfilePhotoModal('${currentEvaluator.id}')" title="Click to upload or change profile photo">
-            <div style="width: 54px; height: 54px; border-radius: 50%; ${evaluatorPhoto ? 'background: transparent;' : 'background: #059669;'} color: #fff; font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2.5px solid #10b981; box-shadow: 0 3px 8px rgba(5, 150, 105, 0.25);">
-              ${evaluatorPhoto ? `<img src="${evaluatorPhoto}" alt="${escapeHtml(currentEvaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />` : evaluatorInitials}
+          <div style="position: relative; ${isPhotoUploadHidden ? 'cursor: default;' : 'cursor: pointer;'}" ${isPhotoUploadHidden ? '' : `onclick="app.openProfilePhotoModal('${currentEvaluator.id}')" title="Click to upload or change profile photo"`}>
+            <div style="width: 54px; height: 54px; border-radius: 50%; ${canShowPhoto ? 'background: transparent;' : 'background: #059669;'} color: #fff; font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2.5px solid #10b981; box-shadow: 0 3px 8px rgba(5, 150, 105, 0.25);">
+              ${canShowPhoto ? `<img src="${evaluatorPhoto}" alt="${escapeHtml(currentEvaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />` : evaluatorInitials}
             </div>
-            <span style="position: absolute; bottom: -2px; right: -2px; width: 22px; height: 22px; border-radius: 50%; background: var(--navy-primary); color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Change photo">
-              ${APP_ICONS.camera}
-            </span>
+            ${!isPhotoUploadHidden ? `
+              <span style="position: absolute; bottom: -2px; right: -2px; width: 22px; height: 22px; border-radius: 50%; background: var(--navy-primary); color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Change photo">
+                ${APP_ICONS.camera}
+              </span>
+            ` : ''}
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               <h2 style="margin: 0;">Committee Member Dashboard</h2>
-              <button type="button" class="btn-demo-pill" style="font-size: 0.72rem; padding: 0.2rem 0.6rem; border: 1px solid #10b981; color: #065f46; background: #ecfdf5; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="app.openProfilePhotoModal('${currentEvaluator.id}')" title="Upload or change profile picture">
-                ${APP_ICONS.camera} <span>${evaluatorPhoto ? 'Change Photo' : 'Upload Photo'}</span>
-              </button>
+              ${!isPhotoUploadHidden ? `
+                <button type="button" class="btn-demo-pill" style="font-size: 0.72rem; padding: 0.2rem 0.6rem; border: 1px solid #10b981; color: #065f46; background: #ecfdf5; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="app.openProfilePhotoModal('${currentEvaluator.id}')" title="Upload or change profile picture">
+                  ${APP_ICONS.camera} <span>${evaluatorPhoto ? 'Change Photo' : 'Upload Photo'}</span>
+                </button>
+              ` : ''}
             </div>
             <p style="margin: 0.15rem 0 0;">Logged in as <strong>${escapeHtml(currentEvaluator.name)}</strong> (${escapeHtml(currentEvaluator.role)})</p>
           </div>
@@ -4722,8 +4748,8 @@ class OLAGApp {
       <!-- Interactive Evaluator & Week Interval Status Banner -->
       <div class="evaluator-banner">
         <div class="evaluator-banner-left">
-          <div class="evaluator-avatar" style="${evaluator.photo ? 'background: transparent;' : `background: ${evaluator.avatarBg}; color: #ffffff;`}">
-            ${evaluator.photo ? `<img src="${evaluator.photo}" alt="${escapeHtml(evaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />` : escapeHtml(evaluator.avatar)}
+          <div class="evaluator-avatar" style="${(!this.store.state.hideProfilePhotoUpload || isCurrentlyAdmin) && evaluator.photo ? 'background: transparent;' : `background: ${evaluator.avatarBg}; color: #ffffff;`}">
+            ${(!this.store.state.hideProfilePhotoUpload || isCurrentlyAdmin) && evaluator.photo ? `<img src="${evaluator.photo}" alt="${escapeHtml(evaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />` : escapeHtml(evaluator.avatar)}
           </div>
           <div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">
@@ -5924,6 +5950,10 @@ class OLAGApp {
               <option value="On Leave" ${statusFilter === 'On Leave' ? 'selected' : ''}>On Leave</option>
             </select>
 
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.75rem; font-size: 0.76rem; white-space: nowrap; ${this.store.state.hideProfilePhotoUpload ? 'background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;' : 'background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5;'}" onclick="app.toggleProfilePhotoUploadSetting()" title="${this.store.state.hideProfilePhotoUpload ? 'Click to allow committee members to upload photos' : 'Click to hide photo uploading from committee members'}">
+              ${this.store.state.hideProfilePhotoUpload ? `${APP_ICONS.eye} Allow Picture Upload` : `${APP_ICONS.eyeOff} Hide Picture Upload`}
+            </button>
+
             <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.75rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddMemberModal()">
               ${APP_ICONS.userPlus} + Add Member
             </button>
@@ -5969,13 +5999,14 @@ class OLAGApp {
                 </tr>
               ` : filtered.map((m, idx) => {
                 const initials = (m.name || '').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+                const canShowMemberPhoto = !this.store.state.hideProfilePhotoUpload && m.photo;
                 return `
                   <tr>
                     <td>${idx + 1}</td>
                     <td>
                       <div style="display: flex; align-items: center; gap: 0.65rem;">
-                        <div style="width: 32px; height: 32px; border-radius: 50%; ${m.photo ? 'background: transparent;' : 'background: #059669;'} color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 800; flex-shrink: 0; overflow: hidden; border: 1.5px solid #10b981;">
-                          ${m.photo ? `<img src="${m.photo}" alt="${escapeHtml(m.name)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />` : initials}
+                        <div style="width: 32px; height: 32px; border-radius: 50%; ${canShowMemberPhoto ? 'background: transparent;' : 'background: #059669;'} color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 800; flex-shrink: 0; overflow: hidden; border: 1.5px solid #10b981;">
+                          ${canShowMemberPhoto ? `<img src="${m.photo}" alt="${escapeHtml(m.name)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />` : initials}
                         </div>
                         <div>
                           <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(m.name)}</div>
@@ -5992,7 +6023,12 @@ class OLAGApp {
                     </td>
                     <td style="text-align: center;">
                       <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
-                        <button type="button" class="action-icon-btn" title="Upload / Change Photo" onclick="app.openProfilePhotoModal('${m.id}')" style="color: #0369a1; background: #e0f2fe;">
+                        ${!this.store.state.hideProfilePhotoUpload ? `
+                          <button type="button" class="action-icon-btn" title="Upload / Change Photo" onclick="app.openProfilePhotoModal('${m.id}')" style="color: #0369a1; background: #e0f2fe;">
+                            ${APP_ICONS.camera}
+                          </button>
+                        ` : ''}
+                        <button type="button" class="action-icon-btn" title="View Member's Scores" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
                           ${APP_ICONS.camera}
                         </button>
                         <button type="button" class="action-icon-btn" title="View Member's Scores" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
@@ -6511,6 +6547,29 @@ class OLAGApp {
                 Disconnect
               </button>
             ` : ''}
+          </div>
+        </div>
+
+        <!-- Committee Profile Picture Upload Controls Card -->
+        <div class="scoring-table-card" style="border: 1.5px solid ${this.store.state.hideProfilePhotoUpload ? '#f87171' : '#86efac'};">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="display: inline-flex; color: var(--navy-primary);">${APP_ICONS.camera}</span>
+              <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--navy-primary); margin: 0;">Committee Profile Pictures</h3>
+            </div>
+            <span class="status-badge-${this.store.state.hideProfilePhotoUpload ? 'closed' : 'active'}" style="font-size: 0.72rem; padding: 0.15rem 0.55rem; ${this.store.state.hideProfilePhotoUpload ? 'background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;' : ''}">
+              ● ${this.store.state.hideProfilePhotoUpload ? 'Upload Picture: Hidden' : 'Upload Picture: Allowed'}
+            </span>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.45;">
+            ${this.store.state.hideProfilePhotoUpload
+              ? 'Profile picture uploading is currently <strong>HIDDEN</strong>. Committee evaluators cannot upload or change profile pictures on their dashboard or during registration. Clean school monogram initials are displayed.'
+              : 'Profile picture uploading is currently <strong>ALLOWED</strong>. Committee evaluators can upload and change custom photos across their dashboard, evaluations, and during registration.'}
+          </p>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="btn-navy-action" style="${this.store.state.hideProfilePhotoUpload ? 'background: #059669; color: #fff;' : 'background: #dc2626; color: #fff;'}" onclick="app.toggleProfilePhotoUploadSetting()">
+              ${this.store.state.hideProfilePhotoUpload ? `${APP_ICONS.eye} Allow Picture Upload` : `${APP_ICONS.eyeOff} Hide Picture Upload`}
+            </button>
           </div>
         </div>
 
@@ -7809,6 +7868,32 @@ on conflict (id) do nothing;`;
   // =========================================================================
   // PROFILE PHOTO PROCESSING & MANAGEMENT
   // =========================================================================
+  toggleProfilePhotoUploadSetting() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can configure profile picture settings.');
+      return;
+    }
+    const current = !!this.store.state.hideProfilePhotoUpload;
+    const newVal = !current;
+    this.store.state.hideProfilePhotoUpload = newVal;
+    this.store.save();
+    if (newVal) {
+      this.showToast('Profile picture uploading is now HIDDEN for committee members.');
+    } else {
+      this.showToast('Profile picture uploading is now ALLOWED for committee members.');
+    }
+    this.applyProfilePhotoVisibility();
+    this.render();
+  }
+
+  applyProfilePhotoVisibility() {
+    const isHidden = !!(this.store && this.store.state && this.store.state.hideProfilePhotoUpload);
+    const regWrap = document.getElementById('regCommitteePhotoUploadWrap');
+    if (regWrap) {
+      regWrap.style.display = isHidden ? 'none' : 'flex';
+    }
+  }
+
   compressImage(file, maxWidth = 300, maxHeight = 300, quality = 0.85) {
     return new Promise((resolve, reject) => {
       if (!file || !file.type || !file.type.startsWith('image/')) {
@@ -7849,6 +7934,11 @@ on conflict (id) do nothing;`;
   }
 
   openProfilePhotoModal(targetMemberId) {
+    const isCurrentlyAdmin = this.store.state.currentRoleKey === 'admin';
+    if (!isCurrentlyAdmin && this.store.state.hideProfilePhotoUpload) {
+      this.showToast('Profile picture uploading has been disabled by the administrator.', 'error');
+      return;
+    }
     const modal = document.getElementById('modalProfilePhoto');
     if (!modal) return;
 
