@@ -532,37 +532,15 @@ const DEFAULT_ARCHIVED_WEEKS = [
   }
 ];
 
-// Legacy demo/test student records & classes hidden so new student entries start fresh
-const LEGACY_HIDDEN_STUDENT_NAMES = new Set([
-  'jenina ampeh',
-  'emmanuel asenso',
-  'genevieve olo yeng',
-  'nhyira'
-]);
-
-const LEGACY_HIDDEN_CLASSES = new Set([
-  '2arts1',
-  '2 science 3',
-  '3 sci 1',
-  '1 science 3'
-]);
+// Students added to the active evaluation cycle are accepted unconditionally
+const LEGACY_HIDDEN_STUDENT_NAMES = new Set([]);
+const LEGACY_HIDDEN_CLASSES = new Set([]);
 
 function isLegacyHiddenStudent(studentOrName) {
-  if (!studentOrName) return false;
-  const rawName = typeof studentOrName === 'string'
-    ? studentOrName
-    : (studentOrName.name || studentOrName.studentName || '');
-  const cleanName = String(rawName).trim().toLowerCase();
-  if (!cleanName) return false;
-  return LEGACY_HIDDEN_STUDENT_NAMES.has(cleanName);
+  return false;
 }
 
 function containsLegacyHiddenStudentName(text) {
-  if (!text) return false;
-  const lower = String(text).toLowerCase();
-  for (const legacyName of LEGACY_HIDDEN_STUDENT_NAMES) {
-    if (lower.includes(legacyName)) return true;
-  }
   return false;
 }
 
@@ -1043,6 +1021,8 @@ class OLAGStore {
 
     stateObj.students.forEach((s, idx) => {
       if (!s) return;
+      if (!s.status) s.status = 'Accepted';
+      if (typeof s.accepted !== 'boolean') s.accepted = true;
       if (!s.id || seenIds.has(s.id)) {
         maxNum = Math.max(maxNum + 1, idx + 1);
         let candidate = `OLAG${String(maxNum).padStart(3, '0')}`;
@@ -4104,6 +4084,9 @@ class OLAGApp {
               </select>
             </div>
           ` : ''}
+          <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
+            ${APP_ICONS.userPlus} + Add Student
+          </button>
           <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
             ${isWeekClosed ? `${APP_ICONS.eye} View Sealed Scores` : (isWeekUpcoming ? `${APP_ICONS.eye} Preview Criteria` : `${APP_ICONS.edit} Enter Scores`)}
           </button>
@@ -4240,7 +4223,10 @@ class OLAGApp {
                 <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                   <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.reports}</div><br>
                   No students currently enrolled in the system.<br>
-                  <small>Students added by administrators will automatically appear here for evaluation.</small>
+                  <small>Add students below to immediately accept and evaluate them for ${escapeHtml(weekLabel)}.</small><br>
+                  <button type="button" class="btn-navy-action" style="margin-top: 0.85rem; font-size: 0.8rem; padding: 0 1.25rem; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
+                    ${APP_ICONS.userPlus} + Add Student
+                  </button>
                 </td>
               </tr>
             ` : (pendingStudents.length === 0 ? `
@@ -4256,7 +4242,10 @@ class OLAGApp {
                 <td>${escapeHtml(s.name)}</td>
                 <td>${escapeHtml(s.class)}</td>
                 <td>${escapeHtml(s.house)}</td>
-                <td><span class="status-badge-pending">Pending</span></td>
+                <td>
+                  <span class="status-badge-active" style="font-size: 0.72rem; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; margin-right: 0.25rem;">Accepted</span>
+                  <span class="status-badge-pending">Pending</span>
+                </td>
                 <td style="text-align: center;">
                   ${isWeekClosed ? `
                     <button class="btn-navy-action" style="height: 30px; padding: 0 0.75rem; font-size: 0.75rem; background: #94a3b8; cursor: not-allowed; opacity: 0.75;" disabled title="Scoring closed by administrator">
@@ -4402,11 +4391,10 @@ class OLAGApp {
               ${allHouses.map(h => `<option value="${escapeHtml(h)}" ${houseFilter === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
             </select>
 
+            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
+              ${APP_ICONS.userPlus} + Add Student
+            </button>
             ${isCurrentlyAdmin ? `
-              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddStudentModal()">
-                ${APP_ICONS.userPlus} + Add Student
-              </button>
-
               <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; background: #334155; white-space: nowrap;" onclick="app.openAddClassModal()">
                 ${APP_ICONS.school} Classes (${allClasses.length})
               </button>
@@ -4441,11 +4429,11 @@ class OLAGApp {
                         ? (isCurrentlyAdmin ? 'Add students to the database to begin weekly personality evaluations.' : 'Students added by the administrator will appear here.')
                         : 'Try clearing your search or class/house filter to see all enrolled students.'}
                     </div>
-                    ${allStudents.length === 0 ? (isCurrentlyAdmin ? `
-                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
+                    ${allStudents.length === 0 ? `
+                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
                         ${APP_ICONS.userPlus} + Add First Student
                       </button>
-                    ` : '') : `
+                    ` : `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('students')">
                         Clear Filters (Show All ${allStudents.length})
                       </button>
@@ -4493,6 +4481,9 @@ class OLAGApp {
                         ` : (scoreData.evaluatorName ? `<div style="font-size: 0.7rem; color: #64748b; margin-top: 0.15rem;">by ${escapeHtml(scoreData.evaluatorName)}</div>` : '')}
                       ` : `
                         <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                          <span class="status-badge-active" style="font-size: 0.72rem; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">
+                            Accepted
+                          </span>
                           <span class="status-badge-pending" style="font-size: 0.72rem;">
                             Pending Scoring
                           </span>
@@ -4875,15 +4866,11 @@ class OLAGApp {
           <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.75rem;">${APP_ICONS.committee}</div>
           <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Students Found in ${escapeHtml(currentClass)}</h3>
           <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
-            ${isCurrentlyAdmin
-              ? 'There are currently no students registered in this class. You can add new students using the button below or pick another class from the filter above.'
-              : 'There are currently no students registered in this class. Please pick another class from the filter above.'}
+            There are currently no students registered in this class. You can add a new student using the button below or pick another class from the filter above.
           </p>
-          ${isCurrentlyAdmin ? `
-            <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
-              + Add Student to Database
-            </button>
-          ` : ''}
+          <button type="button" class="btn-navy-action" style="background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
+            ${APP_ICONS.userPlus} + Add Student to Database
+          </button>
         </div>
       `}
     `;
@@ -7863,12 +7850,18 @@ function initOLAGApp() {
       }
 
       const newId = app.store.getNextStudentId();
+      if (Array.isArray(app.store.state.deletedStudentIds)) {
+        app.store.state.deletedStudentIds = app.store.state.deletedStudentIds.filter(id => id !== newId);
+      }
       const newStudent = {
         id: newId,
         name,
         class: sClass,
         house: sHouse,
         gender: sGender,
+        status: 'Accepted',
+        accepted: true,
+        acceptedAt: new Date().toISOString(),
         comment: 'Newly enrolled student for assessment.',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -7879,10 +7872,10 @@ function initOLAGApp() {
         id: `notif-student-${newStudent.id}`,
         type: 'student',
         icon: 'student',
-        title: `New Student Enrolled: ${newStudent.name}`,
-        message: `${newStudent.name} (${newStudent.id}) enrolled in ${newStudent.class}, ${newStudent.house}.`,
-        actionLabel: 'View Students',
-        actionView: 'students'
+        title: `Student Accepted: ${newStudent.name}`,
+        message: `${newStudent.name} (${newStudent.id}) accepted and enrolled in ${newStudent.class}, ${newStudent.house} for evaluation.`,
+        actionLabel: 'Evaluate Student',
+        actionView: 'assessment'
       });
 
       app.store.state.totalStudentsCount = app.store.state.students.length;
@@ -7894,7 +7887,7 @@ function initOLAGApp() {
 
       app.closeModals();
       formAddStudent.reset();
-      app.showToast(`Added student: ${name} (${newId}) — ${sClass}, ${sHouse}`);
+      app.showToast(`Accepted student for evaluation: ${name} (${newId}) — ${sClass}, ${sHouse}`);
       app.render();
     });
   }
