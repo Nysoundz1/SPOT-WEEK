@@ -36,7 +36,8 @@
       !state.currentView ||
       state.currentView === 'dashboard-admin' ||
       state.currentView === 'committee' ||
-      state.currentView === 'settings'
+      state.currentView === 'settings' ||
+      state.currentView === 'archive'
     ) {
       state.currentView = 'dashboard-committee';
     }

@@ -3433,7 +3433,6 @@ class OLAGApp {
         { id: 'assessment', icon: APP_ICONS.assessment, label: 'Enter Assessment' },
         { id: 'rankings', icon: APP_ICONS.rankings, label: 'Results & Rankings' },
         { id: 'previous-weeks', icon: APP_ICONS.calendar, label: 'Previous Weeks' },
-        { id: 'archive', icon: APP_ICONS.archive, label: 'Archive' },
         { id: 'students', icon: APP_ICONS.students, label: 'Student Directory' },
         { id: 'reports', icon: APP_ICONS.reports, label: 'Official Reports' }
       ];
@@ -3456,7 +3455,7 @@ class OLAGApp {
     const roleKey = this.store.state.currentRoleKey;
     let view = this.store.state.currentView;
 
-    if (roleKey === 'committee' && (view === 'dashboard-admin' || view === 'committee' || view === 'settings')) {
+    if (roleKey === 'committee' && (view === 'dashboard-admin' || view === 'committee' || view === 'settings' || view === 'archive')) {
       view = 'dashboard-committee';
       this.store.state.currentView = view;
     } else if (roleKey === 'admin' && view === 'dashboard-committee') {
@@ -4084,17 +4083,11 @@ class OLAGApp {
               </select>
             </div>
           ` : ''}
-          <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
-            ${APP_ICONS.userPlus} + Add Student
-          </button>
           <button type="button" class="btn-navy-action" style="height: 34px; padding: 0 0.85rem; font-size: 0.78rem; ${isWeekClosed ? 'background: #64748b;' : ''}" onclick="app.navigateTo('assessment')">
             ${isWeekClosed ? `${APP_ICONS.eye} View Sealed Scores` : (isWeekUpcoming ? `${APP_ICONS.eye} Preview Criteria` : `${APP_ICONS.edit} Enter Scores`)}
           </button>
           <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('previous-weeks')">
             ${APP_ICONS.calendar} View All Intervals
-          </button>
-          <button type="button" class="btn-navy-action" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; height: 34px; padding: 0 0.75rem; font-size: 0.78rem;" onclick="app.navigateTo('archive')">
-            ${APP_ICONS.archive} Archive
           </button>
         </div>
       </div>
@@ -4223,10 +4216,7 @@ class OLAGApp {
                 <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
                   <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.5rem;">${APP_ICONS.reports}</div><br>
                   No students currently enrolled in the system.<br>
-                  <small>Add students below to immediately accept and evaluate them for ${escapeHtml(weekLabel)}.</small><br>
-                  <button type="button" class="btn-navy-action" style="margin-top: 0.85rem; font-size: 0.8rem; padding: 0 1.25rem; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
-                    ${APP_ICONS.userPlus} + Add Student
-                  </button>
+                  <small>Students added by administrators will automatically appear here for evaluation.</small>
                 </td>
               </tr>
             ` : (pendingStudents.length === 0 ? `
@@ -4391,10 +4381,11 @@ class OLAGApp {
               ${allHouses.map(h => `<option value="${escapeHtml(h)}" ${houseFilter === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
             </select>
 
-            <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
-              ${APP_ICONS.userPlus} + Add Student
-            </button>
             ${isCurrentlyAdmin ? `
+              <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; white-space: nowrap;" onclick="app.openAddStudentModal()">
+                ${APP_ICONS.userPlus} + Add Student
+              </button>
+
               <button type="button" class="btn-navy-action" style="height: 32px; padding: 0 0.7rem; font-size: 0.76rem; background: #334155; white-space: nowrap;" onclick="app.openAddClassModal()">
                 ${APP_ICONS.school} Classes (${allClasses.length})
               </button>
@@ -4429,11 +4420,11 @@ class OLAGApp {
                         ? (isCurrentlyAdmin ? 'Add students to the database to begin weekly personality evaluations.' : 'Students added by the administrator will appear here.')
                         : 'Try clearing your search or class/house filter to see all enrolled students.'}
                     </div>
-                    ${allStudents.length === 0 ? `
-                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem; background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
+                    ${allStudents.length === 0 ? (isCurrentlyAdmin ? `
+                      <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.openAddStudentModal()">
                         ${APP_ICONS.userPlus} + Add First Student
                       </button>
-                    ` : `
+                    ` : '') : `
                       <button type="button" class="btn-navy-action" style="font-size: 0.8rem; padding: 0 1.25rem;" onclick="app.navigateTo('students')">
                         Clear Filters (Show All ${allStudents.length})
                       </button>
@@ -4866,11 +4857,15 @@ class OLAGApp {
           <div style="display: inline-flex; color: var(--text-muted); margin-bottom: 0.75rem;">${APP_ICONS.committee}</div>
           <h3 style="color: var(--navy-primary); margin-bottom: 0.5rem;">No Students Found in ${escapeHtml(currentClass)}</h3>
           <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.25rem;">
-            There are currently no students registered in this class. You can add a new student using the button below or pick another class from the filter above.
+            ${isCurrentlyAdmin
+              ? 'There are currently no students registered in this class. You can add new students using the button below or pick another class from the filter above.'
+              : 'There are currently no students registered in this class. Please pick another class from the filter above.'}
           </p>
-          <button type="button" class="btn-navy-action" style="background: var(--stat-green); color: #fff;" onclick="app.openAddStudentModal()">
-            ${APP_ICONS.userPlus} + Add Student to Database
-          </button>
+          ${isCurrentlyAdmin ? `
+            <button type="button" class="btn-navy-action" onclick="app.openAddStudentModal()">
+              + Add Student to Database
+            </button>
+          ` : ''}
         </div>
       `}
     `;
@@ -6875,6 +6870,10 @@ on conflict (id) do nothing;`;
   }
 
   openAddStudentModal() {
+    if (this.store.state.currentRoleKey !== 'admin') {
+      this.showToast('Only administrators can add students.');
+      return;
+    }
     const modal = document.getElementById('modalAddStudent');
     if (!modal) return;
     this.populateAddStudentClasses();
@@ -7829,6 +7828,10 @@ function initOLAGApp() {
   if (formAddStudent) {
     formAddStudent.addEventListener('submit', (e) => {
       e.preventDefault();
+      if (app.store.state.currentRoleKey !== 'admin') {
+        app.showToast('Only administrators can add students.');
+        return;
+      }
       const name = document.getElementById('addStudentName').value.trim();
       const sClass = (document.getElementById('addStudentClass').value || '').trim();
       const sHouse = document.getElementById('addStudentHouse').value;
