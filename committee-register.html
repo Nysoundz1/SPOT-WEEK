@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="olag_logo.png">
 
   <!-- Application Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body data-portal-role="committee">
 
@@ -52,6 +52,21 @@
           <p class="auth-sub-heading">Register as an official head prefect or committee evaluator</p>
 
           <form id="registerFormCommittee" autocomplete="on" onsubmit="event.preventDefault(); registerCommitteeAccount(); return false;">
+            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.15rem;">
+              <div style="position: relative; width: 68px; height: 68px; margin-bottom: 0.45rem;">
+                <div id="regCommitteeAvatarPreview" style="width: 68px; height: 68px; border-radius: 50%; background: #059669; color: #fff; font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2.5px solid #10b981; box-shadow: 0 3px 8px rgba(5,150,105,0.25);">
+                  CM
+                </div>
+                <label for="regCommitteePhotoInput" style="position: absolute; bottom: -2px; right: -2px; width: 24px; height: 24px; border-radius: 50%; background: #0c2340; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25);" title="Upload profile picture">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </label>
+              </div>
+              <input type="file" id="regCommitteePhotoInput" accept="image/png,image/jpeg,image/webp" style="display: none;" onchange="handleRegPhotoInput(this.files)" />
+              <button type="button" class="btn-demo-pill" style="font-size: 0.72rem; padding: 0.2rem 0.65rem; border: 1px dashed #059669; color: #059669; background: #ecfdf5; cursor: pointer;" onclick="document.getElementById('regCommitteePhotoInput').click()">
+                Upload Profile Picture (Optional)
+              </button>
+            </div>
+
             <div class="auth-form-group">
               <label for="regCommitteeName">Full Name</label>
               <div class="auth-input-container">
@@ -137,6 +152,38 @@
       updateAuthThemeUI(savedTheme);
     })();
 
+    let _regCommitteePhoto = null;
+    function handleRegPhotoInput(files) {
+      if (!files || !files[0]) return;
+      const file = files[0];
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG, WEBP).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          let w = img.width, h = img.height;
+          const max = 300;
+          if (w > h && w > max) { h = Math.round(h * max / w); w = max; }
+          else if (h > max) { w = Math.round(w * max / h); h = max; }
+          const cvs = document.createElement('canvas');
+          cvs.width = w; cvs.height = h;
+          const ctx = cvs.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          _regCommitteePhoto = cvs.toDataURL('image/jpeg', 0.85);
+          const prev = document.getElementById('regCommitteeAvatarPreview');
+          if (prev) {
+            prev.innerHTML = '<img src="' + _regCommitteePhoto + '" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />';
+            prev.style.background = 'transparent';
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
     function registerCommitteeAccount() {
       if (window.app && window.app.handleCommitteeRegister) {
         window.app.handleCommitteeRegister();
@@ -177,7 +224,8 @@
           role: role,
           username: username,
           password: password,
-          status: 'Active'
+          status: 'Active',
+          photo: _regCommitteePhoto || null
         };
         state.members.push(newMember);
         state.notifications.unshift({
@@ -200,6 +248,7 @@
           username: username,
           avatar: initials,
           avatarBg: '#059669',
+          photo: _regCommitteePhoto || null,
           dashboardView: 'dashboard-committee',
           description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
         };

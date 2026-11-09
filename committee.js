@@ -28,6 +28,7 @@
         username: activeMember.username,
         avatar: initials,
         avatarBg: '#059669',
+        photo: activeMember.photo || (state.currentUser && state.currentUser.photo) || null,
         dashboardView: 'dashboard-committee',
         description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
       };

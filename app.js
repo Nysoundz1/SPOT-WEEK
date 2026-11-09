@@ -40,7 +40,9 @@ const APP_ICONS = {
   play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
   award: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>',
   star: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
-  archive: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>'
+  archive: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
+  camera: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  upload: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>'
 };
 
 // --- Pre-configured Roles & Accounts ---
@@ -56,6 +58,7 @@ const SYSTEM_ROLES = {
     defaultPassword: 'admin@26',
     avatar: 'AD',
     avatarBg: '#0c2340',
+    photo: null,
     dashboardView: 'dashboard-admin',
     description: 'Full administrative oversight: all students, criteria rubric, week intervals, and reports.'
   },
@@ -68,6 +71,7 @@ const SYSTEM_ROLES = {
     username: 'committee',
     avatar: 'CM',
     avatarBg: '#059669',
+    photo: null,
     dashboardView: 'dashboard-committee',
     description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
   }
@@ -1694,6 +1698,7 @@ class OLAGStore {
           username: matched.username,
           avatar: initials,
           avatarBg: '#059669',
+          photo: matched.photo || (cur && cur.photo) || null,
           dashboardView: 'dashboard-committee',
           description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
         };
@@ -1706,6 +1711,7 @@ class OLAGStore {
           key: 'committee',
           avatar: cur.avatar || initials,
           avatarBg: cur.avatarBg || '#059669',
+          photo: cur.photo || null,
           title: cur.title || cur.roleTag || 'Evaluator',
           roleTag: cur.title || cur.roleTag || 'Committee Member'
         };
@@ -2319,8 +2325,9 @@ class OLAGApp {
     }
     const headerProfile = document.getElementById('headerUserProfile');
     if (headerProfile) {
-      headerProfile.style.cursor = 'default';
-      headerProfile.onclick = null;
+      headerProfile.style.cursor = 'pointer';
+      headerProfile.title = 'Click to upload or change profile photo';
+      headerProfile.onclick = () => this.openProfilePhotoModal();
     }
 
     // Form Set Week Interval
@@ -2682,6 +2689,7 @@ class OLAGApp {
       username: username,
       password: password,
       status: 'Active',
+      photo: this._tempRegPhoto || null,
       createdAt: new Date().toISOString()
     };
 
@@ -2708,9 +2716,11 @@ class OLAGApp {
       username: newMember.username,
       avatar: initials,
       avatarBg: '#059669',
+      photo: this._tempRegPhoto || null,
       dashboardView: 'dashboard-committee',
       description: 'Evaluator interface: assessment queue, 7-criteria scoring form, and personal progress.'
     };
+    this._tempRegPhoto = null;
 
     this.store.state.currentRoleKey = 'committee';
     this.store.state.currentUser = roleObj;
@@ -2926,6 +2936,11 @@ class OLAGApp {
       : (currentUser.title || currentUser.roleTag || 'Evaluator');
     const initials = currentUser.avatar || name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || (isCurrentlyAdmin ? 'AD' : 'CM');
     const avatarBg = currentUser.avatarBg || (isCurrentlyAdmin ? '#0c2340' : '#059669');
+    const member = (this.store.state.members || []).find(m =>
+      (currentUser.id && m.id === currentUser.id) ||
+      (currentUser.username && m.username && m.username.toLowerCase() === currentUser.username.toLowerCase())
+    );
+    const photo = (member && member.photo) || currentUser.photo || null;
     return {
       id: currentUser.id || (isCurrentlyAdmin ? 'role-admin' : 'role-committee'),
       name: name,
@@ -2933,6 +2948,7 @@ class OLAGApp {
       username: currentUser.username || (isCurrentlyAdmin ? 'admin' : 'committee'),
       avatar: initials,
       avatarBg: avatarBg,
+      photo: photo,
       status: 'Active'
     };
   }
@@ -3353,9 +3369,14 @@ class OLAGApp {
     if (userNameEl) userNameEl.textContent = evaluator.name;
     if (userRoleEl) userRoleEl.textContent = evaluator.role;
     if (userAvatarEl) {
-      userAvatarEl.textContent = evaluator.avatar;
-      userAvatarEl.style.backgroundColor = evaluator.avatarBg;
-      userAvatarEl.style.color = '#ffffff';
+      if (evaluator.photo) {
+        userAvatarEl.innerHTML = `<img src="${evaluator.photo}" alt="${escapeHtml(evaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`;
+        userAvatarEl.style.backgroundColor = 'transparent';
+      } else {
+        userAvatarEl.textContent = evaluator.avatar;
+        userAvatarEl.style.backgroundColor = evaluator.avatarBg;
+        userAvatarEl.style.color = '#ffffff';
+      }
     }
 
     this.updateDatabaseStatusUI();
@@ -3402,8 +3423,9 @@ class OLAGApp {
     }
     const headerProfileEl = document.getElementById('headerUserProfile');
     if (headerProfileEl) {
-      headerProfileEl.style.cursor = 'default';
-      headerProfileEl.onclick = null;
+      headerProfileEl.style.cursor = 'pointer';
+      headerProfileEl.title = 'Click to upload or change profile photo';
+      headerProfileEl.onclick = () => this.openProfilePhotoModal();
     }
   }
 
@@ -3996,6 +4018,8 @@ class OLAGApp {
     const weekStatus = currentWeek ? (currentWeek.status || 'Open') : 'Pending';
 
     const currentEvaluator = this.getCurrentLoginEvaluator();
+    const evaluatorPhoto = currentEvaluator.photo || (this.store.state.currentUser && this.store.state.currentUser.photo) || null;
+    const evaluatorInitials = currentEvaluator.avatar || (currentEvaluator.name || 'CM').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
     const evaluatedStudents = allStudents.filter(s => {
       const sScores = weekScores[s.id];
       return !!this.findSubmissionForEvaluator(sScores, currentEvaluator);
@@ -4014,10 +4038,25 @@ class OLAGApp {
     const isWeekUpcoming = currentWeek && currentWeek.status === 'Upcoming';
 
     container.innerHTML = `
-      <div class="view-header view-header-with-toggle">
-        <div>
-          <h2>Committee Member Dashboard</h2>
-          <p>Logged in as <strong>${escapeHtml(this.store.state.currentUser.name)}</strong> (${escapeHtml(this.store.state.currentUser.title)})</p>
+      <div class="view-header view-header-with-toggle" style="align-items: center;">
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div style="position: relative; cursor: pointer;" onclick="app.openProfilePhotoModal('${currentEvaluator.id}')" title="Click to upload or change profile photo">
+            <div style="width: 54px; height: 54px; border-radius: 50%; ${evaluatorPhoto ? 'background: transparent;' : 'background: #059669;'} color: #fff; font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2.5px solid #10b981; box-shadow: 0 3px 8px rgba(5, 150, 105, 0.25);">
+              ${evaluatorPhoto ? `<img src="${evaluatorPhoto}" alt="${escapeHtml(currentEvaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />` : evaluatorInitials}
+            </div>
+            <span style="position: absolute; bottom: -2px; right: -2px; width: 22px; height: 22px; border-radius: 50%; background: var(--navy-primary); color: #fff; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" title="Change photo">
+              ${APP_ICONS.camera}
+            </span>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <h2 style="margin: 0;">Committee Member Dashboard</h2>
+              <button type="button" class="btn-demo-pill" style="font-size: 0.72rem; padding: 0.2rem 0.6rem; border: 1px solid #10b981; color: #065f46; background: #ecfdf5; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;" onclick="app.openProfilePhotoModal('${currentEvaluator.id}')" title="Upload or change profile picture">
+                ${APP_ICONS.camera} <span>${evaluatorPhoto ? 'Change Photo' : 'Upload Photo'}</span>
+              </button>
+            </div>
+            <p style="margin: 0.15rem 0 0;">Logged in as <strong>${escapeHtml(currentEvaluator.name)}</strong> (${escapeHtml(currentEvaluator.role)})</p>
+          </div>
         </div>
         <button type="button" class="btn-toggle-dash-info ${isHidden ? 'is-collapsed' : ''}" id="btnToggleCommitteeDashInfo" onclick="app.toggleDashboardInfo()" title="Toggle Dashboard Info Cards">
           <span class="dash-toggle-arrow">${isHidden ? '▼' : '▲'}</span>
@@ -4683,7 +4722,9 @@ class OLAGApp {
       <!-- Interactive Evaluator & Week Interval Status Banner -->
       <div class="evaluator-banner">
         <div class="evaluator-banner-left">
-          <div class="evaluator-avatar" style="background: ${evaluator.avatarBg}; color: #ffffff;">${escapeHtml(evaluator.avatar)}</div>
+          <div class="evaluator-avatar" style="${evaluator.photo ? 'background: transparent;' : `background: ${evaluator.avatarBg}; color: #ffffff;`}">
+            ${evaluator.photo ? `<img src="${evaluator.photo}" alt="${escapeHtml(evaluator.name)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />` : escapeHtml(evaluator.avatar)}
+          </div>
           <div>
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">
               ${isCurrentlyAdmin ? `Viewing Evaluator: ${escapeHtml(evaluator.name)}` : `Scoring as: ${escapeHtml(evaluator.name)}`}
@@ -5933,8 +5974,8 @@ class OLAGApp {
                     <td>${idx + 1}</td>
                     <td>
                       <div style="display: flex; align-items: center; gap: 0.65rem;">
-                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 800; flex-shrink: 0;">
-                          ${initials}
+                        <div style="width: 32px; height: 32px; border-radius: 50%; ${m.photo ? 'background: transparent;' : 'background: #059669;'} color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 800; flex-shrink: 0; overflow: hidden; border: 1.5px solid #10b981;">
+                          ${m.photo ? `<img src="${m.photo}" alt="${escapeHtml(m.name)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />` : initials}
                         </div>
                         <div>
                           <div style="font-weight: 700; color: var(--navy-primary);">${escapeHtml(m.name)}</div>
@@ -5951,6 +5992,9 @@ class OLAGApp {
                     </td>
                     <td style="text-align: center;">
                       <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: center;">
+                        <button type="button" class="action-icon-btn" title="Upload / Change Photo" onclick="app.openProfilePhotoModal('${m.id}')" style="color: #0369a1; background: #e0f2fe;">
+                          ${APP_ICONS.camera}
+                        </button>
                         <button type="button" class="action-icon-btn" title="View Member's Scores" onclick="app.evaluateAsMember('${m.id}')" style="color: #059669; background: #ecfdf5;">
                           ${APP_ICONS.assessment}
                         </button>
@@ -7593,6 +7637,7 @@ on conflict (id) do nothing;`;
     if (passInp) passInp.value = '';
     if (statusSelect) statusSelect.value = 'Active';
     if (btnDelete) btnDelete.style.display = 'none';
+    this._tempMemberPhoto = null;
 
     this.updateMemberPreview();
     modal.classList.add('active');
@@ -7628,6 +7673,7 @@ on conflict (id) do nothing;`;
     if (passInp) passInp.value = member.password || '';
     if (statusSelect) statusSelect.value = member.status || 'Active';
     if (btnDelete) btnDelete.style.display = 'inline-flex';
+    this._tempMemberPhoto = member.photo || null;
 
     this.updateMemberPreview();
     modal.classList.add('active');
@@ -7655,6 +7701,7 @@ on conflict (id) do nothing;`;
     const avatarEl = document.getElementById('memberPreviewAvatar');
     const nameEl = document.getElementById('memberPreviewName');
     const metaEl = document.getElementById('memberPreviewMeta');
+    const btnRemovePhoto = document.getElementById('btnRemoveMemberPhoto');
 
     const name = nameInp && nameInp.value.trim() ? nameInp.value.trim() : 'Member Name';
     const role = roleSelect ? roleSelect.value : 'Committee Member';
@@ -7664,7 +7711,19 @@ on conflict (id) do nothing;`;
 
     const initials = name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
 
-    if (avatarEl) avatarEl.textContent = initials;
+    if (avatarEl) {
+      if (this._tempMemberPhoto) {
+        avatarEl.innerHTML = `<img src="${this._tempMemberPhoto}" alt="Member" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`;
+        avatarEl.style.backgroundColor = 'transparent';
+      } else {
+        avatarEl.textContent = initials;
+        avatarEl.style.backgroundColor = '#059669';
+        avatarEl.style.color = '#fff';
+      }
+    }
+    if (btnRemovePhoto) {
+      btnRemovePhoto.style.display = this._tempMemberPhoto ? 'inline-flex' : 'none';
+    }
     if (nameEl) nameEl.textContent = name;
     if (metaEl) {
       metaEl.innerHTML = `
@@ -7710,6 +7769,9 @@ on conflict (id) do nothing;`;
         existing.username = username;
         existing.password = password;
         existing.status = status;
+        if (this._tempMemberPhoto !== undefined) {
+          existing.photo = this._tempMemberPhoto;
+        }
         existing.updatedAt = new Date().toISOString();
         this.showToast(`Updated committee member: ${name}`);
       }
@@ -7722,24 +7784,232 @@ on conflict (id) do nothing;`;
         scope: scope,
         username: username,
         password: password,
-        status: status
+        status: status,
+        photo: this._tempMemberPhoto || null
       };
       this.store.state.members.push(newMember);
-    this.addNotification({
-      id: `notif-member-${newMember.id}`,
-      type: 'member',
-      icon: 'member',
-      title: `Committee Member Registered: ${newMember.name}`,
-      message: `${newMember.name} (${newMember.role}) registered with username "${newMember.username}" and is Active for student assessments.`,
-      actionLabel: 'View in Directory',
-      actionView: 'committee'
-    });
+      this.addNotification({
+        id: `notif-member-${newMember.id}`,
+        type: 'member',
+        icon: 'member',
+        title: `Committee Member Registered: ${newMember.name}`,
+        message: `${newMember.name} (${newMember.role}) registered with username "${newMember.username}" and is Active for student assessments.`,
+        actionLabel: 'View in Directory',
+        actionView: 'committee'
+      });
       this.showToast(`Added committee member: ${name}`);
+    }
+
+    this._tempMemberPhoto = null;
+    this.store.save();
+    this.closeModals();
+    this.render();
+  }
+
+  // =========================================================================
+  // PROFILE PHOTO PROCESSING & MANAGEMENT
+  // =========================================================================
+  compressImage(file, maxWidth = 300, maxHeight = 300, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type || !file.type.startsWith('image/')) {
+        reject(new Error('Selected file is not an image.'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image for processing.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  openProfilePhotoModal(targetMemberId) {
+    const modal = document.getElementById('modalProfilePhoto');
+    if (!modal) return;
+
+    const currentEvaluator = this.getCurrentLoginEvaluator();
+    let member = null;
+    const members = Array.isArray(this.store.state.members) ? this.store.state.members : [];
+
+    if (targetMemberId) {
+      member = members.find(m => m.id === targetMemberId) || null;
+    }
+    if (!member) {
+      member = members.find(m =>
+        (currentEvaluator.id && m.id === currentEvaluator.id) ||
+        (currentEvaluator.username && m.username && m.username.toLowerCase() === currentEvaluator.username.toLowerCase())
+      ) || null;
+    }
+
+    const memberName = member ? member.name : (currentEvaluator.name || 'Committee Member');
+    const memberRole = member ? (member.role || 'Evaluator') : (currentEvaluator.role || 'Committee Evaluator');
+    const initials = (memberName || 'CM').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+    const currentPhoto = (member && member.photo) || (this.store.state.currentUser && this.store.state.currentUser.photo) || null;
+
+    this._photoModalTargetMemberId = member ? member.id : currentEvaluator.id;
+    this._pendingProfilePhoto = currentPhoto;
+
+    const titleEl = document.getElementById('modalProfilePhotoTitle');
+    const nameEl = document.getElementById('profilePhotoMemberName');
+    const roleEl = document.getElementById('profilePhotoMemberRole');
+    const fileInput = document.getElementById('profilePhotoFileInput');
+    const btnRemove = document.getElementById('btnRemoveProfilePhoto');
+
+    if (titleEl) titleEl.textContent = `Profile Picture: ${memberName}`;
+    if (nameEl) nameEl.textContent = memberName;
+    if (roleEl) roleEl.textContent = memberRole;
+    if (fileInput) fileInput.value = '';
+
+    this.renderProfilePhotoModalPreview(currentPhoto, initials);
+
+    if (btnRemove) {
+      btnRemove.style.display = currentPhoto ? 'inline-flex' : 'none';
+    }
+
+    modal.classList.add('active');
+  }
+
+  renderProfilePhotoModalPreview(photoData, initials) {
+    const previewEl = document.getElementById('profilePhotoModalPreview');
+    if (!previewEl) return;
+    if (photoData) {
+      previewEl.innerHTML = `<img src="${photoData}" alt="Profile Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`;
+      previewEl.style.backgroundColor = 'transparent';
+    } else {
+      previewEl.textContent = initials || 'CM';
+      previewEl.style.backgroundColor = '#059669';
+      previewEl.style.color = '#ffffff';
+    }
+  }
+
+  async handleProfilePhotoFileSelected(files) {
+    if (!files || !files[0]) return;
+    const file = files[0];
+    if (!file.type || !file.type.startsWith('image/')) {
+      this.showToast('Please select a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+    try {
+      const compressed = await this.compressImage(file, 300, 300, 0.85);
+      this._pendingProfilePhoto = compressed;
+      this.renderProfilePhotoModalPreview(compressed, 'CM');
+      const btnRemove = document.getElementById('btnRemoveProfilePhoto');
+      if (btnRemove) btnRemove.style.display = 'inline-flex';
+      this.showToast('Photo selected! Click "Save Photo" to apply.');
+    } catch (err) {
+      console.error(err);
+      this.showToast('Failed to process image: ' + (err.message || 'Unknown error'));
+    }
+  }
+
+  removeProfilePhoto() {
+    this._pendingProfilePhoto = null;
+    const currentEvaluator = this.getCurrentLoginEvaluator();
+    const initials = (currentEvaluator.name || 'CM').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'CM';
+    this.renderProfilePhotoModalPreview(null, initials);
+    const btnRemove = document.getElementById('btnRemoveProfilePhoto');
+    if (btnRemove) btnRemove.style.display = 'none';
+    this.showToast('Photo cleared. Click "Save Photo" to confirm removal.');
+  }
+
+  saveProfilePhoto() {
+    const targetId = this._photoModalTargetMemberId;
+    const newPhoto = this._pendingProfilePhoto || null;
+
+    if (Array.isArray(this.store.state.members)) {
+      const mem = this.store.state.members.find(m => m.id === targetId);
+      if (mem) {
+        mem.photo = newPhoto;
+        mem.updatedAt = new Date().toISOString();
+      }
+    }
+
+    if (
+      !targetId ||
+      (this.store.state.currentUser && (this.store.state.currentUser.id === targetId || this.store.state.currentUser.key === 'committee'))
+    ) {
+      if (!this.store.state.currentUser) this.store.state.currentUser = {};
+      this.store.state.currentUser.photo = newPhoto;
     }
 
     this.store.save();
     this.closeModals();
-    this.render();
+    this.renderTopHeader();
+    this.renderActiveView();
+    this.showToast(newPhoto ? 'Profile picture updated successfully!' : 'Profile picture removed.');
+  }
+
+  async handleRegCommitteePhotoSelected(files) {
+    if (!files || !files[0]) return;
+    const file = files[0];
+    if (!file.type || !file.type.startsWith('image/')) {
+      this.showToast('Please select a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+    try {
+      const compressed = await this.compressImage(file, 300, 300, 0.85);
+      this._tempRegPhoto = compressed;
+      const preview = document.getElementById('regCommitteeAvatarPreview');
+      if (preview) {
+        preview.innerHTML = `<img src="${compressed}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" />`;
+        preview.style.backgroundColor = 'transparent';
+      }
+      this.showToast('Profile picture attached!');
+    } catch (err) {
+      console.error(err);
+      this.showToast('Failed to process image: ' + (err.message || 'Unknown error'));
+    }
+  }
+
+  async handleAddMemberPhotoSelected(files) {
+    if (!files || !files[0]) return;
+    const file = files[0];
+    if (!file.type || !file.type.startsWith('image/')) {
+      this.showToast('Please select a valid image file (PNG, JPG, WEBP).');
+      return;
+    }
+    try {
+      const compressed = await this.compressImage(file, 300, 300, 0.85);
+      this._tempMemberPhoto = compressed;
+      this.updateMemberPreview();
+      this.showToast('Member photo selected!');
+    } catch (err) {
+      console.error(err);
+      this.showToast('Failed to process image: ' + (err.message || 'Unknown error'));
+    }
+  }
+
+  removeMemberPhoto() {
+    this._tempMemberPhoto = null;
+    this.updateMemberPreview();
+    const btnRemove = document.getElementById('btnRemoveMemberPhoto');
+    if (btnRemove) btnRemove.style.display = 'none';
+    this.showToast('Member photo removed.');
   }
 
   closeModals() {

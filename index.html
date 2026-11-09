@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="olag_logo.png">
 
   <!-- Application Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 
@@ -486,14 +486,28 @@
 
         <!-- Live Interactive Badge Preview -->
         <div style="margin-bottom: 1.5rem; padding: 0.85rem 1.15rem; background: #f8fafc; border: 1px solid var(--card-border); border-radius: 10px; display: flex; align-items: center; gap: 1rem;">
-          <div id="memberPreviewAvatar" class="header-user-avatar" style="width: 44px; height: 44px; font-size: 1rem; background: #0c2340; color: #fff;">
-            GM
+          <div style="position: relative;">
+            <div id="memberPreviewAvatar" class="header-user-avatar" style="width: 48px; height: 48px; font-size: 1rem; background: #059669; color: #fff; cursor: pointer; border: 2px solid #10b981;" onclick="document.getElementById('addMemberPhotoInput').click()" title="Click to upload member photo">
+              GM
+            </div>
+            <label for="addMemberPhotoInput" style="position: absolute; bottom: -2px; right: -2px; width: 20px; height: 20px; border-radius: 50%; background: var(--navy-primary); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1.5px solid #fff;" title="Upload photo">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </label>
           </div>
+          <input type="file" id="addMemberPhotoInput" accept="image/png,image/jpeg,image/webp" style="display: none;" onchange="if(window.app) window.app.handleAddMemberPhotoSelected(this.files)" />
           <div style="flex: 1;">
             <div id="memberPreviewName" style="font-weight: 800; font-size: 0.95rem; color: var(--navy-primary);">Mrs. Grace Mensah</div>
             <div id="memberPreviewMeta" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
               Head of Discipline • <code>grace.m</code> • <span style="color: var(--stat-green); font-weight: 700;">Active</span>
             </div>
+          </div>
+          <div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
+            <button type="button" class="btn-demo-pill" style="font-size: 0.72rem; padding: 0.2rem 0.55rem; border: 1px solid #cbd5e1; background: #fff; cursor: pointer;" onclick="document.getElementById('addMemberPhotoInput').click()">
+              Upload Photo
+            </button>
+            <button type="button" class="btn-demo-pill" id="btnRemoveMemberPhoto" style="font-size: 0.72rem; padding: 0.2rem 0.55rem; border: 1px solid #fca5a5; background: #fee2e2; color: #dc2626; cursor: pointer; display: none;" onclick="if(window.app) window.app.removeMemberPhoto()">
+              Remove
+            </button>
           </div>
         </div>
 
@@ -574,12 +588,65 @@
     </div>
   </div>
 
+  <!-- Upload / Change Profile Picture Modal -->
+  <div class="modal-overlay" id="modalProfilePhoto">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header-row">
+        <div>
+          <h3 id="modalProfilePhotoTitle">Profile Picture</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Upload or change committee member photo across the portal.
+          </p>
+        </div>
+        <button type="button" class="btn-close-x" data-close-modal>&times;</button>
+      </div>
+
+      <div style="padding: 1.25rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div style="position: relative; margin-bottom: 1.15rem;">
+          <div id="profilePhotoModalPreview" style="width: 110px; height: 110px; border-radius: 50%; background: #059669; color: #fff; font-size: 2.2rem; font-weight: 800; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 3px solid #10b981; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.2);">
+            CM
+          </div>
+          <label for="profilePhotoFileInput" style="position: absolute; bottom: 0; right: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--navy-primary); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 2px solid #fff;" title="Choose new picture">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </label>
+        </div>
+
+        <input type="file" id="profilePhotoFileInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display: none;" onchange="if(window.app) window.app.handleProfilePhotoFileSelected(this.files)" />
+
+        <div id="profilePhotoMemberName" style="font-weight: 800; font-size: 1.05rem; color: var(--navy-primary); margin-bottom: 0.15rem;">
+          Member Name
+        </div>
+        <div id="profilePhotoMemberRole" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Committee Evaluator
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; margin-bottom: 1rem; width: 100%;">
+          <button type="button" class="btn-navy-action" style="padding: 0.45rem 1.15rem; font-size: 0.82rem; background: var(--navy-primary); color: #fff;" onclick="document.getElementById('profilePhotoFileInput').click()">
+            Upload Photo
+          </button>
+          <button type="button" class="btn-navy-action" id="btnRemoveProfilePhoto" style="padding: 0.45rem 1.15rem; font-size: 0.82rem; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; display: none;" onclick="if(window.app) window.app.removeProfilePhoto()">
+            Remove Photo
+          </button>
+        </div>
+
+        <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; max-width: 360px;">
+          Supports JPG, PNG, WEBP. Photos are automatically optimized for fast performance and synced across all your evaluations.
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 0.85rem 1.25rem; background: #f8fafc; border-top: 1px solid var(--card-border); border-radius: 0 0 var(--radius-md) var(--radius-md);">
+        <button type="button" class="btn-navy-action" style="background: #e2e8f0; color: #1e293b;" data-close-modal>Close</button>
+        <button type="button" class="btn-navy-action" id="btnSaveProfilePhoto" style="background: #059669; color: #fff;" onclick="if(window.app) window.app.saveProfilePhoto()">Save Photo</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Stack -->
   <div id="toastStack" class="toast-stack"></div>
 
   <!-- JavaScript Application Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
   <script>
     function signInAdmin() {
       if (window.app) {
